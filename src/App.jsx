@@ -1159,7 +1159,7 @@ export default function App() {
       return next;
     });
     if (reservation?.ref) marquerEdlSortie(reservation.ref);
-    setStep(8);
+    setStep(7);
   }
 
   function soumettreAvis() {
@@ -2821,7 +2821,7 @@ export default function App() {
             <div style={{ fontWeight: 600, color: "#0B6E8A", marginBottom: 2 }}>Paiement sécurisé Stripe</div>
             <div style={{ fontSize: 12, color: "#5a8a96" }}>Module Stripe activé lors du déploiement.</div>
           </div>
-          <button style={{ ...btnP, opacity: modePaiement ? 1 : 0.5 }} onClick={() => modePaiement && setStep(5)}>
+          <button style={{ ...btnP, opacity: modePaiement ? 1 : 0.5 }} onClick={() => modePaiement && setStep(8)}>
             {modePaiement === "especes" ? `✓ Payer l'acompte ${formatEur(acompte)}` : `✓ Payer ${formatEur(totalGeneral)}`}
           </button>
           <button style={btnS} onClick={() => setStep(3)}>← Retour</button>
@@ -2915,7 +2915,7 @@ export default function App() {
               <div style={{ fontWeight: 700, color: "#FF6B6B", marginBottom: 4 }}>⚠️ À faire au départ</div>
               <div style={{ fontSize: 13, color: "#2C3E50", lineHeight: 1.6 }}>Réalisez l'état des lieux de sortie avant de partir.</div>
             </div>
-            <button style={btnP} onClick={() => setStep(7)}>📷 Faire l'état des lieux de sortie</button>
+            <button style={btnP} onClick={() => setStep(6)}>📷 Faire l'état des lieux de sortie</button>
           </div>
         </div>
       </div>
