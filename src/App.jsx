@@ -69,7 +69,8 @@ function genererCodePromo() {
 
 function heuresBloquees(reservations, date) {
   const blocked = new Set();
-  reservations.filter(r => r.date === date).forEach(r => {
+  // Les réservations refusées ne bloquent plus le créneau
+  reservations.filter(r => r.date === date && r.statut !== "refusee").forEach(r => {
     const debut = parseInt(r.heureDebut), fin = parseInt(r.heureFin);
     for (let h = debut - 1; h < fin + 1; h++) blocked.add(h);
   });
@@ -83,7 +84,7 @@ function statutHeures(disponibilites, reservations, date) {
   const result = {};
   ALL_HOURS.forEach(h => {
     const dispo = plages.some(p => h >= p.debut && h < p.fin);
-    const res = reservations.find(r => r.date === date && parseInt(r.heureDebut) <= h && parseInt(r.heureFin) > h);
+    const res = reservations.find(r => r.date === date && r.statut !== "refusee" && parseInt(r.heureDebut) <= h && parseInt(r.heureFin) > h);
     if (res) result[h] = "reserve";
     else if (blocked.has(h)) result[h] = "tampon";
     else if (dispo) result[h] = "libre";
@@ -758,6 +759,8 @@ export default function App() {
   const [propriFin, setProprieFin] = useState(20);
   const [ongletPropri, setOngletPropri] = useState("dispo");
   const [noteEnCoursRef, setNoteEnCoursRef] = useState(null);
+  const [refusEnCoursRef, setRefusEnCoursRef] = useState(null);
+  const [motifRefusVal, setMotifRefusVal] = useState("");
   const [nouvelExtra, setNouvelExtra] = useState({ nom:"", description:"", tarif:0, type:"forfait", emoji:"✨", actif:true });
   const [ajoutExtraMode, setAjoutExtraMode] = useState(false);
   const [extraEnEdition, setExtraEnEdition] = useState(null);
@@ -806,6 +809,7 @@ export default function App() {
 
       reservations.forEach(r => {
         if (r.date !== dateAujourdhui) return;
+        if (r.statut !== "acceptee") return; // seules les réservations validées déclenchent un état des lieux
         // Début de session → alerte état des lieux d'entrée
         if (heure === r.heureDebut && !r.edlEntreeFait) {
           setAlerteEdl("entree");
@@ -907,11 +911,11 @@ export default function App() {
   function confirmerReservation() {
     const ref = "RES-" + Date.now().toString(36).toUpperCase();
     const compteInfo = compteConnecte ? comptes[compteConnecte] : {};
-    const r = { ...form, heureDebut, heureFin, prix: prixFinal, remise, extrasChoisis, totalExtras, totalGeneral, modePaiement, acompte, resteARegler, ref, photosAvant, photosApres: [], adresse: compteInfo.adresse||"", codePostal: compteInfo.codePostal||"", ville: compteInfo.ville||"" };
+    const r = { ...form, heureDebut, heureFin, prix: prixFinal, remise, extrasChoisis, totalExtras, totalGeneral, modePaiement, acompte, resteARegler, ref, photosAvant, photosApres: [], adresse: compteInfo.adresse||"", codePostal: compteInfo.codePostal||"", ville: compteInfo.ville||"", statut: "en_attente" };
     setReservations(prev => [...prev, r]);
     setReservation(r);
-    // Marquer EDL entrée comme fait
-    setTimeout(() => marquerEdlEntree(ref), 100);
+    // NOTE: l'état des lieux d'entrée se fera après acceptation, pas ici
+    // TODO: déclencher ici l'envoi email/SMS au propriétaire "Nouvelle demande de réservation"
     if (codePromoStatut === "ok" && codePromoSaisi) {
       const code = codePromoSaisi.trim().toUpperCase();
       setRegistreCodes(prev => ({ ...prev, [code]: { ...prev[code], utilise: true } }));
@@ -921,6 +925,18 @@ export default function App() {
       setComptes(prev => ({ ...prev, [compteConnecte]: { ...prev[compteConnecte], reservations: [...(prev[compteConnecte].reservations || []), ref] } }));
     }
     setStep(5);
+  }
+
+  function accepterReservation(ref) {
+    setReservations(prev => prev.map(r => r.ref === ref ? { ...r, statut: "acceptee" } : r));
+    // TODO: déclencher ici l'envoi email/SMS au locataire "Réservation acceptée"
+  }
+
+  function refuserReservation(ref, motif) {
+    setReservations(prev => prev.map(r => r.ref === ref ? { ...r, statut: "refusee", motifRefus: motif || "" } : r));
+    // Libère le créneau (les disponibilités ne comptent que les réservations "acceptee" ou "en_attente" pour le blocage,
+    // donc une fois "refusee" elle n'a plus besoin d'être retirée explicitement si on filtre par statut ailleurs)
+    // TODO: déclencher ici l'envoi email/SMS au locataire "Réservation refusée" + remboursement
   }
 
   function cloturerSession() {
@@ -1970,26 +1986,82 @@ export default function App() {
           {ongletPropri === "reservations" && (
             <div style={card}>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", marginBottom: 12, fontWeight: 700 }}>📋 Réservations</div>
+
+              {/* Demandes en attente mises en avant */}
+              {reservations.filter(r => r.statut === "en_attente").length > 0 && (
+                <div style={{ background:"#fff8e1", border:"2px solid #f0c040", borderRadius:12, padding:"12px 14px", marginBottom:16 }}>
+                  <div style={{ fontWeight:700, color:"#a06000", fontSize:14, marginBottom:4 }}>
+                    🔔 {reservations.filter(r => r.statut === "en_attente").length} demande{reservations.filter(r => r.statut === "en_attente").length>1?"s":""} en attente de votre validation
+                  </div>
+                  <div style={{ fontSize:12, color:"#a06000" }}>Voir ci-dessous, mises en évidence.</div>
+                </div>
+              )}
+
               {reservations.length === 0 ? (
                 <div style={{ color: "#5a8a96", fontSize: 14, textAlign: "center", padding: "16px 0" }}>Aucune réservation.</div>
-              ) : reservations.sort((a, b) => a.date.localeCompare(b.date)).map(r => {
+              ) : reservations.sort((a, b) => {
+                  // En attente d'abord, puis par date
+                  if (a.statut === "en_attente" && b.statut !== "en_attente") return -1;
+                  if (b.statut === "en_attente" && a.statut !== "en_attente") return 1;
+                  return a.date.localeCompare(b.date);
+                }).map(r => {
                 const noteP = notesLocataires[r.ref];
                 const sessionPassee = r.date <= today();
+                const statut = r.statut || "acceptee"; // anciennes résas sans statut = acceptées par défaut
+                const badgeStatut = {
+                  en_attente: { bg:"#fff8e1", color:"#a06000", border:"#f0c040", label:"⏳ En attente" },
+                  acceptee: { bg:"#e6faf8", color:"#0B6E8A", border:"#4ECDC4", label:"✓ Acceptée" },
+                  refusee: { bg:"#fff0f0", color:"#c0302a", border:"#FF6B6B", label:"✗ Refusée" },
+                }[statut];
                 return (
-                  <div key={r.ref} style={{ background: "#f0fafc", borderRadius: 10, padding: "12px 14px", marginBottom: 12, border: "1px solid #b0d8e3" }}>
-                    <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 13 }}>{r.ref}</div>
+                  <div key={r.ref} style={{ background: statut==="en_attente" ? "#fffdf5" : "#f0fafc", borderRadius: 10, padding: "12px 14px", marginBottom: 12, border: statut==="en_attente" ? "2px solid #f0c040" : "1px solid #b0d8e3" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                      <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 13 }}>{r.ref}</div>
+                      <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:badgeStatut.bg, color:badgeStatut.color, border:`1px solid ${badgeStatut.border}` }}>
+                        {badgeStatut.label}
+                      </span>
+                    </div>
                     <div style={{ fontSize: 13, color: "#2C3E50", marginTop: 2 }}>{r.prenom} {r.nom} · {r.email}</div>
                     {comptes[r.email]?.ville && <div style={{ fontSize: 11, color: "#5a8a96" }}>📍 {comptes[r.email]?.codePostal} {comptes[r.email]?.ville}</div>}
                     <div style={{ fontSize: 12, color: "#5a8a96" }}>{r.date} · {padH(r.heureDebut ?? parseInt(r.heureDebut))} → {padH(r.heureFin ?? parseInt(r.heureFin))}</div>
                     <div style={{ fontSize: 12, color: "#5a8a96" }}>{r.adultes} adulte{r.adultes > 1 ? "s" : ""}{r.enfants12 > 0 ? ` + ${r.enfants12} enfant` : ""} · {formatEur(r.prix)}</div>
                     {r.note && <div style={{ fontSize: 12, color: "#f0a500", marginTop: 4 }}>💬 {"⭐".repeat(r.note)}{r.commentaire && ` — "${r.commentaire}"`}</div>}
                     {r.photosCasse && r.photosCasse.length > 0 && <div style={{ marginTop: 5, background: "#fff0f0", borderRadius: 7, padding: "5px 10px", fontSize: 12, color: "#FF6B6B" }}>⚠️ Casse : {r.descriptionCasse || "sans description"}</div>}
+
+                    {/* Boutons accepter / refuser pour les demandes en attente */}
+                    {statut === "en_attente" && (
+                      refusEnCoursRef === r.ref ? (
+                        <div style={{ marginTop:10, background:"#fff", borderRadius:10, padding:"12px", border:"1.5px solid #FF6B6B" }}>
+                          <div style={{ fontWeight:700, color:"#c0302a", fontSize:13, marginBottom:8 }}>Motif du refus (optionnel)</div>
+                          <textarea value={motifRefusVal} onChange={e=>setMotifRefusVal(e.target.value)} placeholder="Ex: créneau finalement indisponible..."
+                            style={{ ...inp, height:60, resize:"vertical", fontSize:12, marginBottom:8 }}/>
+                          <div style={{ display:"flex", gap:8 }}>
+                            <button style={{ flex:1, padding:"9px", borderRadius:8, background:"#FF6B6B", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}
+                              onClick={() => { refuserReservation(r.ref, motifRefusVal); setRefusEnCoursRef(null); setMotifRefusVal(""); }}>
+                              Confirmer le refus
+                            </button>
+                            <button style={{ ...btnS, marginTop:0, fontSize:13, padding:"9px" }} onClick={() => { setRefusEnCoursRef(null); setMotifRefusVal(""); }}>Annuler</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display:"flex", gap:8, marginTop:10 }}>
+                          <button style={{ flex:1, padding:"10px", borderRadius:9, background:"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}
+                            onClick={() => accepterReservation(r.ref)}>
+                            ✓ Accepter
+                          </button>
+                          <button style={{ flex:1, padding:"10px", borderRadius:9, background:"#fff", color:"#FF6B6B", border:"1.5px solid #FF6B6B", fontWeight:700, fontSize:13, cursor:"pointer" }}
+                            onClick={() => setRefusEnCoursRef(r.ref)}>
+                            ✗ Refuser
+                          </button>
+                        </div>
+                      )
+                    )}
                     {noteP ? (
                       <div style={{ marginTop: 8, background: "#e6faf8", borderRadius: 8, padding: "7px 10px" }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: "#0B6E8A" }}>Votre note : {"⭐".repeat(noteP.note)}{noteP.note >= 4 ? <span style={{ color: "#4ECDC4", marginLeft: 6 }}>✓ Code accordé</span> : <span style={{ color: "#FF6B6B", marginLeft: 6 }}>✗ Code refusé</span>}</div>
                         {noteP.commentaire && <div style={{ fontSize: 11, color: "#5a8a96" }}>"{noteP.commentaire}"</div>}
                       </div>
-                    ) : sessionPassee && (
+                    ) : sessionPassee && statut === "acceptee" && (
                       noteEnCoursRef === r.ref ? (
                         <div style={{ marginTop: 10, background: "#f0fafc", borderRadius: 10, padding: "12px", border: "1px solid #b0d8e3" }}>
                           <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 13, marginBottom: 8 }}>⭐ Notez ce locataire</div>
@@ -2472,25 +2544,76 @@ export default function App() {
     </div>
   );
 
-  // ── ÉTAPE 6 : Confirmation ────────────────────────────────────────────────
-  if (mode === "locataire" && step === 5) return (
-    <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
-      <Header showSteps={true} />
-      <div style={{ padding: "16px 16px 32px" }}>
-        <div style={{ ...card, textAlign: "center" }}>
-          <div style={{ fontSize: 40, marginBottom: 6 }}>🎉</div>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, color: "#0B6E8A", fontWeight: 700, marginBottom: 6 }}>Réservation confirmée !</div>
-          <div style={{ display: "inline-block", background: "#4ECDC4", color: "#fff", borderRadius: 8, padding: "4px 13px", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>{reservation?.ref}</div>
-          <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.7 }}>Confirmation envoyée à <strong>{form.email}</strong>.<br />Profitez bien ! 🌊</div>
-          <div style={{ background: "#fff3f3", borderRadius: 10, padding: "11px 13px", border: "2px solid #FF6B6B", marginBottom: 12, textAlign: "left" }}>
-            <div style={{ fontWeight: 700, color: "#FF6B6B", marginBottom: 4 }}>⚠️ À faire au départ</div>
-            <div style={{ fontSize: 13, color: "#2C3E50", lineHeight: 1.6 }}>Réalisez l'état des lieux de sortie avant de partir.</div>
+  // ── ÉTAPE 6 : Confirmation / En attente ───────────────────────────────────
+  if (mode === "locataire" && step === 5) {
+    // Lire le statut le plus à jour (au cas où le propriétaire a déjà répondu très vite)
+    const resaActuelle = reservations.find(r => r.ref === reservation?.ref) || reservation;
+    const statut = resaActuelle?.statut || "en_attente";
+
+    if (statut === "en_attente") return (
+      <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+        <Header showSteps={true} />
+        <div style={{ padding: "16px 16px 32px" }}>
+          <div style={{ ...card, textAlign: "center" }}>
+            <div style={{ fontSize: 40, marginBottom: 6 }}>⏳</div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, color: "#0B6E8A", fontWeight: 700, marginBottom: 6 }}>Demande envoyée !</div>
+            <div style={{ display: "inline-block", background: "#f0c040", color: "#fff", borderRadius: 8, padding: "4px 13px", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>{reservation?.ref}</div>
+            <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.7 }}>
+              Votre demande de réservation est <strong>en attente de validation</strong> par le propriétaire.<br/>
+              Vous recevrez un email à <strong>{form.email}</strong> dès qu'elle sera traitée.
+            </div>
+            <div style={{ background: "#fff8e1", borderRadius: 10, padding: "11px 13px", border: "2px solid #f0c040", marginBottom: 12, textAlign: "left" }}>
+              <div style={{ fontWeight: 700, color: "#a06000", marginBottom: 4 }}>ℹ️ Que se passe-t-il maintenant ?</div>
+              <div style={{ fontSize: 13, color: "#2C3E50", lineHeight: 1.6 }}>
+                Le propriétaire va examiner votre demande. Si elle est acceptée, votre créneau sera confirmé. Si elle est refusée, vous serez remboursé(e).
+              </div>
+            </div>
+            <button style={btnP} onClick={() => { resetSession(); setMode(compteConnecte?"compte":"accueil"); }}>
+              {compteConnecte ? "Voir mes réservations" : "Retour à l'accueil"}
+            </button>
           </div>
-          <button style={btnP} onClick={() => setStep(7)}>📷 Faire l'état des lieux de sortie</button>
         </div>
       </div>
-    </div>
-  );
+    );
+
+    if (statut === "refusee") return (
+      <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+        <Header showSteps={true} />
+        <div style={{ padding: "16px 16px 32px" }}>
+          <div style={{ ...card, textAlign: "center" }}>
+            <div style={{ fontSize: 40, marginBottom: 6 }}>😔</div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, color: "#FF6B6B", fontWeight: 700, marginBottom: 6 }}>Demande refusée</div>
+            <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.7 }}>
+              Le propriétaire n'a pas pu accepter votre demande pour ce créneau.
+              {resaActuelle?.motifRefus && <><br/><em>"{resaActuelle.motifRefus}"</em></>}
+              <br/>Vous serez remboursé(e) intégralement.
+            </div>
+            <button style={btnP} onClick={() => { resetSession(); setMode("locataire"); setStep(1); }}>Choisir un autre créneau</button>
+          </div>
+        </div>
+      </div>
+    );
+
+    // statut === "acceptee"
+    return (
+      <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+        <Header showSteps={true} />
+        <div style={{ padding: "16px 16px 32px" }}>
+          <div style={{ ...card, textAlign: "center" }}>
+            <div style={{ fontSize: 40, marginBottom: 6 }}>🎉</div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, color: "#0B6E8A", fontWeight: 700, marginBottom: 6 }}>Réservation confirmée !</div>
+            <div style={{ display: "inline-block", background: "#4ECDC4", color: "#fff", borderRadius: 8, padding: "4px 13px", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>{reservation?.ref}</div>
+            <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.7 }}>Confirmation envoyée à <strong>{form.email}</strong>.<br />Profitez bien ! 🌊</div>
+            <div style={{ background: "#fff3f3", borderRadius: 10, padding: "11px 13px", border: "2px solid #FF6B6B", marginBottom: 12, textAlign: "left" }}>
+              <div style={{ fontWeight: 700, color: "#FF6B6B", marginBottom: 4 }}>⚠️ À faire au départ</div>
+              <div style={{ fontSize: 13, color: "#2C3E50", lineHeight: 1.6 }}>Réalisez l'état des lieux de sortie avant de partir.</div>
+            </div>
+            <button style={btnP} onClick={() => setStep(7)}>📷 Faire l'état des lieux de sortie</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── ÉTAPE 6 : État des lieux APRÈS + casse ────────────────────────────────
   if (mode === "locataire" && step === 6) return (
