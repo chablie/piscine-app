@@ -1291,15 +1291,18 @@ export default function App() {
           <button style={{ ...btnS, marginTop: 10, borderColor: "#0B6E8A", color: "#0B6E8A" }} onClick={() => setMode(proprioConnecte || adminConnecte ? "proprio" : "loginProprio")}>🔑 Espace propriétaire</button>
           <button style={{ ...btnS, marginTop: 10, borderColor: "#aaa", color: "#888", fontSize:12, padding:"8px 24px" }} onClick={() => setMode(adminConnecte ? "proprio" : "loginAdmin")}>⚙️ Accès administrateur</button>
         </div>
-        <div style={card}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, color: "#0B6E8A", marginBottom: 12, fontWeight: 700 }}>Infos pratiques</div>
-          {[["💧", "Piscine privée", "Accès exclusif pendant votre créneau"], ["👥", "Tarifs", "9 €/pers/h · -50% enfants 3–11 ans · gratuit -3 ans"], ["⏱️", "Créneaux", "Choisissez librement vos horaires"], ["🧹", "Nettoyage", "1h de battement automatique entre chaque location"]].map(([icon, title, desc]) => (
-            <div key={title} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
-              <span style={{ fontSize: 19 }}>{icon}</span>
-              <div><div style={{ fontWeight: 600, fontSize: 13, color: "#2C3E50" }}>{title}</div><div style={{ fontSize: 12, color: "#5a8a96" }}>{desc}</div></div>
-            </div>
-          ))}
-        </div>
+        {(proprioConnecte || adminConnecte) && (
+          <div style={card}>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, color: "#0B6E8A", marginBottom: 4, fontWeight: 700 }}>Infos pratiques</div>
+            <div style={{ fontSize: 11, color: "#aaa", marginBottom: 10 }}>Visible uniquement par vous, aide-mémoire</div>
+            {[["💧", "Piscine privée", "Accès exclusif pendant votre créneau"], ["👥", "Tarifs", "9 €/pers/h · -50% enfants 3–11 ans · gratuit -3 ans"], ["⏱️", "Créneaux", "Choisissez librement vos horaires"], ["🧹", "Nettoyage", "1h de battement automatique entre chaque location"]].map(([icon, title, desc]) => (
+              <div key={title} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 19 }}>{icon}</span>
+                <div><div style={{ fontWeight: 600, fontSize: 13, color: "#2C3E50" }}>{title}</div><div style={{ fontSize: 12, color: "#5a8a96" }}>{desc}</div></div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
