@@ -215,10 +215,20 @@ function Stars({ value, onChange }) {
 }
 
 function PhotoUploader({ label, photos, onChange, reference = null }) {
+  const [renommageIdx, setRenommageIdx] = useState(null);
+  const [nomTemp, setNomTemp] = useState("");
+
   function handleFiles(e) {
     const files = Array.from(e.target.files);
     Promise.all(files.map(f => new Promise(res => { const r = new FileReader(); r.onload = () => res({ name: f.name, url: r.result }); r.readAsDataURL(f); }))).then(nw => onChange([...photos, ...nw]));
   }
+
+  function validerRenommage(i) {
+    onChange(photos.map((p, j) => j === i ? { ...p, name: nomTemp || p.name } : p));
+    setRenommageIdx(null);
+    setNomTemp("");
+  }
+
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 5, color: "#2C3E50" }}>{label}</div>
@@ -235,16 +245,39 @@ function PhotoUploader({ label, photos, onChange, reference = null }) {
           </div>
         </div>
       )}
-      <label style={{ display: "inline-block", padding: "7px 13px", background: "#4ECDC4", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
-        📷 Ajouter
-        <input type="file" multiple accept="image/*" style={{ display: "none" }} onChange={handleFiles} />
-      </label>
+      {/* Deux boutons distincts : prendre une photo OU choisir dans la galerie */}
+      <div style={{ display: "flex", gap: 6 }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 12px", background: "#4ECDC4", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+          📷 Prendre une photo
+          <input type="file" accept="image/*" capture="environment" multiple style={{ display: "none" }} onChange={handleFiles} />
+        </label>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 12px", background: "#0B6E8A", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+          🖼️ Choisir un fichier
+          <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handleFiles} />
+        </label>
+      </div>
       {photos.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
           {photos.map((p, i) => (
-            <div key={i} style={{ position: "relative" }}>
-              <img src={p.url} alt="" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 7, border: "2px solid #4ECDC4" }} />
-              <button onClick={() => onChange(photos.filter((_, j) => j !== i))} style={{ position: "absolute", top: -5, right: -5, background: "#FF6B6B", color: "#fff", border: "none", borderRadius: "50%", width: 17, height: 17, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>×</button>
+            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+              <div style={{ position: "relative" }}>
+                <img src={p.url} alt="" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 7, border: "2px solid #4ECDC4" }} />
+                <button onClick={() => onChange(photos.filter((_, j) => j !== i))} style={{ position: "absolute", top: -5, right: -5, background: "#FF6B6B", color: "#fff", border: "none", borderRadius: "50%", width: 17, height: 17, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>×</button>
+              </div>
+              {renommageIdx === i ? (
+                <div style={{ display: "flex", gap: 3 }}>
+                  <input autoFocus value={nomTemp} onChange={e => setNomTemp(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && validerRenommage(i)}
+                    style={{ width: 64, fontSize: 10, padding: "2px 4px", borderRadius: 4, border: "1px solid #b0d8e3" }} />
+                  <button onClick={() => validerRenommage(i)} style={{ fontSize: 10, padding: "2px 5px", borderRadius: 4, background: "#0B6E8A", color: "#fff", border: "none", cursor: "pointer" }}>✓</button>
+                </div>
+              ) : (
+                <div onClick={() => { setRenommageIdx(i); setNomTemp(p.name || ""); }}
+                  style={{ fontSize: 10, color: "#5a8a96", cursor: "pointer", maxWidth: 64, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "underline dotted" }}
+                  title="Cliquer pour renommer">
+                  ✏️ {p.name || "photo"}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -252,6 +285,7 @@ function PhotoUploader({ label, photos, onChange, reference = null }) {
     </div>
   );
 }
+
 
 // ─── Calendrier visuel ────────────────────────────────────────────────────────
 function CalendrierDisponibilites({ disponibilites, reservations, onSelectDate, selectedDate }) {
@@ -714,6 +748,8 @@ export default function App() {
   });
   const [reservations, setReservations] = useState([]);
   const [inventaire, setInventaire] = useState({});
+  const [elementsEdl, setElementsEdl] = useState(MOBILIER);
+  const [nouvelElementEdl, setNouvelElementEdl] = useState("");
   const [registreCodes, setRegistreCodes] = useState({});
   const [comptes, setComptes] = useState({}); // { email: { prenom, nom, telephone, motdepasse, reservations:[] } }
   const [notesLocataires, setNotesLocataires] = useState({});
@@ -1646,7 +1682,7 @@ export default function App() {
             {adminConnecte && <button style={ongletStyle("maintenance")} onClick={() => setOngletPropri("maintenance")}>🔧 Maintenance</button>}
             <button style={ongletStyle("dispo")} onClick={() => setOngletPropri("dispo")}>🗓 Dispos</button>
             <button style={ongletStyle("extras")} onClick={() => setOngletPropri("extras")}>🎁 Extras</button>
-            <button style={ongletStyle("inventaire")} onClick={() => setOngletPropri("inventaire")}>📦 Stock</button>
+            <button style={ongletStyle("inventaire")} onClick={() => setOngletPropri("inventaire")}>🛁 État des lieux</button>
             <button style={ongletStyle("reservations")} onClick={() => setOngletPropri("reservations")}>📋 Résas</button>
             <button style={ongletStyle("stats")} onClick={() => setOngletPropri("stats")}>📊 Stats</button>
           </div>
@@ -1975,14 +2011,34 @@ export default function App() {
 
                     {ongletPropri === "inventaire" && (
             <div style={card}>
-              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", marginBottom: 6, fontWeight: 700 }}>📦 Inventaire</div>
-              <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14 }}>Photos de référence du mobilier en bon état.</div>
-              {MOBILIER.map(item => (
+              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", marginBottom: 6, fontWeight: 700 }}>🛁 État des lieux</div>
+              <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.5 }}>
+                Photographiez chaque élément en bon état. Ces photos serviront de <strong>référence</strong> lors des états des lieux d'entrée et de sortie des locataires. Vous pouvez ajouter ou retirer des éléments selon votre mobilier.
+              </div>
+              {elementsEdl.map(item => (
                 <div key={item} style={{ borderBottom: "1px solid #e8f4f7", paddingBottom: 10, marginBottom: 10 }}>
-                  <PhotoUploader label={item} photos={inventaire[item] || []} onChange={photos => setInventaire(prev => ({ ...prev, [item]: photos }))} />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <div style={{ flex: 1 }}>
+                      <PhotoUploader label={item} photos={inventaire[item] || []} onChange={photos => setInventaire(prev => ({ ...prev, [item]: photos }))} />
+                    </div>
+                    <button onClick={() => {
+                      setElementsEdl(prev => prev.filter(e => e !== item));
+                      setInventaire(prev => { const n = { ...prev }; delete n[item]; return n; });
+                    }} style={{ marginLeft: 8, width: 28, height: 28, borderRadius: 7, border: "none", background: "#fff0f0", color: "#FF6B6B", cursor: "pointer", fontSize: 13, flexShrink: 0 }} title="Retirer cet élément">🗑</button>
+                  </div>
                 </div>
               ))}
-              <div style={{ background: "#e6faf8", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#0B6E8A", fontWeight: 600 }}>✓ {Object.values(inventaire).flat().length} photos enregistrées</div>
+
+              {/* Ajout d'un nouvel élément */}
+              <div style={{ display: "flex", gap: 8, marginTop: 10, background: "#f0fafc", borderRadius: 9, padding: "10px", border: "1.5px dashed #4ECDC4" }}>
+                <input value={nouvelElementEdl} onChange={e => setNouvelElementEdl(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && nouvelElementEdl.trim() && (setElementsEdl(prev => [...prev, nouvelElementEdl.trim()]), setNouvelElementEdl(""))}
+                  placeholder="Ex: Plongeoir, Coussin de sol..." style={{ flex: 1, padding: "8px 10px", borderRadius: 6, fontSize: 13, border: "1px solid #b0d8e3", boxSizing: "border-box" }} />
+                <button onClick={() => { if (nouvelElementEdl.trim()) { setElementsEdl(prev => [...prev, nouvelElementEdl.trim()]); setNouvelElementEdl(""); } }}
+                  style={{ padding: "8px 16px", borderRadius: 6, background: "#0B6E8A", color: "#fff", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>+ Ajouter</button>
+              </div>
+
+              <div style={{ background: "#e6faf8", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#0B6E8A", fontWeight: 600, marginTop: 12 }}>✓ {Object.values(inventaire).flat().length} photos enregistrées sur {elementsEdl.length} élément{elementsEdl.length > 1 ? "s" : ""}</div>
             </div>
           )}
 
@@ -2534,7 +2590,7 @@ export default function App() {
         <div style={card}>
           <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, color: "#0B6E8A", marginBottom: 6, fontWeight: 700 }}>État des lieux — Arrivée</div>
           <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.5 }}>Photographiez chaque élément avant votre session. Les photos dorées sont les références propriétaire.</div>
-          {MOBILIER.map(item => (
+          {elementsEdl.map(item => (
             <div key={item} style={{ borderBottom: "1px solid #e8f4f7", paddingBottom: 10, marginBottom: 10 }}>
               <PhotoUploader label={item} photos={photosAvant.filter(p => p.item === item)} reference={inventaire[item] || []} onChange={photos => setPhotosAvant(prev => [...prev.filter(p => p.item !== item), ...photos.map(p => ({ ...p, item }))])} />
             </div>
@@ -2626,7 +2682,7 @@ export default function App() {
         <div style={card}>
           <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, color: "#0B6E8A", marginBottom: 6, fontWeight: 700 }}>État des lieux — Départ</div>
           <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14 }}>Photographiez chaque élément dans l'état où vous le laissez.</div>
-          {MOBILIER.map(item => (
+          {elementsEdl.map(item => (
             <div key={item} style={{ borderBottom: "1px solid #e8f4f7", paddingBottom: 10, marginBottom: 10 }}>
               <PhotoUploader label={item} photos={photosApres.filter(p => p.item === item)} reference={inventaire[item] || []} onChange={photos => setPhotosApres(prev => [...prev.filter(p => p.item !== item), ...photos.map(p => ({ ...p, item }))])} />
             </div>
