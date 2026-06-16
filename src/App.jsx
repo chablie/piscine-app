@@ -1,4 +1,17 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import {
+  chargerAnnonce, sauvegarderAnnonce,
+  chargerDisponibilites, sauvegarderDisponibilites, supprimerDateDisponibilite,
+  chargerReservations, sauvegarderReservation,
+  chargerComptes, sauvegarderCompte,
+  chargerInventaire, sauvegarderInventaireItem, supprimerInventaireItem,
+  chargerElementsEdl, sauvegarderElementsEdl,
+  chargerExtras, sauvegarderExtras,
+  chargerCodesPromo, sauvegarderCodePromo,
+  chargerNotesLocataires, sauvegarderNoteLocataire,
+  chargerConfig, sauvegarderConfig,
+  ecouterReservations, ecouterAnnonce,
+} from "./supabase.js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const TARIF_BASE = 9;
@@ -478,14 +491,34 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
   // Brouillon local : les modifications ne sont appliquées qu'au clic sur "Enregistrer"
   const [brouillon, setBrouillon] = useState(annonce);
   const [sauvegarde, setSauvegarde] = useState(false);
+  const [enregistrementEnCours, setEnregistrementEnCours] = useState(false);
+  const [erreurSauvegarde, setErreurSauvegarde] = useState(false);
   const [nouvellePrecision, setNouvellePrecision] = useState({ emoji:"📌", texte:"" });
+
+  // Si les données arrivent après le montage (chargement Supabase asynchrone), on resynchronise
+  // mais seulement si l'utilisateur n'a pas déjà commencé à modifier le brouillon
+  const [premiereSyncFaite, setPremiereSyncFaite] = useState(false);
+  useEffect(() => {
+    if (!premiereSyncFaite && annonce) {
+      setBrouillon(annonce);
+      setPremiereSyncFaite(true);
+    }
+  }, [annonce, premiereSyncFaite]);
 
   const modifie = JSON.stringify(brouillon) !== JSON.stringify(annonce);
 
-  function enregistrer() {
-    setAnnonce(brouillon);
-    setSauvegarde(true);
-    setTimeout(() => setSauvegarde(false), 2500);
+  async function enregistrer() {
+    setEnregistrementEnCours(true);
+    setErreurSauvegarde(false);
+    const ok = await sauvegarderAnnonce(brouillon);
+    setEnregistrementEnCours(false);
+    if (ok) {
+      setAnnonce(brouillon);
+      setSauvegarde(true);
+      setTimeout(() => setSauvegarde(false), 2500);
+    } else {
+      setErreurSauvegarde(true);
+    }
   }
 
   function annulerModifs() {
@@ -494,11 +527,11 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
 
   const BoutonSauvegarde = () => (
     <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:14 }}>
-      <button onClick={enregistrer} disabled={!modifie}
-        style={{ flex:1, padding:"12px", borderRadius:10, background: modifie ? "linear-gradient(135deg,#0B6E8A,#4ECDC4)" : "#e0e0e0", color: modifie ? "#fff" : "#aaa", border:"none", fontWeight:700, fontSize:14, cursor: modifie ? "pointer" : "not-allowed", transition:"all .2s" }}>
-        💾 Enregistrer les modifications
+      <button onClick={enregistrer} disabled={!modifie || enregistrementEnCours}
+        style={{ flex:1, padding:"12px", borderRadius:10, background: (modifie && !enregistrementEnCours) ? "linear-gradient(135deg,#0B6E8A,#4ECDC4)" : "#e0e0e0", color: (modifie && !enregistrementEnCours) ? "#fff" : "#aaa", border:"none", fontWeight:700, fontSize:14, cursor: (modifie && !enregistrementEnCours) ? "pointer" : "not-allowed", transition:"all .2s" }}>
+        {enregistrementEnCours ? "⏳ Enregistrement..." : "💾 Enregistrer les modifications"}
       </button>
-      {modifie && (
+      {modifie && !enregistrementEnCours && (
         <button onClick={annulerModifs} style={{ padding:"12px 16px", borderRadius:10, background:"#fff", color:"#FF6B6B", border:"1.5px solid #FF6B6B", fontWeight:600, fontSize:13, cursor:"pointer" }}>
           Annuler
         </button>
@@ -513,7 +546,12 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
           ✅ Modifications enregistrées avec succès
         </div>
       )}
-      {modifie && !sauvegarde && (
+      {erreurSauvegarde && (
+        <div style={{ background:"#fff0f0", border:"1.5px solid #FF6B6B", borderRadius:10, padding:"10px 14px", marginBottom:12, color:"#c0302a", fontWeight:600, fontSize:13 }}>
+          ❌ Erreur lors de l'enregistrement — vérifiez votre connexion et réessayez
+        </div>
+      )}
+      {modifie && !sauvegarde && !enregistrementEnCours && (
         <div style={{ background:"#fff8e1", border:"1.5px solid #f0c040", borderRadius:10, padding:"10px 14px", marginBottom:12, color:"#a06000", fontWeight:600, fontSize:13, display:"flex", alignItems:"center", gap:8 }}>
           ⚠️ Modifications non enregistrées — pensez à cliquer sur "Enregistrer"
         </div>
@@ -720,6 +758,8 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [mode, setMode] = useState("accueil"); // accueil | locataire | proprio | auth | compte
+  const [chargementInitial, setChargementInitial] = useState(true);
+  const [erreurChargement, setErreurChargement] = useState(false);
   const [photoAffichee, setPhotoAffichee] = useState(0);
   const [galerieOuverte, setGalerieOuverte] = useState(false);
   const [step, setStep] = useState(1);
@@ -757,6 +797,107 @@ export default function App() {
   const [notesLocataires, setNotesLocataires] = useState({});
   // Extras configurables
   const [extras, setExtras] = useState(EXTRAS_DEFAUT);
+
+  // ── Chargement initial depuis Supabase ──
+  useEffect(() => {
+    let annule = false;
+    async function chargerTout() {
+      try {
+        const [
+          annonceData, dispoData, resaData, comptesData,
+          inventaireData, elementsData, extrasData, codesData, notesData, configData
+        ] = await Promise.all([
+          chargerAnnonce(), chargerDisponibilites(), chargerReservations(), chargerComptes(),
+          chargerInventaire(), chargerElementsEdl(), chargerExtras(), chargerCodesPromo(),
+          chargerNotesLocataires(), chargerConfig(),
+        ]);
+        if (annule) return;
+
+        if (annonceData) setAnnonce(annonceData);
+        else { await sauvegarderAnnonce(ANNONCE_DEFAUT); } // première initialisation
+
+        if (dispoData && Object.keys(dispoData).length > 0) setDisponibilites(dispoData);
+        else {
+          // Première fois : on initialise Supabase avec les 90 jours par défaut déjà en mémoire
+          await sauvegarderDisponibilites(disponibilites);
+        }
+
+        setReservations(resaData || []);
+        setComptes(comptesData || {});
+        setInventaire(inventaireData || {});
+
+        if (elementsData) setElementsEdl(elementsData);
+        else { await sauvegarderElementsEdl(MOBILIER); }
+
+        if (extrasData) setExtras(extrasData);
+        else { await sauvegarderExtras(EXTRAS_DEFAUT); }
+
+        setRegistreCodes(codesData || {});
+        setNotesLocataires(notesData || {});
+
+        if (configData) {
+          setModeMaintenance(configData.mode_maintenance || false);
+          setMessageMaintenance(configData.message_maintenance || messageMainenance);
+        } else {
+          await sauvegarderConfig(false, messageMainenance);
+        }
+      } catch (e) {
+        console.error("Erreur de chargement Supabase:", e);
+        if (!annule) setErreurChargement(true);
+      } finally {
+        if (!annule) setChargementInitial(false);
+      }
+    }
+    chargerTout();
+    return () => { annule = true; };
+  }, []);
+
+  // ── Temps réel : se mettre à jour automatiquement quand un autre appareil modifie les données ──
+  useEffect(() => {
+    const stopResa = ecouterReservations(() => {
+      chargerReservations().then(setReservations);
+    });
+    const stopAnnonce = ecouterAnnonce(() => {
+      chargerAnnonce().then(d => { if (d) setAnnonce(d); });
+    });
+    return () => { stopResa(); stopAnnonce(); };
+  }, []);
+
+  // ── Sauvegarde automatique vers Supabase à chaque changement (après le chargement initial) ──
+  useEffect(() => {
+    if (chargementInitial) return;
+    sauvegarderDisponibilites(disponibilites);
+  }, [disponibilites, chargementInitial]);
+
+  useEffect(() => {
+    if (chargementInitial) return;
+    // On sauvegarde chaque élément d'inventaire individuellement
+    Object.entries(inventaire).forEach(([item, photos]) => {
+      sauvegarderInventaireItem(item, photos);
+    });
+  }, [inventaire, chargementInitial]);
+
+  useEffect(() => {
+    if (chargementInitial) return;
+    sauvegarderElementsEdl(elementsEdl);
+  }, [elementsEdl, chargementInitial]);
+
+  useEffect(() => {
+    if (chargementInitial) return;
+    sauvegarderExtras(extras);
+  }, [extras, chargementInitial]);
+
+  useEffect(() => {
+    if (chargementInitial) return;
+    Object.entries(notesLocataires).forEach(([ref, note]) => {
+      sauvegarderNoteLocataire(ref, note);
+    });
+  }, [notesLocataires, chargementInitial]);
+
+  useEffect(() => {
+    if (chargementInitial) return;
+    sauvegarderConfig(modeMainenance, messageMainenance);
+  }, [modeMainenance, messageMainenance, chargementInitial]);
 
   // ── Session locataire ──
   const [compteConnecte, setCompteConnecte] = useState(null); // email
@@ -897,6 +1038,7 @@ export default function App() {
     if (!adresse || !codePostal || !ville) { setAuthErreur("Veuillez renseigner votre adresse complète."); return; }
     const nouveau = { prenom, nom, email, telephone, adresse, codePostal, ville, motdepasse, reservations: [] };
     setComptes(prev => ({ ...prev, [email]: nouveau }));
+    sauvegarderCompte(email, nouveau);
     setCompteConnecte(email);
     setForm(f => ({ ...f, prenom, nom, email, telephone }));
     setAuthErreur("");
@@ -942,12 +1084,22 @@ export default function App() {
   function annulerCode() { setCodePromoSaisi(""); setCodePromoStatut(null); setRemise(0); }
 
   function marquerEdlEntree(ref) {
-    setReservations(prev => prev.map(r => r.ref === ref ? { ...r, edlEntreeFait: true } : r));
+    setReservations(prev => {
+      const next = prev.map(r => r.ref === ref ? { ...r, edlEntreeFait: true } : r);
+      const updated = next.find(r => r.ref === ref);
+      if (updated) sauvegarderReservation(updated);
+      return next;
+    });
     setAlerteEdl(null);
   }
 
   function marquerEdlSortie(ref) {
-    setReservations(prev => prev.map(r => r.ref === ref ? { ...r, edlSortieFait: true } : r));
+    setReservations(prev => {
+      const next = prev.map(r => r.ref === ref ? { ...r, edlSortieFait: true } : r);
+      const updated = next.find(r => r.ref === ref);
+      if (updated) sauvegarderReservation(updated);
+      return next;
+    });
     setAlerteEdl(null);
   }
 
@@ -957,33 +1109,55 @@ export default function App() {
     const r = { ...form, heureDebut, heureFin, prix: prixFinal, remise, extrasChoisis, totalExtras, totalGeneral, modePaiement, acompte, resteARegler, ref, photosAvant, photosApres: [], adresse: compteInfo.adresse||"", codePostal: compteInfo.codePostal||"", ville: compteInfo.ville||"", statut: "en_attente" };
     setReservations(prev => [...prev, r]);
     setReservation(r);
+    sauvegarderReservation(r);
     // NOTE: l'état des lieux d'entrée se fera après acceptation, pas ici
     // TODO: déclencher ici l'envoi email/SMS au propriétaire "Nouvelle demande de réservation"
     if (codePromoStatut === "ok" && codePromoSaisi) {
       const code = codePromoSaisi.trim().toUpperCase();
-      setRegistreCodes(prev => ({ ...prev, [code]: { ...prev[code], utilise: true } }));
+      setRegistreCodes(prev => {
+        const next = { ...prev, [code]: { ...prev[code], utilise: true } };
+        sauvegarderCodePromo(code, next[code]);
+        return next;
+      });
     }
     // Associer au compte locataire
     if (compteConnecte) {
-      setComptes(prev => ({ ...prev, [compteConnecte]: { ...prev[compteConnecte], reservations: [...(prev[compteConnecte].reservations || []), ref] } }));
+      setComptes(prev => {
+        const next = { ...prev, [compteConnecte]: { ...prev[compteConnecte], reservations: [...(prev[compteConnecte].reservations || []), ref] } };
+        sauvegarderCompte(compteConnecte, next[compteConnecte]);
+        return next;
+      });
     }
     setStep(5);
   }
 
   function accepterReservation(ref) {
-    setReservations(prev => prev.map(r => r.ref === ref ? { ...r, statut: "acceptee" } : r));
+    setReservations(prev => {
+      const next = prev.map(r => r.ref === ref ? { ...r, statut: "acceptee" } : r);
+      const updated = next.find(r => r.ref === ref);
+      if (updated) sauvegarderReservation(updated);
+      return next;
+    });
     // TODO: déclencher ici l'envoi email/SMS au locataire "Réservation acceptée"
   }
 
   function refuserReservation(ref, motif) {
-    setReservations(prev => prev.map(r => r.ref === ref ? { ...r, statut: "refusee", motifRefus: motif || "" } : r));
-    // Libère le créneau (les disponibilités ne comptent que les réservations "acceptee" ou "en_attente" pour le blocage,
-    // donc une fois "refusee" elle n'a plus besoin d'être retirée explicitement si on filtre par statut ailleurs)
+    setReservations(prev => {
+      const next = prev.map(r => r.ref === ref ? { ...r, statut: "refusee", motifRefus: motif || "" } : r);
+      const updated = next.find(r => r.ref === ref);
+      if (updated) sauvegarderReservation(updated);
+      return next;
+    });
     // TODO: déclencher ici l'envoi email/SMS au locataire "Réservation refusée" + remboursement
   }
 
   function cloturerSession() {
-    setReservations(prev => prev.map(r => r.ref === reservation?.ref ? { ...r, photosApres, photosCasse, descriptionCasse, edlSortieFait: true } : r));
+    setReservations(prev => {
+      const next = prev.map(r => r.ref === reservation?.ref ? { ...r, photosApres, photosCasse, descriptionCasse, edlSortieFait: true } : r);
+      const updated = next.find(r => r.ref === reservation?.ref);
+      if (updated) sauvegarderReservation(updated);
+      return next;
+    });
     if (reservation?.ref) marquerEdlSortie(reservation.ref);
     setStep(8);
   }
@@ -993,8 +1167,17 @@ export default function App() {
     const noteP = notesLocataires[reservation?.ref];
     const promo = (noteP && noteP.note >= 4) ? genererCodePromo() : null;
     setCodePromo(promo);
-    if (promo) setRegistreCodes(prev => ({ ...prev, [promo.code]: { expiration: promo.expiration, dateExpISO: promo.dateExpISO, utilise: false, reservationRef: reservation?.ref } }));
-    setReservations(prev => prev.map(r => r.ref === reservation?.ref ? { ...r, note, commentaire, codePromo: promo } : r));
+    if (promo) {
+      const codeData = { expiration: promo.expiration, dateExpISO: promo.dateExpISO, utilise: false, reservationRef: reservation?.ref };
+      setRegistreCodes(prev => ({ ...prev, [promo.code]: codeData }));
+      sauvegarderCodePromo(promo.code, codeData);
+    }
+    setReservations(prev => {
+      const next = prev.map(r => r.ref === reservation?.ref ? { ...r, note, commentaire, codePromo: promo } : r);
+      const updated = next.find(r => r.ref === reservation?.ref);
+      if (updated) sauvegarderReservation(updated);
+      return next;
+    });
     setAvisEnvoye(true);
   }
 
@@ -1182,6 +1365,28 @@ export default function App() {
       </div>
     );
   }
+
+  // ── ÉCRAN DE CHARGEMENT INITIAL ───────────────────────────────────────────
+  if (chargementInitial) return (
+    <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ fontSize:48, marginBottom:14, animation:"pulse 1.5s infinite" }}>🏊</div>
+        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", fontWeight:700 }}>Chargement...</div>
+        <style>{`@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }`}</style>
+      </div>
+    </div>
+  );
+
+  if (erreurChargement) return (
+    <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+      <div style={{ textAlign:"center", maxWidth:340 }}>
+        <div style={{ fontSize:48, marginBottom:14 }}>⚠️</div>
+        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#FF6B6B", fontWeight:700, marginBottom:10 }}>Connexion impossible</div>
+        <div style={{ fontSize:13, color:"#5a8a96", lineHeight:1.6, marginBottom:16 }}>Impossible de charger les données. Vérifiez votre connexion internet et réessayez.</div>
+        <button onClick={() => window.location.reload()} style={{ background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", borderRadius:10, padding:"12px 24px", fontSize:14, fontWeight:700, cursor:"pointer" }}>Réessayer</button>
+      </div>
+    </div>
+  );
 
 
   // ── PAGE ANNONCE PUBLIQUE ────────────────────────────────────────────────
@@ -2066,6 +2271,7 @@ export default function App() {
                     <button onClick={() => {
                       setElementsEdl(prev => prev.filter(e => e !== item));
                       setInventaire(prev => { const n = { ...prev }; delete n[item]; return n; });
+                      supprimerInventaireItem(item);
                     }} style={{ marginLeft: 8, width: 28, height: 28, borderRadius: 7, border: "none", background: "#fff0f0", color: "#FF6B6B", cursor: "pointer", fontSize: 13, flexShrink: 0 }} title="Retirer cet élément">🗑</button>
                   </div>
                 </div>
