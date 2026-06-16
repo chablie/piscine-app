@@ -720,6 +720,8 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [mode, setMode] = useState("accueil"); // accueil | locataire | proprio | auth | compte
+  const [photoAffichee, setPhotoAffichee] = useState(0);
+  const [galerieOuverte, setGalerieOuverte] = useState(false);
   const [step, setStep] = useState(1);
 
   // ── Admin (technique) & Propriétaire (métier) ──
@@ -835,6 +837,11 @@ export default function App() {
     setProprioConnecte(false);
     setMode("accueil");
   }
+
+  // Quand on arrive sur la page annonce, démarrer le carrousel sur la photo mise en avant
+  useEffect(() => {
+    if (mode === "annonce") setPhotoAffichee(annonce.photoUne || 0);
+  }, [mode]);
 
   // Surveillance horaire pour déclencher les états des lieux
   useEffect(() => {
@@ -1185,12 +1192,29 @@ export default function App() {
         {/* Galerie photos */}
         {annonce.photos.length > 0 ? (
           <div style={{ position:"relative", height:240, overflow:"hidden", background:"#0B6E8A" }}>
-            <img src={annonce.photos[annonce.photoUne||0]} alt="piscine"
+            <img src={annonce.photos[photoAffichee] || annonce.photos[0]} alt="piscine"
               style={{ width:"100%", height:"100%", objectFit:"cover", opacity:.9 }}/>
             {annonce.photos.length > 1 && (
-              <div style={{ position:"absolute", bottom:10, right:10, background:"rgba(0,0,0,.5)", color:"#fff", borderRadius:20, padding:"4px 12px", fontSize:12 }}>
-                📷 {annonce.photos.length} photos
-              </div>
+              <>
+                {/* Flèche gauche */}
+                <button onClick={() => setPhotoAffichee(i => (i - 1 + annonce.photos.length) % annonce.photos.length)}
+                  style={{ position:"absolute", left:8, top:"50%", transform:"translateY(-50%)", background:"rgba(0,0,0,.4)", color:"#fff", border:"none", borderRadius:"50%", width:36, height:36, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>‹</button>
+                {/* Flèche droite */}
+                <button onClick={() => setPhotoAffichee(i => (i + 1) % annonce.photos.length)}
+                  style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", background:"rgba(0,0,0,.4)", color:"#fff", border:"none", borderRadius:"50%", width:36, height:36, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>›</button>
+                {/* Points de pagination */}
+                <div style={{ position:"absolute", bottom:12, left:0, right:0, display:"flex", justifyContent:"center", gap:6 }}>
+                  {annonce.photos.map((_, i) => (
+                    <div key={i} onClick={() => setPhotoAffichee(i)}
+                      style={{ width:7, height:7, borderRadius:"50%", background: i===photoAffichee ? "#fff" : "rgba(255,255,255,.4)", cursor:"pointer" }}/>
+                  ))}
+                </div>
+                {/* Badge nombre de photos, cliquable pour la grille complète */}
+                <div onClick={() => setGalerieOuverte(true)}
+                  style={{ position:"absolute", bottom:10, right:10, background:"rgba(0,0,0,.5)", color:"#fff", borderRadius:20, padding:"4px 12px", fontSize:12, cursor:"pointer" }}>
+                  📷 {photoAffichee + 1}/{annonce.photos.length}
+                </div>
+              </>
             )}
           </div>
         ) : (
@@ -1199,6 +1223,24 @@ export default function App() {
             <div style={{ color:"rgba(255,255,255,.7)", fontSize:13, marginTop:4 }}>Photos à venir</div>
           </div>
         )}
+
+        {/* Galerie plein écran (grille de toutes les photos) */}
+        {galerieOuverte && (
+          <div onClick={() => setGalerieOuverte(false)}
+            style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.92)", zIndex:1000, display:"flex", flexDirection:"column", padding:"16px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+              <span style={{ color:"#fff", fontWeight:700, fontSize:15 }}>📷 {annonce.photos.length} photos</span>
+              <button onClick={() => setGalerieOuverte(false)} style={{ background:"rgba(255,255,255,.15)", color:"#fff", border:"none", borderRadius:"50%", width:34, height:34, fontSize:18, cursor:"pointer" }}>×</button>
+            </div>
+            <div style={{ flex:1, overflowY:"auto", display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:8 }} onClick={e => e.stopPropagation()}>
+              {annonce.photos.map((url, i) => (
+                <img key={i} src={url} alt="" onClick={() => { setPhotoAffichee(i); setGalerieOuverte(false); }}
+                  style={{ width:"100%", height:140, objectFit:"cover", borderRadius:10, cursor:"pointer", border: i===photoAffichee ? "3px solid #4ECDC4" : "none" }}/>
+              ))}
+            </div>
+          </div>
+        )}
+
 
         <div style={{ padding:"16px 16px 0" }}>
           {/* Titre + statut */}
@@ -1682,7 +1724,7 @@ export default function App() {
             {adminConnecte && <button style={ongletStyle("maintenance")} onClick={() => setOngletPropri("maintenance")}>🔧 Maintenance</button>}
             <button style={ongletStyle("dispo")} onClick={() => setOngletPropri("dispo")}>🗓 Dispos</button>
             <button style={ongletStyle("extras")} onClick={() => setOngletPropri("extras")}>🎁 Extras</button>
-            <button style={ongletStyle("inventaire")} onClick={() => setOngletPropri("inventaire")}>🛁 État des lieux</button>
+            <button style={ongletStyle("inventaire")} onClick={() => setOngletPropri("inventaire")}>🛋️ État des lieux</button>
             <button style={ongletStyle("reservations")} onClick={() => setOngletPropri("reservations")}>📋 Résas</button>
             <button style={ongletStyle("stats")} onClick={() => setOngletPropri("stats")}>📊 Stats</button>
           </div>
@@ -2011,7 +2053,7 @@ export default function App() {
 
                     {ongletPropri === "inventaire" && (
             <div style={card}>
-              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", marginBottom: 6, fontWeight: 700 }}>🛁 État des lieux</div>
+              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", marginBottom: 6, fontWeight: 700 }}>🛋️ État des lieux</div>
               <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.5 }}>
                 Photographiez chaque élément en bon état. Ces photos serviront de <strong>référence</strong> lors des états des lieux d'entrée et de sortie des locataires. Vous pouvez ajouter ou retirer des éléments selon votre mobilier.
               </div>
