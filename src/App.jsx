@@ -155,31 +155,20 @@ L'espace piscine est partiellement ouvert sur le jardin, mais reste discret (vis
     alcool: false, fumeur: false, animaux: true, musique: true,
   },
   delaiReservation: 2,
-  precisions: `🔐 Règles de sécurité et de vie sur place
-
-🛟 Enfants/Adultes non nageurs : Le port de brassards ou de bouées est obligatoire. Les enfants restent sous la responsabilité exclusive des parents ou accompagnateurs.
-
-🚿 Douche obligatoire avant la baignade.
-
-💇‍♀️ Cheveux longs doivent être attachés avant et durant la baignade.
-
-💍 Bijoux interdits dans l'eau.
-
-👙 Tenue de bain obligatoire. Seuls les maillots de bain adaptés sont autorisés.
-
-☀️ Crème solaire : ne pas appliquer avant la baignade.
-
-🤿 Plongeons autorisés uniquement dans la zone la plus profonde (1,80 m).
-
-🏃‍♂️ Comportements à éviter : courir autour de la piscine interdit, manger dans la piscine interdit, fumer interdit dans l'espace piscine.
-
-🐶 Animaux acceptés hors de l'espace piscine, à l'extérieur uniquement.
-
-🧘 Naturisme autorisé dans l'espace réservé et privatisé.
-
-📅 Toute réservation effectuée est due. Aucun remboursement en cas de retard.
-
-✅ En réservant, vous confirmez avoir pris connaissance des règles.`,
+  precisions: [
+    { id:"p1", emoji:"🛟", texte:"Enfants/Adultes non nageurs : le port de brassards ou de bouées est obligatoire. Les enfants restent sous la responsabilité exclusive des parents ou accompagnateurs." },
+    { id:"p2", emoji:"🚿", texte:"Douche obligatoire avant la baignade." },
+    { id:"p3", emoji:"💇", texte:"Cheveux longs doivent être attachés avant et durant la baignade." },
+    { id:"p4", emoji:"💍", texte:"Bijoux interdits dans l'eau." },
+    { id:"p5", emoji:"👙", texte:"Tenue de bain obligatoire. Seuls les maillots de bain adaptés sont autorisés." },
+    { id:"p6", emoji:"☀️", texte:"Crème solaire : ne pas appliquer avant la baignade." },
+    { id:"p7", emoji:"🤿", texte:"Plongeons autorisés uniquement dans la zone la plus profonde (1,80 m)." },
+    { id:"p8", emoji:"🏃", texte:"Comportements à éviter : courir autour de la piscine, manger dans la piscine, fumer dans l'espace piscine." },
+    { id:"p9", emoji:"🐶", texte:"Animaux acceptés hors de l'espace piscine, à l'extérieur uniquement." },
+    { id:"p10", emoji:"🧘", texte:"Naturisme autorisé dans l'espace réservé et privatisé." },
+    { id:"p11", emoji:"📅", texte:"Toute réservation effectuée est due. Aucun remboursement en cas de retard." },
+    { id:"p12", emoji:"✅", texte:"En réservant, vous confirmez avoir pris connaissance des règles." },
+  ],
   dispositifs: {
     barriere: false, bache: false, abri: true, alarme: false,
   },
@@ -451,8 +440,55 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
   const [ongletAnnonce, setOngletAnnonce] = useState("infos");
   const tabStyle = t => ({ flex:1, padding:"8px 0", borderRadius:7, fontSize:11, fontWeight:600, border:"none", cursor:"pointer", background:ongletAnnonce===t?"#0B6E8A":"#e8f4f7", color:ongletAnnonce===t?"#fff":"#0B6E8A" });
 
+  // Brouillon local : les modifications ne sont appliquées qu'au clic sur "Enregistrer"
+  const [brouillon, setBrouillon] = useState(annonce);
+  const [sauvegarde, setSauvegarde] = useState(false);
+  const [nouvellePrecision, setNouvellePrecision] = useState({ emoji:"📌", texte:"" });
+
+  const modifie = JSON.stringify(brouillon) !== JSON.stringify(annonce);
+
+  function enregistrer() {
+    setAnnonce(brouillon);
+    setSauvegarde(true);
+    setTimeout(() => setSauvegarde(false), 2500);
+  }
+
+  function annulerModifs() {
+    setBrouillon(annonce);
+  }
+
+  const BoutonSauvegarde = () => (
+    <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:14 }}>
+      <button onClick={enregistrer} disabled={!modifie}
+        style={{ flex:1, padding:"12px", borderRadius:10, background: modifie ? "linear-gradient(135deg,#0B6E8A,#4ECDC4)" : "#e0e0e0", color: modifie ? "#fff" : "#aaa", border:"none", fontWeight:700, fontSize:14, cursor: modifie ? "pointer" : "not-allowed", transition:"all .2s" }}>
+        💾 Enregistrer les modifications
+      </button>
+      {modifie && (
+        <button onClick={annulerModifs} style={{ padding:"12px 16px", borderRadius:10, background:"#fff", color:"#FF6B6B", border:"1.5px solid #FF6B6B", fontWeight:600, fontSize:13, cursor:"pointer" }}>
+          Annuler
+        </button>
+      )}
+    </div>
+  );
+
+  const BandeauStatut = () => (
+    <>
+      {sauvegarde && (
+        <div style={{ background:"#e6faf8", border:"1.5px solid #4ECDC4", borderRadius:10, padding:"10px 14px", marginBottom:12, color:"#0B6E8A", fontWeight:600, fontSize:13, display:"flex", alignItems:"center", gap:8 }}>
+          ✅ Modifications enregistrées avec succès
+        </div>
+      )}
+      {modifie && !sauvegarde && (
+        <div style={{ background:"#fff8e1", border:"1.5px solid #f0c040", borderRadius:10, padding:"10px 14px", marginBottom:12, color:"#a06000", fontWeight:600, fontSize:13, display:"flex", alignItems:"center", gap:8 }}>
+          ⚠️ Modifications non enregistrées — pensez à cliquer sur "Enregistrer"
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div>
+      <BandeauStatut/>
       {/* Sous-onglets */}
       <div style={{ display:"flex", gap:5, marginBottom:14 }}>
         <button style={tabStyle("infos")} onClick={()=>setOngletAnnonce("infos")}>📝 Infos</button>
@@ -466,9 +502,9 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
         <button onClick={onVoir} style={{ flex:1, padding:"9px", borderRadius:9, background:"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
           👁 Voir l'annonce
         </button>
-        <button onClick={()=>setAnnonce(a=>({...a,ouvert:!a.ouvert}))}
-          style={{ flex:1, padding:"9px", borderRadius:9, background:annonce.ouvert?"#FF6B6B":"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
-          {annonce.ouvert?"✗ Fermer l'annonce":"✓ Ouvrir l'annonce"}
+        <button onClick={()=>setBrouillon(a=>({...a,ouvert:!a.ouvert}))}
+          style={{ flex:1, padding:"9px", borderRadius:9, background:brouillon.ouvert?"#FF6B6B":"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+          {brouillon.ouvert?"✗ Fermer l'annonce":"✓ Ouvrir l'annonce"}
         </button>
       </div>
 
@@ -478,41 +514,41 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
           <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", fontWeight:700, marginBottom:12 }}>📝 Informations générales</div>
           <div style={{ marginBottom:10 }}>
             <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Titre</label>
-            <input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:14, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={annonce.titre} onChange={e=>setAnnonce(a=>({...a,titre:e.target.value}))}/>
+            <input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:14, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.titre} onChange={e=>setBrouillon(a=>({...a,titre:e.target.value}))}/>
           </div>
           <div style={{ marginBottom:10 }}>
             <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Description</label>
-            <textarea style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:12, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box", height:180, resize:"vertical", lineHeight:1.6 }} value={annonce.description} onChange={e=>setAnnonce(a=>({...a,description:e.target.value}))}/>
+            <textarea style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:12, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box", height:180, resize:"vertical", lineHeight:1.6 }} value={brouillon.description} onChange={e=>setBrouillon(a=>({...a,description:e.target.value}))}/>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr", gap:8, marginBottom:10 }}>
-            <div><label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Adresse</label><input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={annonce.adresse} onChange={e=>setAnnonce(a=>({...a,adresse:e.target.value}))}/></div>
-            <div><label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>CP</label><input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={annonce.codePostal} onChange={e=>setAnnonce(a=>({...a,codePostal:e.target.value}))}/></div>
-            <div><label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Ville</label><input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={annonce.ville} onChange={e=>setAnnonce(a=>({...a,ville:e.target.value}))}/></div>
+            <div><label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Adresse</label><input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.adresse} onChange={e=>setBrouillon(a=>({...a,adresse:e.target.value}))}/></div>
+            <div><label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>CP</label><input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.codePostal} onChange={e=>setBrouillon(a=>({...a,codePostal:e.target.value}))}/></div>
+            <div><label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Ville</label><input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.ville} onChange={e=>setBrouillon(a=>({...a,ville:e.target.value}))}/></div>
           </div>
           <div style={{ marginBottom:12 }}>
             <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:6, display:"block" }}>Capacité maximale</label>
             <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-              <button onClick={()=>setAnnonce(a=>({...a,capaciteMax:Math.max(1,a.capaciteMax-1)}))} style={{ width:32,height:32,borderRadius:"50%",border:"2px solid #0B6E8A",background:"#fff",color:"#0B6E8A",fontSize:18,fontWeight:700,cursor:"pointer" }}>−</button>
-              <span style={{ fontWeight:700, fontSize:18 }}>{annonce.capaciteMax} pers.</span>
-              <button onClick={()=>setAnnonce(a=>({...a,capaciteMax:a.capaciteMax+1}))} style={{ width:32,height:32,borderRadius:"50%",border:"none",background:"#0B6E8A",color:"#fff",fontSize:18,fontWeight:700,cursor:"pointer" }}>+</button>
+              <button onClick={()=>setBrouillon(a=>({...a,capaciteMax:Math.max(1,a.capaciteMax-1)}))} style={{ width:32,height:32,borderRadius:"50%",border:"2px solid #0B6E8A",background:"#fff",color:"#0B6E8A",fontSize:18,fontWeight:700,cursor:"pointer" }}>−</button>
+              <span style={{ fontWeight:700, fontSize:18 }}>{brouillon.capaciteMax} pers.</span>
+              <button onClick={()=>setBrouillon(a=>({...a,capaciteMax:a.capaciteMax+1}))} style={{ width:32,height:32,borderRadius:"50%",border:"none",background:"#0B6E8A",color:"#fff",fontSize:18,fontWeight:700,cursor:"pointer" }}>+</button>
             </div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:12 }}>
             <div>
               <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Vis-à-vis</label>
-              <select style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={annonce.visAVis} onChange={e=>setAnnonce(a=>({...a,visAVis:e.target.value}))}>
+              <select style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.visAVis} onChange={e=>setBrouillon(a=>({...a,visAVis:e.target.value}))}>
                 <option value="aucun">Aucun</option><option value="leger">Léger</option><option value="complet">Complet</option>
               </select>
             </div>
             <div>
               <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Présence</label>
-              <select style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={annonce.presenceProprietaire} onChange={e=>setAnnonce(a=>({...a,presenceProprietaire:e.target.value}))}>
+              <select style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.presenceProprietaire} onChange={e=>setBrouillon(a=>({...a,presenceProprietaire:e.target.value}))}>
                 <option value="oui">Oui</option><option value="non">Non</option><option value="occasionnellement">Occasionnellement</option>
               </select>
             </div>
             <div>
               <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Entretien</label>
-              <select style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={annonce.produitEntretien} onChange={e=>setAnnonce(a=>({...a,produitEntretien:e.target.value}))}>
+              <select style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.produitEntretien} onChange={e=>setBrouillon(a=>({...a,produitEntretien:e.target.value}))}>
                 <option value="chlore">Chlore</option><option value="sel">Sel</option><option value="brome">Brome</option><option value="autres">Autres</option>
               </select>
             </div>
@@ -521,19 +557,20 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
             <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:8, display:"block" }}>Équipements</label>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
               {Object.entries(EQUIPEMENTS_LABELS).map(([k,[emoji,label]])=>(
-                <label key={k} style={{ display:"flex", alignItems:"center", gap:7, cursor:"pointer", padding:"7px 9px", borderRadius:8, background:annonce.equipements[k]?"#e6faf8":"#f5f5f5", border:`1px solid ${annonce.equipements[k]?"#4ECDC4":"#e0e0e0"}` }}>
-                  <input type="checkbox" checked={!!annonce.equipements[k]} onChange={e=>setAnnonce(a=>({...a,equipements:{...a.equipements,[k]:e.target.checked}}))} style={{ accentColor:"#0B6E8A" }}/>
-                  <span style={{ fontSize:12, fontWeight:600, color:annonce.equipements[k]?"#0B6E8A":"#888" }}>{emoji} {label}</span>
+                <label key={k} style={{ display:"flex", alignItems:"center", gap:7, cursor:"pointer", padding:"7px 9px", borderRadius:8, background:brouillon.equipements[k]?"#e6faf8":"#f5f5f5", border:`1px solid ${brouillon.equipements[k]?"#4ECDC4":"#e0e0e0"}` }}>
+                  <input type="checkbox" checked={!!brouillon.equipements[k]} onChange={e=>setBrouillon(a=>({...a,equipements:{...a.equipements,[k]:e.target.checked}}))} style={{ accentColor:"#0B6E8A" }}/>
+                  <span style={{ fontSize:12, fontWeight:600, color:brouillon.equipements[k]?"#0B6E8A":"#888" }}>{emoji} {label}</span>
                 </label>
               ))}
             </div>
           </div>
           <div>
             <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Délai minimum avant réservation (heures)</label>
-            <input type="number" min={0} max={72} style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:14, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={annonce.delaiReservation} onChange={e=>setAnnonce(a=>({...a,delaiReservation:+e.target.value}))}/>
+            <input type="number" min={0} max={72} style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:14, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.delaiReservation} onChange={e=>setBrouillon(a=>({...a,delaiReservation:+e.target.value}))}/>
           </div>
         </div>
       )}
+      {ongletAnnonce==="infos" && <BoutonSauvegarde/>}
 
       {/* ── PHOTOS ── */}
       {ongletAnnonce==="photos" && (
@@ -545,30 +582,31 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
             <input type="file" multiple accept="image/*" style={{ display:"none" }} onChange={e=>{
               const files=Array.from(e.target.files);
               Promise.all(files.map(f=>new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(f);}))).then(urls=>{
-                setAnnonce(a=>({...a,photos:[...a.photos,...urls],photoUne:a.photoUne??0}));
+                setBrouillon(a=>({...a,photos:[...a.photos,...urls],photoUne:a.photoUne??0}));
               });
             }}/>
           </label>
-          {annonce.photos.length===0 ? (
+          {brouillon.photos.length===0 ? (
             <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"20px", border:"2px dashed #b0d8e3", borderRadius:10 }}>
               Aucune photo ajoutée
             </div>
-          ) : annonce.photos.map((url,i)=>(
-            <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px", borderRadius:10, background:"#f0fafc", marginBottom:8, border:`2px solid ${annonce.photoUne===i?"#f0c040":"#e0e0e0"}` }}>
+          ) : brouillon.photos.map((url,i)=>(
+            <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px", borderRadius:10, background:"#f0fafc", marginBottom:8, border:`2px solid ${brouillon.photoUne===i?"#f0c040":"#e0e0e0"}` }}>
               <img src={url} alt="" style={{ width:70,height:60,objectFit:"cover",borderRadius:8,flexShrink:0 }}/>
               <div style={{ flex:1, fontSize:12, color:"#5a8a96" }}>
-                Photo {i+1}{annonce.photoUne===i?" ⭐":""}
+                Photo {i+1}{brouillon.photoUne===i?" ⭐":""}
               </div>
               <div style={{ display:"flex", gap:4 }}>
-                <button title="Photo principale" onClick={()=>setAnnonce(a=>({...a,photoUne:i}))} style={{ width:30,height:30,borderRadius:7,border:"none",background:annonce.photoUne===i?"#f0c040":"#e8f4f7",cursor:"pointer",fontSize:14 }}>⭐</button>
-                <button title="Monter" onClick={()=>setAnnonce(a=>{if(i===0)return a;const p=[...a.photos];[p[i-1],p[i]]=[p[i],p[i-1]];return{...a,photos:p,photoUne:a.photoUne===i?i-1:a.photoUne===i-1?i:a.photoUne};})} disabled={i===0} style={{ width:30,height:30,borderRadius:7,border:"none",background:"#e8f4f7",cursor:i===0?"not-allowed":"pointer",fontSize:12,opacity:i===0?.4:1 }}>▲</button>
-                <button title="Descendre" onClick={()=>setAnnonce(a=>{if(i===a.photos.length-1)return a;const p=[...a.photos];[p[i],p[i+1]]=[p[i+1],p[i]];return{...a,photos:p,photoUne:a.photoUne===i?i+1:a.photoUne===i+1?i:a.photoUne};})} disabled={i===annonce.photos.length-1} style={{ width:30,height:30,borderRadius:7,border:"none",background:"#e8f4f7",cursor:i===annonce.photos.length-1?"not-allowed":"pointer",fontSize:12,opacity:i===annonce.photos.length-1?.4:1 }}>▼</button>
-                <button title="Supprimer" onClick={()=>setAnnonce(a=>{const p=a.photos.filter((_,j)=>j!==i);return{...a,photos:p,photoUne:p.length===0?null:a.photoUne===i?0:a.photoUne>i?a.photoUne-1:a.photoUne};})} style={{ width:30,height:30,borderRadius:7,border:"none",background:"#fff0f0",color:"#FF6B6B",cursor:"pointer",fontSize:14 }}>🗑</button>
+                <button title="Photo principale" onClick={()=>setBrouillon(a=>({...a,photoUne:i}))} style={{ width:30,height:30,borderRadius:7,border:"none",background:brouillon.photoUne===i?"#f0c040":"#e8f4f7",cursor:"pointer",fontSize:14 }}>⭐</button>
+                <button title="Monter" onClick={()=>setBrouillon(a=>{if(i===0)return a;const p=[...a.photos];[p[i-1],p[i]]=[p[i],p[i-1]];return{...a,photos:p,photoUne:a.photoUne===i?i-1:a.photoUne===i-1?i:a.photoUne};})} disabled={i===0} style={{ width:30,height:30,borderRadius:7,border:"none",background:"#e8f4f7",cursor:i===0?"not-allowed":"pointer",fontSize:12,opacity:i===0?.4:1 }}>▲</button>
+                <button title="Descendre" onClick={()=>setBrouillon(a=>{if(i===a.photos.length-1)return a;const p=[...a.photos];[p[i],p[i+1]]=[p[i+1],p[i]];return{...a,photos:p,photoUne:a.photoUne===i?i+1:a.photoUne===i+1?i:a.photoUne};})} disabled={i===brouillon.photos.length-1} style={{ width:30,height:30,borderRadius:7,border:"none",background:"#e8f4f7",cursor:i===brouillon.photos.length-1?"not-allowed":"pointer",fontSize:12,opacity:i===brouillon.photos.length-1?.4:1 }}>▼</button>
+                <button title="Supprimer" onClick={()=>setBrouillon(a=>{const p=a.photos.filter((_,j)=>j!==i);return{...a,photos:p,photoUne:p.length===0?null:a.photoUne===i?0:a.photoUne>i?a.photoUne-1:a.photoUne};})} style={{ width:30,height:30,borderRadius:7,border:"none",background:"#fff0f0",color:"#FF6B6B",cursor:"pointer",fontSize:14 }}>🗑</button>
               </div>
             </div>
           ))}
         </div>
       )}
+      {ongletAnnonce==="photos" && <BoutonSauvegarde/>}
 
       {/* ── RÈGLEMENT ── */}
       {ongletAnnonce==="reglement" && (
@@ -579,22 +617,43 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
               ["burkini","👙","Burkini autorisé"],["evenements","🎉","Événements autorisés"],
               ["alcool","🍷","Alcool autorisé"],["fumeur","🚬","Espace fumeur"],
               ["animaux","🐾","Animaux acceptés"],["musique","🎵","Musique autorisée"]].map(([k,emoji,label])=>(
-              <label key={k} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"10px 12px", borderRadius:10, background:annonce.reglement[k]?"#e6faf8":"#f5f5f5", border:`1.5px solid ${annonce.reglement[k]?"#4ECDC4":"#e0e0e0"}` }}>
-                <input type="checkbox" checked={!!annonce.reglement[k]} onChange={e=>setAnnonce(a=>({...a,reglement:{...a.reglement,[k]:e.target.checked}}))} style={{ width:18,height:18,accentColor:"#0B6E8A" }}/>
+              <label key={k} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"10px 12px", borderRadius:10, background:brouillon.reglement[k]?"#e6faf8":"#f5f5f5", border:`1.5px solid ${brouillon.reglement[k]?"#4ECDC4":"#e0e0e0"}` }}>
+                <input type="checkbox" checked={!!brouillon.reglement[k]} onChange={e=>setBrouillon(a=>({...a,reglement:{...a.reglement,[k]:e.target.checked}}))} style={{ width:18,height:18,accentColor:"#0B6E8A" }}/>
                 <span style={{ fontSize:16 }}>{emoji}</span>
-                <span style={{ fontSize:13, fontWeight:600, color:annonce.reglement[k]?"#0B6E8A":"#888" }}>{label}</span>
-                <span style={{ marginLeft:"auto", fontSize:16 }}>{annonce.reglement[k]?"✅":"❌"}</span>
+                <span style={{ fontSize:13, fontWeight:600, color:brouillon.reglement[k]?"#0B6E8A":"#888" }}>{label}</span>
+                <span style={{ marginLeft:"auto", fontSize:16 }}>{brouillon.reglement[k]?"✅":"❌"}</span>
               </label>
             ))}
           </div>
           <div style={{ marginBottom:10 }}>
             <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Délai minimum avant réservation (heures)</label>
-            <input type="number" min={0} max={72} style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:14, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={annonce.delaiReservation} onChange={e=>setAnnonce(a=>({...a,delaiReservation:+e.target.value}))}/>
+            <input type="number" min={0} max={72} style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:14, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.delaiReservation} onChange={e=>setBrouillon(a=>({...a,delaiReservation:+e.target.value}))}/>
           </div>
           <div>
-            <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Précisions supplémentaires</label>
-            <textarea style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:12, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box", height:200, resize:"vertical", lineHeight:1.6 }} value={annonce.precisions} onChange={e=>setAnnonce(a=>({...a,precisions:e.target.value}))}/>
+            <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:8, display:"block" }}>Précisions supplémentaires (règles de vie sur place)</label>
+            {brouillon.precisions.map((p, i) => (
+              <div key={p.id} style={{ display:"flex", alignItems:"flex-start", gap:8, marginBottom:8, background:"#f5f5f5", borderRadius:9, padding:"9px 10px" }}>
+                <span style={{ fontSize:18, flexShrink:0 }}>{p.emoji}</span>
+                <textarea value={p.texte} onChange={e=>setBrouillon(a=>({...a, precisions:a.precisions.map((x,j)=>j===i?{...x,texte:e.target.value}:x)}))}
+                  style={{ flex:1, padding:"6px 8px", borderRadius:6, fontSize:12, border:"1px solid #d8d8d8", outline:"none", background:"#fff", boxSizing:"border-box", resize:"vertical", minHeight:36, lineHeight:1.5 }}/>
+                <button onClick={()=>setBrouillon(a=>({...a, precisions:a.precisions.filter((_,j)=>j!==i)}))}
+                  style={{ width:28, height:28, borderRadius:6, border:"none", background:"#fff0f0", color:"#FF6B6B", cursor:"pointer", fontSize:13, flexShrink:0 }}>🗑</button>
+              </div>
+            ))}
+            {/* Ajout nouvelle règle */}
+            <div style={{ display:"flex", gap:8, marginTop:10, background:"#f0fafc", borderRadius:9, padding:"10px", border:"1.5px dashed #4ECDC4" }}>
+              <input value={nouvellePrecision.emoji} onChange={e=>setNouvellePrecision(p=>({...p,emoji:e.target.value}))} maxLength={2}
+                style={{ width:42, padding:"6px", borderRadius:6, fontSize:16, textAlign:"center", border:"1px solid #b0d8e3", boxSizing:"border-box" }}/>
+              <input value={nouvellePrecision.texte} onChange={e=>setNouvellePrecision(p=>({...p,texte:e.target.value}))}
+                placeholder="Nouvelle règle..." style={{ flex:1, padding:"6px 8px", borderRadius:6, fontSize:12, border:"1px solid #b0d8e3", boxSizing:"border-box" }}/>
+              <button onClick={()=>{
+                if(!nouvellePrecision.texte.trim()) return;
+                setBrouillon(a=>({...a, precisions:[...a.precisions, {id:"p"+Date.now(), ...nouvellePrecision}]}));
+                setNouvellePrecision({emoji:"📌", texte:""});
+              }} style={{ padding:"6px 14px", borderRadius:6, background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer", flexShrink:0 }}>+ Ajouter</button>
+            </div>
           </div>
+          <BoutonSauvegarde/>
         </div>
       )}
 
@@ -608,16 +667,17 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
           <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:8 }}>
             {[["barriere","🚧","Barrière de protection"],["bache","🟦","Bâche de sécurité"],
               ["abri","🏠","Abri de piscine"],["alarme","🔔","Alarme de sécurité"]].map(([k,emoji,label])=>(
-              <label key={k} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"12px 14px", borderRadius:10, background:annonce.dispositifs[k]?"#e6faf8":"#f5f5f5", border:`1.5px solid ${annonce.dispositifs[k]?"#4ECDC4":"#e0e0e0"}` }}>
-                <input type="checkbox" checked={!!annonce.dispositifs[k]} onChange={e=>setAnnonce(a=>({...a,dispositifs:{...a.dispositifs,[k]:e.target.checked}}))} style={{ width:18,height:18,accentColor:"#0B6E8A" }}/>
+              <label key={k} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"12px 14px", borderRadius:10, background:brouillon.dispositifs[k]?"#e6faf8":"#f5f5f5", border:`1.5px solid ${brouillon.dispositifs[k]?"#4ECDC4":"#e0e0e0"}` }}>
+                <input type="checkbox" checked={!!brouillon.dispositifs[k]} onChange={e=>setBrouillon(a=>({...a,dispositifs:{...a.dispositifs,[k]:e.target.checked}}))} style={{ width:18,height:18,accentColor:"#0B6E8A" }}/>
                 <span style={{ fontSize:20 }}>{emoji}</span>
-                <span style={{ fontSize:13, fontWeight:600, color:annonce.dispositifs[k]?"#0B6E8A":"#888" }}>{label}</span>
-                <span style={{ marginLeft:"auto", fontSize:16 }}>{annonce.dispositifs[k]?"✅":"❌"}</span>
+                <span style={{ fontSize:13, fontWeight:600, color:brouillon.dispositifs[k]?"#0B6E8A":"#888" }}>{label}</span>
+                <span style={{ marginLeft:"auto", fontSize:16 }}>{brouillon.dispositifs[k]?"✅":"❌"}</span>
               </label>
             ))}
           </div>
         </div>
       )}
+      {ongletAnnonce==="securite" && <BoutonSauvegarde/>}
     </div>
   );
 }
@@ -1162,9 +1222,14 @@ export default function App() {
                 </div>
               ))}
             </div>
-            {annonce.precisions && (
-              <div style={{ marginTop:12, background:"#f0fafc", borderRadius:8, padding:"12px", fontSize:12, color:"#2C3E50", lineHeight:1.7, whiteSpace:"pre-line", border:"1px solid #b0d8e3", maxHeight:200, overflowY:"auto" }}>
-                {annonce.precisions}
+            {annonce.precisions && annonce.precisions.length > 0 && (
+              <div style={{ marginTop:12, background:"#f0fafc", borderRadius:8, padding:"12px", border:"1px solid #b0d8e3", maxHeight:240, overflowY:"auto" }}>
+                {annonce.precisions.map(p => (
+                  <div key={p.id} style={{ display:"flex", alignItems:"flex-start", gap:8, marginBottom:8, fontSize:12, color:"#2C3E50", lineHeight:1.5 }}>
+                    <span style={{ flexShrink:0 }}>{p.emoji}</span>
+                    <span>{p.texte}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
