@@ -66,7 +66,7 @@ function detailPrix(adultes, enfants12, creneaux) {
   const soir = creneaux.filter(h => h >= 20);
   return { normal: normal.length, soir: soir.length };
 }
-function formatEur(n) { return n.toFixed(2).replace(".", ",") + " €"; }
+function formatEur(n) { return (n || 0).toFixed(2).replace(".", ",") + " €"; }
 function today() { return new Date().toISOString().split("T")[0]; }
 function padH(h) { return h === 24 ? "00:00" : String(h).padStart(2, "0") + ":00"; }
 function isoDate(y, m, d) { return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
@@ -994,6 +994,10 @@ export default function App() {
       reservations.forEach(r => {
         if (r.date !== dateAujourdhui) return;
         if (r.statut !== "acceptee") return; // seules les réservations validées déclenchent un état des lieux
+        // Si un locataire est connecté, on ne l'alerte que pour SA réservation (pas celle des autres)
+        if (compteConnecte && r.email !== compteConnecte) return;
+        // Si personne n'est connecté (admin/proprio non plus), pas d'alerte côté locataire anonyme
+        if (!compteConnecte && !adminConnecte && !proprioConnecte) return;
         // Début de session → alerte état des lieux d'entrée
         if (heure === r.heureDebut && !r.edlEntreeFait) {
           setAlerteEdl("entree");
@@ -1009,7 +1013,7 @@ export default function App() {
     verifier();
     const interval = setInterval(verifier, 60000); // vérifier chaque minute
     return () => clearInterval(interval);
-  }, [reservations]);
+  }, [reservations, compteConnecte, adminConnecte, proprioConnecte]);
 
   function setF(k, v) { setForm(f => ({ ...f, [k]: v })); }
   const duree = form.creneaux.length;
@@ -1093,6 +1097,18 @@ export default function App() {
     setAlerteEdl(null);
   }
 
+  // Validation de l'état des lieux d'entrée le jour J (depuis la page edlEntree)
+  function validerEdlEntree() {
+    setReservations(prev => {
+      const next = prev.map(r => r.ref === reservation?.ref ? { ...r, photosAvant, edlEntreeFait: true } : r);
+      const updated = next.find(r => r.ref === reservation?.ref);
+      if (updated) sauvegarderReservation(updated);
+      return next;
+    });
+    setAlerteEdl(null);
+    setMode(compteConnecte ? "compte" : "accueil");
+  }
+
   function marquerEdlSortie(ref) {
     setReservations(prev => {
       const next = prev.map(r => r.ref === ref ? { ...r, edlSortieFait: true } : r);
@@ -1106,11 +1122,11 @@ export default function App() {
   function confirmerReservation() {
     const ref = "RES-" + Date.now().toString(36).toUpperCase();
     const compteInfo = compteConnecte ? comptes[compteConnecte] : {};
-    const r = { ...form, heureDebut, heureFin, prix: prixFinal, remise, extrasChoisis, totalExtras, totalGeneral, modePaiement, acompte, resteARegler, ref, photosAvant, photosApres: [], adresse: compteInfo.adresse||"", codePostal: compteInfo.codePostal||"", ville: compteInfo.ville||"", statut: "en_attente" };
+    const r = { ...form, heureDebut, heureFin, prix: prixFinal, remise, extrasChoisis, totalExtras, totalGeneral, modePaiement, acompte, resteARegler, ref, photosAvant: [], photosApres: [], adresse: compteInfo.adresse||"", codePostal: compteInfo.codePostal||"", ville: compteInfo.ville||"", statut: "en_attente" };
     setReservations(prev => [...prev, r]);
     setReservation(r);
     sauvegarderReservation(r);
-    // NOTE: l'état des lieux d'entrée se fera après acceptation, pas ici
+    // L'état des lieux d'entrée et de sortie se font le jour J, depuis "Mon compte" ou via la bannière d'alerte
     // TODO: déclencher ici l'envoi email/SMS au propriétaire "Nouvelle demande de réservation"
     if (codePromoStatut === "ok" && codePromoSaisi) {
       const code = codePromoSaisi.trim().toUpperCase();
@@ -1159,7 +1175,7 @@ export default function App() {
       return next;
     });
     if (reservation?.ref) marquerEdlSortie(reservation.ref);
-    setStep(7);
+    setMode("locataire"); setStep(7);
   }
 
   function soumettreAvis() {
@@ -1337,8 +1353,7 @@ export default function App() {
               const resa = reservations.find(r => r.ref === edlResaRef);
               if (resa) {
                 setReservation(resa);
-                setMode("locataire");
-                setStep(alerteEdl==="entree" ? 5 : 7);
+                setMode(alerteEdl === "entree" ? "edlEntree" : "edlSortie");
                 setAlerteEdl(null);
               }
             }} style={{ background:"rgba(255,255,255,.25)", border:"none", color:"#fff", borderRadius:8, padding:"6px 12px", fontWeight:700, fontSize:12, cursor:"pointer", flexShrink:0 }}>
@@ -1700,6 +1715,27 @@ export default function App() {
                       {r.date >= today() ? "À venir" : "Passée"}
                     </div>
                   </div>
+                  {r.statut === "acceptee" && r.date === today() && (
+                    <div style={{ display:"flex", gap:8, marginTop:10 }}>
+                      {!r.edlEntreeFait && (
+                        <button onClick={() => { setReservation(r); setMode("edlEntree"); }}
+                          style={{ flex:1, padding:"9px", borderRadius:8, background:"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:12, cursor:"pointer" }}>
+                          📷 État des lieux d'entrée
+                        </button>
+                      )}
+                      {r.edlEntreeFait && !r.edlSortieFait && (
+                        <button onClick={() => { setReservation(r); setMode("edlSortie"); }}
+                          style={{ flex:1, padding:"9px", borderRadius:8, background:"#FF6B6B", color:"#fff", border:"none", fontWeight:700, fontSize:12, cursor:"pointer" }}>
+                          📷 État des lieux de sortie
+                        </button>
+                      )}
+                      {r.edlEntreeFait && r.edlSortieFait && (
+                        <div style={{ flex:1, padding:"9px", borderRadius:8, background:"#e6faf8", color:"#0B6E8A", textAlign:"center", fontWeight:600, fontSize:12 }}>
+                          ✓ États des lieux complétés
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {r.note && <div style={{ fontSize: 12, color: "#f0a500", marginTop: 4 }}>Votre avis : {"⭐".repeat(r.note)}</div>}
                   {noteP && (
                     <div style={{ fontSize: 12, marginTop: 4, color: noteP.note >= 4 ? "#0B6E8A" : "#888" }}>
@@ -2821,7 +2857,7 @@ export default function App() {
             <div style={{ fontWeight: 600, color: "#0B6E8A", marginBottom: 2 }}>Paiement sécurisé Stripe</div>
             <div style={{ fontSize: 12, color: "#5a8a96" }}>Module Stripe activé lors du déploiement.</div>
           </div>
-          <button style={{ ...btnP, opacity: modePaiement ? 1 : 0.5 }} onClick={() => modePaiement && setStep(8)}>
+          <button style={{ ...btnP, opacity: modePaiement ? 1 : 0.5 }} onClick={() => modePaiement && confirmerReservation()}>
             {modePaiement === "especes" ? `✓ Payer l'acompte ${formatEur(acompte)}` : `✓ Payer ${formatEur(totalGeneral)}`}
           </button>
           <button style={btnS} onClick={() => setStep(3)}>← Retour</button>
@@ -2830,13 +2866,14 @@ export default function App() {
     </div>
   );
 
-  // ── ÉTAPE 5 : État des lieux AVANT ────────────────────────────────────────
-  if (mode === "locataire" && step === 8) return (
+  // ── PAGE ÉTAT DES LIEUX D'ENTRÉE (le jour J, depuis Mon compte ou la bannière) ──
+  if (mode === "edlEntree") return (
     <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
-      <Header showSteps={true} />
+      <Header showSteps={false} />
       <div style={{ padding: "16px 16px 32px" }}>
         <div style={card}>
           <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, color: "#0B6E8A", marginBottom: 6, fontWeight: 700 }}>État des lieux — Arrivée</div>
+          <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 6 }}>Réservation {reservation?.ref}</div>
           <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.5 }}>Photographiez chaque élément avant votre session. Les photos dorées sont les références propriétaire.</div>
           {elementsEdl.map(item => (
             <div key={item} style={{ borderBottom: "1px solid #e8f4f7", paddingBottom: 10, marginBottom: 10 }}>
@@ -2844,8 +2881,8 @@ export default function App() {
             </div>
           ))}
           <div style={{ fontSize: 12, color: "#5a8a96", marginBottom: 10 }}>📷 {photosAvant.length} photo{photosAvant.length > 1 ? "s" : ""}</div>
-          <button style={btnP} onClick={confirmerReservation}>✓ Valider et commencer la session</button>
-          <button style={btnS} onClick={() => setStep(4)}>← Retour</button>
+          <button style={btnP} onClick={validerEdlEntree}>✓ Valider et commencer la session</button>
+          <button style={btnS} onClick={() => setMode(compteConnecte ? "compte" : "accueil")}>← Retour</button>
         </div>
       </div>
     </div>
@@ -2911,24 +2948,27 @@ export default function App() {
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, color: "#0B6E8A", fontWeight: 700, marginBottom: 6 }}>Réservation confirmée !</div>
             <div style={{ display: "inline-block", background: "#4ECDC4", color: "#fff", borderRadius: 8, padding: "4px 13px", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>{reservation?.ref}</div>
             <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.7 }}>Confirmation envoyée à <strong>{form.email}</strong>.<br />Profitez bien ! 🌊</div>
-            <div style={{ background: "#fff3f3", borderRadius: 10, padding: "11px 13px", border: "2px solid #FF6B6B", marginBottom: 12, textAlign: "left" }}>
-              <div style={{ fontWeight: 700, color: "#FF6B6B", marginBottom: 4 }}>⚠️ À faire au départ</div>
-              <div style={{ fontSize: 13, color: "#2C3E50", lineHeight: 1.6 }}>Réalisez l'état des lieux de sortie avant de partir.</div>
+            <div style={{ background: "#e6faf8", borderRadius: 10, padding: "11px 13px", border: "2px solid #4ECDC4", marginBottom: 12, textAlign: "left" }}>
+              <div style={{ fontWeight: 700, color: "#0B6E8A", marginBottom: 4 }}>📅 Le jour de votre venue</div>
+              <div style={{ fontSize: 13, color: "#2C3E50", lineHeight: 1.6 }}>À l'heure de votre créneau, vous pourrez réaliser l'état des lieux d'entrée et de sortie directement depuis votre espace "Mon compte".</div>
             </div>
-            <button style={btnP} onClick={() => setStep(6)}>📷 Faire l'état des lieux de sortie</button>
+            <button style={btnP} onClick={() => { resetSession(); setMode(compteConnecte?"compte":"accueil"); }}>
+              {compteConnecte ? "Voir mes réservations" : "Retour à l'accueil"}
+            </button>
           </div>
         </div>
       </div>
     );
   }
 
-  // ── ÉTAPE 6 : État des lieux APRÈS + casse ────────────────────────────────
-  if (mode === "locataire" && step === 6) return (
+  // ── PAGE ÉTAT DES LIEUX DE SORTIE (le jour J, depuis Mon compte ou la bannière) ──
+  if (mode === "edlSortie") return (
     <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
-      <Header showSteps={true} />
+      <Header showSteps={false} />
       <div style={{ padding: "16px 16px 32px" }}>
         <div style={card}>
           <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, color: "#0B6E8A", marginBottom: 6, fontWeight: 700 }}>État des lieux — Départ</div>
+          <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 6 }}>Réservation {reservation?.ref}</div>
           <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14 }}>Photographiez chaque élément dans l'état où vous le laissez.</div>
           {elementsEdl.map(item => (
             <div key={item} style={{ borderBottom: "1px solid #e8f4f7", paddingBottom: 10, marginBottom: 10 }}>
