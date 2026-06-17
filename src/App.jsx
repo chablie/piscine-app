@@ -41,10 +41,10 @@ const TARIF_SOIREE = 1; // majoration €/pers/h après 20h
 
 // ─── Comptes Admin & Propriétaire ──────────────────────────────────────────────
 // Change ces identifiants avant de déployer !
-const ADMIN_EMAIL = "admin@mapiscine.fr";
-const ADMIN_PASSWORD = "Admin2024!";
-const PROPRIO_EMAIL = "proprietaire@mapiscine.fr";
-const PROPRIO_PASSWORD = "Piscine2024!";
+const ADMIN_EMAIL = "aurelie.briand@yahoo.fr";
+const ADMIN_PASSWORD = "M@rtinique.972";
+const PROPRIO_EMAIL = "aurelie.briand@yahoo.fr";
+const PROPRIO_PASSWORD = "M@rtinique.972";
 const JOURS = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
 const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
