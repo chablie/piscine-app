@@ -883,8 +883,39 @@ function StatsAvancees({ reservations, comptes, extras }) {
               ))}
             </div>
             {nbAnnulees > 0 && (
-              <div style={{ fontSize:11, color:"#5a8a96" }}>
+              <div style={{ fontSize:11, color:"#5a8a96", marginBottom:10 }}>
                 Dont {nbAnnuleesParLocataire} annulation{nbAnnuleesParLocataire>1?"s":""} demandée{nbAnnuleesParLocataire>1?"s":""} par le locataire
+              </div>
+            )}
+
+            {/* Motifs détaillés des refus */}
+            {reservations.filter(r=>r.statut==="refusee" && r.motifRefus).length > 0 && (
+              <div style={{ marginTop:12 }}>
+                <div style={{ fontSize:12, fontWeight:700, color:"#a06000", marginBottom:8 }}>Motifs de refus</div>
+                {reservations.filter(r=>r.statut==="refusee" && r.motifRefus).map(r => (
+                  <div key={r.ref} style={{ background:"#fff8e1", borderRadius:8, padding:"8px 12px", marginBottom:6, fontSize:12 }}>
+                    <div style={{ fontWeight:600, color:"#a06000" }}>{r.ref} · {r.date}</div>
+                    <div style={{ color:"#2C3E50", marginTop:2 }}>"{r.motifRefus}"</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Motifs détaillés des annulations */}
+            {reservations.filter(r=>r.statut==="annulee" && r.motifAnnulation).length > 0 && (
+              <div style={{ marginTop:12 }}>
+                <div style={{ fontSize:12, fontWeight:700, color:"#c0302a", marginBottom:8 }}>Motifs d'annulation</div>
+                {reservations.filter(r=>r.statut==="annulee" && r.motifAnnulation).map(r => (
+                  <div key={r.ref} style={{ background:"#fff0f0", borderRadius:8, padding:"8px 12px", marginBottom:6, fontSize:12 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <span style={{ fontWeight:600, color:"#c0302a" }}>{r.ref} · {r.date}</span>
+                      {r.annulationParLocataire && (
+                        <span style={{ fontSize:10, background:"#FF6B6B", color:"#fff", borderRadius:10, padding:"2px 7px", fontWeight:600 }}>demandé par le locataire</span>
+                      )}
+                    </div>
+                    <div style={{ color:"#2C3E50", marginTop:2 }}>"{r.motifAnnulation}"</div>
+                  </div>
+                ))}
               </div>
             )}
           </>
