@@ -200,6 +200,111 @@ const EQUIPEMENTS_LABELS = {
   petanque:["🎯","Terrain de pétanque"], wifi:["💻","Wi-Fi"],
 };
 
+// ─── Textes légaux (RGPD) ───────────────────────────────────────────────────
+const RESPONSABLE_TRAITEMENT = "BRIAND Aurélie";
+const ADRESSE_RESPONSABLE = "Lieu-dit Le Bois Sené, 49000 Écouflant";
+const EMAIL_CONTACT_RGPD = "aurelie.briand@yahoo.fr";
+
+const POLITIQUE_CONFIDENTIALITE = `POLITIQUE DE CONFIDENTIALITÉ
+
+Dernière mise à jour : ${new Date().toLocaleDateString("fr-FR")}
+
+1. RESPONSABLE DU TRAITEMENT
+
+Le responsable du traitement des données collectées sur cette application est :
+${RESPONSABLE_TRAITEMENT}
+${ADRESSE_RESPONSABLE}
+Email : ${EMAIL_CONTACT_RGPD}
+
+2. DONNÉES COLLECTÉES
+
+Dans le cadre de l'utilisation de cette application de réservation de piscine privée, les données suivantes sont collectées :
+• Identité : prénom, nom
+• Coordonnées : email, téléphone, adresse postale
+• Données de réservation : dates, horaires, nombre de participants, montants payés
+• Photos : état des lieux (mobilier, en cas de dégât signalé)
+• Avis et commentaires laissés sur la prestation
+
+Aucune donnée bancaire (numéro de carte) n'est collectée ni stockée par cette application — les paiements sont traités par un prestataire de paiement sécurisé tiers (Stripe), qui dispose de sa propre politique de confidentialité.
+
+3. FINALITÉS DU TRAITEMENT
+
+Ces données sont utilisées pour :
+• Gérer les réservations et leur suivi (validation, refus, annulation)
+• Établir les factures
+• Assurer le suivi de la relation client (avis, codes promo)
+• Réaliser des statistiques anonymisées sur l'activité
+
+4. BASE LÉGALE
+
+Le traitement de vos données repose sur l'exécution du contrat de location conclu avec vous lors de votre réservation, ainsi que sur votre consentement pour les éléments facultatifs (avis, photos).
+
+5. DESTINATAIRES DES DONNÉES
+
+Vos données sont accessibles uniquement par le responsable du traitement mentionné ci-dessus. Elles ne sont jamais vendues ni cédées à des tiers à des fins commerciales. Elles peuvent être transmises à des sous-traitants techniques strictement nécessaires au fonctionnement du service (hébergement de la base de données, traitement des paiements), qui sont tenus aux mêmes obligations de confidentialité.
+
+6. DURÉE DE CONSERVATION
+
+Vos données sont conservées pendant la durée nécessaire à la gestion de votre dossier, et au maximum 3 ans après votre dernière réservation, sauf obligation légale de conservation plus longue (comptabilité, litiges).
+
+7. VOS DROITS
+
+Conformément au Règlement Général sur la Protection des Données (RGPD), vous disposez des droits suivants sur vos données personnelles :
+• Droit d'accès : obtenir une copie des données vous concernant
+• Droit de rectification : corriger des données inexactes
+• Droit à l'effacement : demander la suppression de vos données
+• Droit à la limitation du traitement
+• Droit d'opposition
+• Droit à la portabilité de vos données
+
+Vous pouvez exercer ces droits directement depuis votre espace "Mon compte" (suppression) ou en nous contactant à l'adresse : ${EMAIL_CONTACT_RGPD}
+
+Vous disposez également du droit d'introduire une réclamation auprès de la Commission Nationale de l'Informatique et des Libertés (CNIL) — www.cnil.fr
+
+8. SÉCURITÉ
+
+Des mesures techniques sont mises en place pour protéger vos données contre tout accès non autorisé, perte ou divulgation (hébergement sécurisé, accès restreint).
+
+9. COOKIES ET STOCKAGE LOCAL
+
+Cette application utilise uniquement les cookies et le stockage technique strictement nécessaires à son fonctionnement (maintien de votre connexion, mémorisation de vos préférences de réservation en cours). Aucun cookie publicitaire ou de traçage tiers n'est utilisé.`;
+
+const CGU_TEXTE = `CONDITIONS GÉNÉRALES D'UTILISATION
+
+Dernière mise à jour : ${new Date().toLocaleDateString("fr-FR")}
+
+1. OBJET
+
+Les présentes conditions générales régissent l'utilisation de l'application de réservation de la piscine privée gérée par ${RESPONSABLE_TRAITEMENT}, et l'ensemble des réservations effectuées par son intermédiaire.
+
+2. RÉSERVATION
+
+Toute réservation implique l'acceptation pleine et entière des présentes conditions ainsi que du règlement intérieur de la piscine. Les réservations sont soumises à validation manuelle par le propriétaire ; elles ne sont définitivement confirmées qu'après cette validation.
+
+3. PAIEMENT
+
+Le paiement s'effectue en ligne par carte bancaire (intégralité du montant) ou, sur option, par un acompte de 20% en ligne avec solde en espèces le jour de la prestation. Toute réservation confirmée et non honorée par le locataire sans annulation préalable reste due intégralement.
+
+4. ANNULATION
+
+En cas de refus de la demande par le propriétaire, le client est intégralement remboursé. En cas d'annulation d'une réservation déjà acceptée (initiative du propriétaire ou demande du locataire), un remboursement intégral est également effectué, sauf circonstance particulière communiquée au client.
+
+5. RESPONSABILITÉ
+
+Le propriétaire ne pourra être tenu responsable des accidents corporels survenus dans l'enceinte de la piscine en cas de non-respect du règlement intérieur communiqué lors de la réservation. Chaque locataire reste responsable de la sécurité des personnes qu'il accompagne, notamment des enfants et personnes ne sachant pas nager.
+
+6. ÉTAT DES LIEUX
+
+Un état des lieux photographique est réalisé par le locataire à l'arrivée et au départ. Tout dégât constaté et non signalé pourra être facturé.
+
+7. DONNÉES PERSONNELLES
+
+Le traitement des données personnelles collectées dans le cadre de l'utilisation de cette application est décrit dans la Politique de confidentialité, consultable depuis l'application.
+
+8. DROIT APPLICABLE
+
+Les présentes conditions sont soumises au droit français. Tout litige relève des juridictions compétentes.`;
+
 // ─── SVG Vagues ───────────────────────────────────────────────────────────────
 function Waves() {
   return (
@@ -1098,6 +1203,9 @@ function StatsAvancees({ reservations, comptes, extras }) {
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [mode, setMode] = useState("accueil"); // accueil | locataire | proprio | auth | compte
+  const [consentementCookies, setConsentementCookies] = useState(null); // null = pas encore répondu | true | false
+  const [modeOrigineAvantLegal, setModeOrigineAvantLegal] = useState("accueil"); // pour revenir après consultation des pages légales
+  const [confirmationSuppression, setConfirmationSuppression] = useState(false);
   const [chargementInitial, setChargementInitial] = useState(true);
   const [erreurChargement, setErreurChargement] = useState(false);
   const [photoAffichee, setPhotoAffichee] = useState(0);
@@ -1322,6 +1430,20 @@ export default function App() {
     setMode("accueil");
   }
 
+  // Consentement cookies : lu une seule fois au démarrage
+  useEffect(() => {
+    try {
+      const stocke = localStorage.getItem("consentement_cookies");
+      if (stocke === "true") setConsentementCookies(true);
+      else if (stocke === "false") setConsentementCookies(false);
+    } catch (e) { /* localStorage indisponible, on redemande à chaque fois */ }
+  }, []);
+
+  function repondreConsentement(accepte) {
+    setConsentementCookies(accepte);
+    try { localStorage.setItem("consentement_cookies", String(accepte)); } catch (e) {}
+  }
+
   // Quand on arrive sur la page annonce, démarrer le carrousel sur la photo mise en avant
   useEffect(() => {
     if (mode === "annonce") setPhotoAffichee(annonce.photoUne || 0);
@@ -1377,9 +1499,10 @@ export default function App() {
 
   // ── Auth functions ──
   function inscrire() {
-    const { prenom, nom, email, telephone, motdepasse, motdepasse2 } = authForm;
+    const { prenom, nom, email, telephone, motdepasse, motdepasse2, cguAcceptees } = authForm;
     if (!prenom || !nom || !email.includes("@") || !telephone || !motdepasse) { setAuthErreur("Tous les champs sont requis."); return; }
     if (motdepasse !== motdepasse2) { setAuthErreur("Les mots de passe ne correspondent pas."); return; }
+    if (!cguAcceptees) { setAuthErreur("Vous devez accepter les CGU et la politique de confidentialité."); return; }
     if (comptes[email]) { setAuthErreur("Un compte existe déjà avec cet email."); return; }
     const { adresse, codePostal, ville } = authForm;
     if (!adresse || !codePostal || !ville) { setAuthErreur("Veuillez renseigner votre adresse complète."); return; }
@@ -1403,6 +1526,18 @@ export default function App() {
   }
 
   function deconnecter() { setCompteConnecte(null); setMode("accueil"); }
+
+  // Droit à l'effacement RGPD : suppression du compte locataire et de ses données
+  async function supprimerMonCompte() {
+    if (!compteConnecte) return;
+    // Supprimer le compte de Supabase (anonymisation simple : on retire les infos identifiantes)
+    const { supabase } = await import("./supabase.js");
+    await supabase.from('comptes').delete().eq('email', compteConnecte);
+    setComptes(prev => { const n = { ...prev }; delete n[compteConnecte]; return n; });
+    setCompteConnecte(null);
+    setConfirmationSuppression(false);
+    setMode("accueil");
+  }
 
   // ── Réservation functions ──
   function validerEtape1() {
@@ -1731,6 +1866,22 @@ export default function App() {
           </>
         )}
         <Waves />
+        {consentementCookies === null && !chargementInitial && (
+          <div style={{ position:"fixed", left:0, right:0, bottom:0, zIndex:2000, background:"#fff", boxShadow:"0 -4px 20px rgba(0,0,0,.15)", padding:"16px", borderRadius:"16px 16px 0 0" }}>
+            <div style={{ fontSize:13, color:"#2C3E50", lineHeight:1.6, marginBottom:12 }}>
+              🍪 Cette application utilise uniquement des cookies techniques nécessaires à son fonctionnement (connexion, préférences de réservation). Aucun cookie publicitaire n'est utilisé.{" "}
+              <span onClick={() => { setModeOrigineAvantLegal(mode); setMode("confidentialite"); }} style={{ color:"#0B6E8A", fontWeight:700, cursor:"pointer", textDecoration:"underline" }}>En savoir plus</span>
+            </div>
+            <div style={{ display:"flex", gap:8 }}>
+              <button onClick={() => repondreConsentement(true)} style={{ flex:1, padding:"10px", borderRadius:9, background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                Accepter
+              </button>
+              <button onClick={() => repondreConsentement(false)} style={{ flex:1, padding:"10px", borderRadius:9, background:"#fff", color:"#0B6E8A", border:"1.5px solid #0B6E8A", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                Refuser
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1927,6 +2078,24 @@ export default function App() {
     </div>
   );
 
+  // ── PAGES LÉGALES (Politique de confidentialité & CGU) ───────────────────
+  if (mode === "confidentialite" || mode === "cgu") return (
+    <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+      <Header showSteps={false} />
+      <div style={{ padding: "16px 16px 32px" }}>
+        <div style={card}>
+          <div style={{ fontFamily:"'Playfair Display',serif", fontSize:19, color:"#0B6E8A", fontWeight:700, marginBottom:14 }}>
+            {mode === "confidentialite" ? "🔒 Politique de confidentialité" : "📜 Conditions générales d'utilisation"}
+          </div>
+          <div style={{ background:"#f0fafc", borderRadius:10, padding:"14px 16px", fontSize:13, color:"#2C3E50", lineHeight:1.7, whiteSpace:"pre-line", border:"1px solid #b0d8e3", maxHeight:480, overflowY:"auto" }}>
+            {mode === "confidentialite" ? POLITIQUE_CONFIDENTIALITE : CGU_TEXTE}
+          </div>
+        </div>
+        <button style={btnS} onClick={() => setMode(modeOrigineAvantLegal)}>← Retour</button>
+      </div>
+    </div>
+  );
+
   // ── PAGE ACCUEIL ──────────────────────────────────────────────────────────
   if (mode === "accueil") return (
     <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
@@ -1955,6 +2124,11 @@ export default function App() {
             ))}
           </div>
         )}
+        <div style={{ textAlign:"center", marginTop:18, fontSize:11, color:"#aaa" }}>
+          <span onClick={() => { setModeOrigineAvantLegal("accueil"); setMode("confidentialite"); }} style={{ cursor:"pointer", textDecoration:"underline" }}>Confidentialité</span>
+          {" · "}
+          <span onClick={() => { setModeOrigineAvantLegal("accueil"); setMode("cgu"); }} style={{ cursor:"pointer", textDecoration:"underline" }}>CGU</span>
+        </div>
       </div>
     </div>
   );
@@ -2020,8 +2194,19 @@ export default function App() {
           {authMode === "register" && (
             <div style={{ marginBottom: 10 }}><label style={lbl}>Confirmer le mot de passe</label><input style={inp} type="password" value={authForm.motdepasse2} onChange={e => setAuthForm(f => ({ ...f, motdepasse2: e.target.value }))} /></div>
           )}
+          {authMode === "register" && (
+            <label style={{ display:"flex", alignItems:"flex-start", gap:8, marginBottom:14, cursor:"pointer" }}>
+              <input type="checkbox" checked={authForm.cguAcceptees||false} onChange={e=>setAuthForm(f=>({...f,cguAcceptees:e.target.checked}))} style={{ marginTop:2, width:16, height:16, accentColor:"#0B6E8A" }}/>
+              <span style={{ fontSize:12, color:"#5a8a96", lineHeight:1.5 }}>
+                J'accepte les{" "}
+                <span onClick={e=>{e.preventDefault();e.stopPropagation();setModeOrigineAvantLegal("auth");setMode("cgu");}} style={{ color:"#0B6E8A", fontWeight:600, textDecoration:"underline" }}>CGU</span>
+                {" "}et la{" "}
+                <span onClick={e=>{e.preventDefault();e.stopPropagation();setModeOrigineAvantLegal("auth");setMode("confidentialite");}} style={{ color:"#0B6E8A", fontWeight:600, textDecoration:"underline" }}>politique de confidentialité</span>
+              </span>
+            </label>
+          )}
           {authErreur && <div style={{ color: "#FF6B6B", fontSize: 13, marginBottom: 8, padding: "8px 10px", background: "#fff0f0", borderRadius: 8 }}>{authErreur}</div>}
-          <button style={btnP} onClick={authMode === "login" ? connecter : inscrire}>
+          <button style={{ ...btnP, opacity: (authMode === "register" && !authForm.cguAcceptees) ? .5 : 1 }} disabled={authMode === "register" && !authForm.cguAcceptees} onClick={authMode === "login" ? connecter : inscrire}>
             {authMode === "login" ? "Se connecter" : "Créer mon compte"}
           </button>
         </div>
@@ -2185,6 +2370,29 @@ export default function App() {
             })}
           </div>
           <button style={{ ...btnS, borderColor: "#FF6B6B", color: "#FF6B6B", marginTop: 8 }} onClick={deconnecter}>Se déconnecter</button>
+
+          {/* Droit à l'effacement RGPD */}
+          {!confirmationSuppression ? (
+            <button onClick={() => setConfirmationSuppression(true)}
+              style={{ background:"none", border:"none", color:"#aaa", fontSize:12, textDecoration:"underline", cursor:"pointer", marginTop:14, width:"100%", textAlign:"center" }}>
+              🗑 Supprimer mon compte et mes données
+            </button>
+          ) : (
+            <div style={{ marginTop:14, background:"#fff0f0", borderRadius:10, padding:"14px", border:"2px solid #FF6B6B" }}>
+              <div style={{ fontWeight:700, color:"#c0302a", fontSize:13, marginBottom:6 }}>⚠️ Confirmer la suppression</div>
+              <div style={{ fontSize:12, color:"#2C3E50", lineHeight:1.6, marginBottom:10 }}>
+                Cette action supprimera définitivement votre compte et vos coordonnées. Vos réservations passées resteront archivées à des fins comptables, mais ne seront plus liées à un compte actif. Cette action est irréversible.
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={supprimerMonCompte} style={{ flex:1, padding:"9px", borderRadius:8, background:"#FF6B6B", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                  Oui, supprimer
+                </button>
+                <button onClick={() => setConfirmationSuppression(false)} style={{ ...btnS, marginTop:0, fontSize:13, padding:"9px" }}>
+                  Annuler
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
