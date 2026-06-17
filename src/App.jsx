@@ -83,7 +83,7 @@ function genererCodePromo() {
 function heuresBloquees(reservations, date) {
   const blocked = new Set();
   // Les réservations refusées ne bloquent plus le créneau
-  reservations.filter(r => r.date === date && r.statut !== "refusee").forEach(r => {
+  reservations.filter(r => r.date === date && r.statut !== "refusee" && r.statut !== "annulee").forEach(r => {
     const debut = parseInt(r.heureDebut), fin = parseInt(r.heureFin);
     for (let h = debut - 1; h < fin + 1; h++) blocked.add(h);
   });
@@ -97,7 +97,7 @@ function statutHeures(disponibilites, reservations, date) {
   const result = {};
   ALL_HOURS.forEach(h => {
     const dispo = plages.some(p => h >= p.debut && h < p.fin);
-    const res = reservations.find(r => r.date === date && r.statut !== "refusee" && parseInt(r.heureDebut) <= h && parseInt(r.heureFin) > h);
+    const res = reservations.find(r => r.date === date && r.statut !== "refusee" && r.statut !== "annulee" && parseInt(r.heureDebut) <= h && parseInt(r.heureFin) > h);
     if (res) result[h] = "reserve";
     else if (blocked.has(h)) result[h] = "tampon";
     else if (dispo) result[h] = "libre";
@@ -939,6 +939,9 @@ export default function App() {
   const [ongletPropri, setOngletPropri] = useState("dispo");
   const [noteEnCoursRef, setNoteEnCoursRef] = useState(null);
   const [refusEnCoursRef, setRefusEnCoursRef] = useState(null);
+  const [annulEnCoursRef, setAnnulEnCoursRef] = useState(null);
+  const [motifAnnulVal, setMotifAnnulVal] = useState("");
+  const [annulationParLocataireVal, setAnnulationParLocataireVal] = useState(false);
   const [motifRefusVal, setMotifRefusVal] = useState("");
   const [nouvelExtra, setNouvelExtra] = useState({ nom:"", description:"", tarif:0, type:"forfait", emoji:"✨", actif:true });
   const [ajoutExtraMode, setAjoutExtraMode] = useState(false);
@@ -1165,6 +1168,17 @@ export default function App() {
       return next;
     });
     // TODO: déclencher ici l'envoi email/SMS au locataire "Réservation refusée" + remboursement
+  }
+
+  // Annulation d'une réservation déjà acceptée (initiative propriétaire ou demande locataire relayée)
+  function annulerReservation(ref, motif, origineLocataire) {
+    setReservations(prev => {
+      const next = prev.map(r => r.ref === ref ? { ...r, statut: "annulee", motifAnnulation: motif || "", annulationParLocataire: !!origineLocataire } : r);
+      const updated = next.find(r => r.ref === ref);
+      if (updated) sauvegarderReservation(updated);
+      return next;
+    });
+    // TODO: déclencher ici l'envoi email/SMS au locataire "Réservation annulée" + remboursement
   }
 
   function cloturerSession() {
@@ -2355,6 +2369,7 @@ export default function App() {
                   en_attente: { bg:"#fff8e1", color:"#a06000", border:"#f0c040", label:"⏳ En attente" },
                   acceptee: { bg:"#e6faf8", color:"#0B6E8A", border:"#4ECDC4", label:"✓ Acceptée" },
                   refusee: { bg:"#fff0f0", color:"#c0302a", border:"#FF6B6B", label:"✗ Refusée" },
+                  annulee: { bg:"#f5f5f5", color:"#888", border:"#ccc", label:"🚫 Annulée" },
                 }[statut];
                 return (
                   <div key={r.ref} style={{ background: statut==="en_attente" ? "#fffdf5" : "#f0fafc", borderRadius: 10, padding: "12px 14px", marginBottom: 12, border: statut==="en_attente" ? "2px solid #f0c040" : "1px solid #b0d8e3" }}>
@@ -2397,6 +2412,33 @@ export default function App() {
                             ✗ Refuser
                           </button>
                         </div>
+                      )
+                    )}
+
+                    {/* Annulation d'une réservation déjà acceptée */}
+                    {statut === "acceptee" && !sessionPassee && (
+                      annulEnCoursRef === r.ref ? (
+                        <div style={{ marginTop:10, background:"#fff", borderRadius:10, padding:"12px", border:"1.5px solid #FF6B6B" }}>
+                          <div style={{ fontWeight:700, color:"#c0302a", fontSize:13, marginBottom:8 }}>Motif de l'annulation</div>
+                          <label style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8, cursor:"pointer" }}>
+                            <input type="checkbox" checked={annulationParLocataireVal} onChange={e=>setAnnulationParLocataireVal(e.target.checked)} style={{ accentColor:"#0B6E8A" }}/>
+                            <span style={{ fontSize:12, color:"#2C3E50" }}>Le locataire m'a demandé d'annuler</span>
+                          </label>
+                          <textarea value={motifAnnulVal} onChange={e=>setMotifAnnulVal(e.target.value)} placeholder="Ex: indisponibilité imprévue de la piscine..."
+                            style={{ ...inp, height:60, resize:"vertical", fontSize:12, marginBottom:8 }}/>
+                          <div style={{ display:"flex", gap:8 }}>
+                            <button style={{ flex:1, padding:"9px", borderRadius:8, background:"#FF6B6B", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}
+                              onClick={() => { annulerReservation(r.ref, motifAnnulVal, annulationParLocataireVal); setAnnulEnCoursRef(null); setMotifAnnulVal(""); setAnnulationParLocataireVal(false); }}>
+                              Confirmer l'annulation
+                            </button>
+                            <button style={{ ...btnS, marginTop:0, fontSize:13, padding:"9px" }} onClick={() => { setAnnulEnCoursRef(null); setMotifAnnulVal(""); setAnnulationParLocataireVal(false); }}>Annuler</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button style={{ marginTop:10, width:"100%", padding:"9px", borderRadius:8, background:"#fff", color:"#FF6B6B", border:"1.5px solid #FF6B6B", fontWeight:700, fontSize:13, cursor:"pointer" }}
+                          onClick={() => setAnnulEnCoursRef(r.ref)}>
+                          🚫 Annuler cette réservation
+                        </button>
                       )
                     )}
                     {noteP ? (
@@ -2933,6 +2975,26 @@ export default function App() {
               <br/>Vous serez remboursé(e) intégralement.
             </div>
             <button style={btnP} onClick={() => { resetSession(); setMode("locataire"); setStep(1); }}>Choisir un autre créneau</button>
+          </div>
+        </div>
+      </div>
+    );
+
+    if (statut === "annulee") return (
+      <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+        <Header showSteps={true} />
+        <div style={{ padding: "16px 16px 32px" }}>
+          <div style={{ ...card, textAlign: "center" }}>
+            <div style={{ fontSize: 40, marginBottom: 6 }}>🚫</div>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, color: "#FF6B6B", fontWeight: 700, marginBottom: 6 }}>Réservation annulée</div>
+            <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.7 }}>
+              Votre réservation pourtant confirmée a été annulée.
+              {resaActuelle?.motifAnnulation && <><br/><em>"{resaActuelle.motifAnnulation}"</em></>}
+              <br/>Vous serez remboursé(e) intégralement.
+            </div>
+            <button style={btnP} onClick={() => { resetSession(); setMode(compteConnecte?"compte":"accueil"); }}>
+              {compteConnecte ? "Voir mes réservations" : "Retour à l'accueil"}
+            </button>
           </div>
         </div>
       </div>
