@@ -12,6 +12,10 @@ import {
   chargerConfig, sauvegarderConfig,
   ecouterReservations, ecouterAnnonce,
 } from "./supabase.js";
+import {
+  envoyerEmailNouvelleDemande, envoyerEmailAcceptation,
+  envoyerEmailRefus, envoyerEmailAnnulation,
+} from "./emails.js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const TARIF_BASE = 9;
@@ -1610,7 +1614,7 @@ export default function App() {
     setReservation(r);
     sauvegarderReservation(r);
     // L'état des lieux d'entrée et de sortie se font le jour J, depuis "Mon compte" ou via la bannière d'alerte
-    // TODO: déclencher ici l'envoi email/SMS au propriétaire "Nouvelle demande de réservation"
+    envoyerEmailNouvelleDemande(r, PROPRIO_EMAIL);
     if (codePromoStatut === "ok" && codePromoSaisi) {
       const code = codePromoSaisi.trim().toUpperCase();
       setRegistreCodes(prev => {
@@ -1634,20 +1638,19 @@ export default function App() {
     setReservations(prev => {
       const next = prev.map(r => r.ref === ref ? { ...r, statut: "acceptee" } : r);
       const updated = next.find(r => r.ref === ref);
-      if (updated) sauvegarderReservation(updated);
+      if (updated) { sauvegarderReservation(updated); envoyerEmailAcceptation(updated); }
       return next;
     });
-    // TODO: déclencher ici l'envoi email/SMS au locataire "Réservation acceptée"
   }
 
   function refuserReservation(ref, motif) {
     setReservations(prev => {
       const next = prev.map(r => r.ref === ref ? { ...r, statut: "refusee", motifRefus: motif || "" } : r);
       const updated = next.find(r => r.ref === ref);
-      if (updated) sauvegarderReservation(updated);
+      if (updated) { sauvegarderReservation(updated); envoyerEmailRefus(updated); }
       return next;
     });
-    // TODO: déclencher ici l'envoi email/SMS au locataire "Réservation refusée" + remboursement
+    // TODO: remboursement automatique via Stripe (en attente de l'activation du compte Stripe)
   }
 
   // Annulation d'une réservation déjà acceptée (initiative propriétaire ou demande locataire relayée)
@@ -1655,10 +1658,10 @@ export default function App() {
     setReservations(prev => {
       const next = prev.map(r => r.ref === ref ? { ...r, statut: "annulee", motifAnnulation: motif || "", annulationParLocataire: !!origineLocataire } : r);
       const updated = next.find(r => r.ref === ref);
-      if (updated) sauvegarderReservation(updated);
+      if (updated) { sauvegarderReservation(updated); envoyerEmailAnnulation(updated); }
       return next;
     });
-    // TODO: déclencher ici l'envoi email/SMS au locataire "Réservation annulée" + remboursement
+    // TODO: remboursement automatique via Stripe (en attente de l'activation du compte Stripe)
   }
 
   function cloturerSession() {
