@@ -755,6 +755,315 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
   );
 }
 
+// ─── Composant Stats Avancées ────────────────────────────────────────────────
+function StatsAvancees({ reservations, comptes, extras }) {
+  const card = { background: "#fff", borderRadius: 16, boxShadow: "0 4px 24px rgba(11,110,138,.10)", padding: "20px 16px", marginBottom: 14 };
+
+  const locatairesAvecCompte = reservations.map(r => comptes[r.email]).filter(Boolean);
+
+  // ── Géo ──
+  const parVille = {};
+  locatairesAvecCompte.forEach(c => {
+    if (!c.ville) return;
+    const key = `${c.codePostal} ${c.ville}`;
+    parVille[key] = (parVille[key]||0) + 1;
+  });
+  const villesSorted = Object.entries(parVille).sort((a,b)=>b[1]-a[1]);
+  const totalGeo = locatairesAvecCompte.filter(c=>c.ville).length;
+  const parDept = {};
+  locatairesAvecCompte.forEach(c => {
+    if (!c.codePostal) return;
+    const dept = c.codePostal.slice(0,2);
+    parDept[dept] = (parDept[dept]||0) + 1;
+  });
+  const deptSorted = Object.entries(parDept).sort((a,b)=>b[1]-a[1]);
+
+  // ── Démographie ──
+  const totalAdultes = reservations.reduce((s,r)=>s+(r.adultes||0),0);
+  const totalEnfants12 = reservations.reduce((s,r)=>s+(r.enfants12||0),0);
+  const totalMoins3 = reservations.reduce((s,r)=>s+(r.moins3||0),0);
+  const totalPersonnes = totalAdultes + totalEnfants12 + totalMoins3;
+  const pctA = totalPersonnes ? Math.round(totalAdultes/totalPersonnes*100) : 0;
+  const pctE = totalPersonnes ? Math.round(totalEnfants12/totalPersonnes*100) : 0;
+  const pctB = totalPersonnes ? Math.round(totalMoins3/totalPersonnes*100) : 0;
+
+  // ── CA / KPIs globaux ──
+  const caTotal = reservations.reduce((s,r)=>s+(r.totalGeneral||r.prix||0),0);
+  const nbRes = reservations.length;
+  const panierMoyen = nbRes ? +(caTotal/nbRes).toFixed(2) : 0;
+  const noteMoyenneLocataire = (() => { const notes=reservations.filter(r=>r.note).map(r=>r.note); return notes.length ? (notes.reduce((s,n)=>s+n,0)/notes.length).toFixed(1) : null; })();
+
+  // ── Taux d'acceptation / refus / annulation ──
+  const nbEnAttente = reservations.filter(r=>r.statut==="en_attente").length;
+  const nbAcceptees = reservations.filter(r=>r.statut==="acceptee").length;
+  const nbRefusees = reservations.filter(r=>r.statut==="refusee").length;
+  const nbAnnulees = reservations.filter(r=>r.statut==="annulee").length;
+  const nbTraitees = nbAcceptees + nbRefusees + nbAnnulees; // hors en_attente, pour calculer un taux sur les décisions prises
+  const pctAcceptees = nbTraitees ? Math.round(nbAcceptees/nbTraitees*100) : 0;
+  const pctRefusees = nbTraitees ? Math.round(nbRefusees/nbTraitees*100) : 0;
+  const pctAnnulees = nbTraitees ? Math.round(nbAnnulees/nbTraitees*100) : 0;
+  const nbAnnuleesParLocataire = reservations.filter(r=>r.statut==="annulee" && r.annulationParLocataire).length;
+
+  // ── Satisfaction prestation (avis du locataire) ──
+  const avisPrestation = reservations.filter(r=>r.note).map(r=>r.note);
+  const repartitionAvis = [5,4,3,2,1].map(n => ({ note:n, nb: avisPrestation.filter(a=>a===n).length }));
+  const maxAvis = Math.max(1, ...repartitionAvis.map(r=>r.nb));
+
+  // ── Évolution CA par mois ──
+  const caParMois = {};
+  reservations.forEach(r => {
+    if (!r.date) return;
+    const mois = r.date.slice(0,7); // "YYYY-MM"
+    caParMois[mois] = (caParMois[mois]||0) + (r.totalGeneral||r.prix||0);
+  });
+  const moisSorted = Object.keys(caParMois).sort();
+  const maxCaMois = Math.max(1, ...Object.values(caParMois));
+  const NOMS_MOIS_COURT = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
+  function labelMois(m) { const [y,mo] = m.split("-"); return `${NOMS_MOIS_COURT[+mo-1]} ${y.slice(2)}`; }
+
+  // ── Utilisation des extras ──
+  const extrasUtilisation = extras.map(e => {
+    const resasAvecExtra = reservations.filter(r => r.extrasChoisis?.[e.id] > 0);
+    const revenuExtra = resasAvecExtra.reduce((sum, r) => {
+      const qte = r.extrasChoisis[e.id];
+      const nb = e.type === "personne" ? qte : 1;
+      return sum + e.tarif * nb;
+    }, 0);
+    return { ...e, nbUtilisations: resasAvecExtra.length, revenu: revenuExtra };
+  }).sort((a,b)=>b.nbUtilisations-a.nbUtilisations);
+  const totalUtilisationsExtras = extrasUtilisation.reduce((s,e)=>s+e.nbUtilisations,0);
+
+  // ── Répartition mode de paiement ──
+  const nbCB = reservations.filter(r=>r.modePaiement==="cb").length;
+  const nbEspeces = reservations.filter(r=>r.modePaiement==="especes").length;
+  const totalPaiements = nbCB + nbEspeces;
+  const pctCB = totalPaiements ? Math.round(nbCB/totalPaiements*100) : 0;
+  const pctEspeces = totalPaiements ? Math.round(nbEspeces/totalPaiements*100) : 0;
+  const caEspecesEnAttente = reservations.filter(r=>r.modePaiement==="especes").reduce((s,r)=>s+(r.resteARegler||0),0);
+
+  return (
+    <div>
+      {/* KPIs globaux */}
+      <div style={card}>
+        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", marginBottom:14, fontWeight:700 }}>📊 Tableau de bord</div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:4 }}>
+          {[["📅","Réservations",nbRes],["💶","CA total",formatEur(caTotal)],["🛒","Panier moyen",formatEur(panierMoyen)],["⭐","Satisfaction",noteMoyenneLocataire?`${noteMoyenneLocataire}/5`:"—"]].map(([emoji,label,val])=>(
+            <div key={label} style={{ background:"#f0fafc", borderRadius:10, padding:"12px 10px", border:"1px solid #b0d8e3", textAlign:"center" }}>
+              <div style={{ fontSize:22 }}>{emoji}</div>
+              <div style={{ fontWeight:700, fontSize:16, color:"#0B6E8A", marginTop:2 }}>{val}</div>
+              <div style={{ fontSize:10, color:"#5a8a96", marginTop:1 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Taux d'acceptation / refus / annulation */}
+      <div style={card}>
+        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>📋 Demandes de réservation</div>
+        {nbEnAttente > 0 && (
+          <div style={{ background:"#fff8e1", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#a06000", fontWeight:600, marginBottom:12 }}>
+            ⏳ {nbEnAttente} demande{nbEnAttente>1?"s":""} actuellement en attente
+          </div>
+        )}
+        {nbTraitees === 0 ? (
+          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucune demande traitée pour l'instant.</div>
+        ) : (
+          <>
+            <div style={{ display:"flex", height:28, borderRadius:10, overflow:"hidden", marginBottom:12 }}>
+              {pctAcceptees>0 && <div style={{ width:`${pctAcceptees}%`, background:"#4ECDC4", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctAcceptees}%</div>}
+              {pctRefusees>0 && <div style={{ width:`${pctRefusees}%`, background:"#f0c040", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctRefusees}%</div>}
+              {pctAnnulees>0 && <div style={{ width:`${pctAnnulees}%`, background:"#FF6B6B", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctAnnulees}%</div>}
+            </div>
+            <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:8 }}>
+              {[["#4ECDC4","Acceptées",nbAcceptees],["#f0c040","Refusées",nbRefusees],["#FF6B6B","Annulées",nbAnnulees]].map(([bg,label,nb])=>(
+                <div key={label} style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <div style={{ width:12, height:12, borderRadius:3, background:bg }}/>
+                  <span style={{ fontSize:12, color:"#2C3E50" }}>{label} : <strong>{nb}</strong></span>
+                </div>
+              ))}
+            </div>
+            {nbAnnulees > 0 && (
+              <div style={{ fontSize:11, color:"#5a8a96" }}>
+                Dont {nbAnnuleesParLocataire} annulation{nbAnnuleesParLocataire>1?"s":""} demandée{nbAnnuleesParLocataire>1?"s":""} par le locataire
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Satisfaction locataire détaillée */}
+      <div style={card}>
+        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>⭐ Satisfaction des locataires</div>
+        {avisPrestation.length === 0 ? (
+          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucun avis laissé pour l'instant.</div>
+        ) : (
+          <>
+            <div style={{ textAlign:"center", marginBottom:14 }}>
+              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:32, fontWeight:700, color:"#0B6E8A" }}>{noteMoyenneLocataire}<span style={{fontSize:16,color:"#aaa"}}>/5</span></div>
+              <div style={{ fontSize:12, color:"#5a8a96" }}>{avisPrestation.length} avis sur la prestation</div>
+            </div>
+            {repartitionAvis.map(({note,nb}) => (
+              <div key={note} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                <span style={{ fontSize:12, color:"#5a8a96", width:30 }}>{note} ⭐</span>
+                <div style={{ flex:1, height:10, background:"#f0f0f0", borderRadius:5, overflow:"hidden" }}>
+                  <div style={{ height:"100%", width:`${(nb/maxAvis)*100}%`, background:"linear-gradient(90deg,#f0c040,#ffe082)", borderRadius:5 }}/>
+                </div>
+                <span style={{ fontSize:12, color:"#2C3E50", fontWeight:600, width:20, textAlign:"right" }}>{nb}</span>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+
+      {/* Évolution CA par mois */}
+      <div style={card}>
+        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>📈 Évolution du chiffre d'affaires</div>
+        {moisSorted.length === 0 ? (
+          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucune donnée disponible.</div>
+        ) : (
+          <div style={{ display:"flex", alignItems:"flex-end", gap:8, height:140, overflowX:"auto", paddingBottom:4 }}>
+            {moisSorted.map(m => (
+              <div key={m} style={{ display:"flex", flexDirection:"column", alignItems:"center", flexShrink:0, minWidth:44 }}>
+                <div style={{ fontSize:10, color:"#0B6E8A", fontWeight:700, marginBottom:3 }}>{formatEur(caParMois[m])}</div>
+                <div style={{ width:32, height:Math.max(4,(caParMois[m]/maxCaMois)*90), background:"linear-gradient(180deg,#4ECDC4,#0B6E8A)", borderRadius:"6px 6px 0 0" }}/>
+                <div style={{ fontSize:11, color:"#5a8a96", marginTop:5 }}>{labelMois(m)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Utilisation des extras */}
+      <div style={card}>
+        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>🎁 Utilisation des extras</div>
+        {totalUtilisationsExtras === 0 ? (
+          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucun extra utilisé pour l'instant.</div>
+        ) : (
+          extrasUtilisation.filter(e=>e.nbUtilisations>0).map(e => (
+            <div key={e.id} style={{ marginBottom:10 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:3 }}>
+                <span style={{ fontWeight:600, color:"#2C3E50" }}>{e.emoji} {e.nom}</span>
+                <span style={{ color:"#0B6E8A", fontWeight:700 }}>{e.nbUtilisations}× · {formatEur(e.revenu)}</span>
+              </div>
+              <div style={{ height:7, background:"#e8f4f7", borderRadius:4, overflow:"hidden" }}>
+                <div style={{ height:"100%", width:`${(e.nbUtilisations/totalUtilisationsExtras)*100}%`, background:"linear-gradient(90deg,#0B6E8A,#4ECDC4)", borderRadius:4 }}/>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Répartition mode de paiement */}
+      <div style={card}>
+        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>💳 Modes de paiement</div>
+        {totalPaiements === 0 ? (
+          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucune donnée disponible.</div>
+        ) : (
+          <>
+            <div style={{ display:"flex", height:28, borderRadius:10, overflow:"hidden", marginBottom:12 }}>
+              {pctCB>0 && <div style={{ width:`${pctCB}%`, background:"#0B6E8A", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctCB}%</div>}
+              {pctEspeces>0 && <div style={{ width:`${pctEspeces}%`, background:"#4ECDC4", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctEspeces}%</div>}
+            </div>
+            <div style={{ display:"flex", gap:16, marginBottom:10 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <div style={{ width:12, height:12, borderRadius:3, background:"#0B6E8A" }}/>
+                <span style={{ fontSize:12, color:"#2C3E50" }}>💳 Carte : <strong>{nbCB}</strong></span>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <div style={{ width:12, height:12, borderRadius:3, background:"#4ECDC4" }}/>
+                <span style={{ fontSize:12, color:"#2C3E50" }}>💵 Espèces : <strong>{nbEspeces}</strong></span>
+              </div>
+            </div>
+            {caEspecesEnAttente > 0 && (
+              <div style={{ background:"#fff8e1", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#a06000", fontWeight:600 }}>
+                💰 {formatEur(caEspecesEnAttente)} restant à encaisser en espèces
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Géographie */}
+      <div style={card}>
+        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>📍 Origine géographique</div>
+        {totalGeo === 0 ? (
+          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>
+            Aucune donnée. Les locataires inscrits avec adresse apparaîtront ici.
+          </div>
+        ) : (
+          <>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
+              {[["🏙️","Villes",villesSorted.length],["🗺️","Départements",deptSorted.length],["👤","Géolocalisés",totalGeo],["📌","Ville #1",villesSorted[0]?.[0]?.split(" ").slice(1).join(" ")||"—"]].map(([emoji,label,val])=>(
+                <div key={label} style={{ background:"#f0fafc", borderRadius:9, padding:"10px", border:"1px solid #b0d8e3", textAlign:"center" }}>
+                  <div style={{ fontSize:18 }}>{emoji}</div>
+                  <div style={{ fontWeight:700, fontSize:14, color:"#0B6E8A" }}>{val}</div>
+                  <div style={{ fontSize:10, color:"#5a8a96" }}>{label}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginBottom:12 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:"#0B6E8A", marginBottom:8 }}>Par ville</div>
+              {villesSorted.map(([ville,nb])=>{
+                const pct=Math.round(nb/totalGeo*100);
+                return (
+                  <div key={ville} style={{ marginBottom:8 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:3 }}>
+                      <span style={{ fontWeight:600, color:"#2C3E50" }}>{ville}</span>
+                      <span style={{ color:"#0B6E8A", fontWeight:700 }}>{nb} · {pct}%</span>
+                    </div>
+                    <div style={{ height:7, background:"#e8f4f7", borderRadius:4, overflow:"hidden" }}>
+                      <div style={{ height:"100%", width:`${pct}%`, background:"linear-gradient(90deg,#0B6E8A,#4ECDC4)", borderRadius:4 }}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {deptSorted.length>0 && (
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                {deptSorted.map(([dept,nb])=>(
+                  <div key={dept} style={{ background:"#0B6E8A", color:"#fff", borderRadius:8, padding:"6px 12px", fontSize:13, fontWeight:700, textAlign:"center" }}>
+                    {dept}<br/><span style={{fontSize:10,fontWeight:400}}>{nb} loc.</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Démographie */}
+      <div style={card}>
+        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>👥 Répartition des participants</div>
+        {totalPersonnes === 0 ? (
+          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucune donnée disponible.</div>
+        ) : (
+          <>
+            <div style={{ display:"flex", height:28, borderRadius:10, overflow:"hidden", marginBottom:12 }}>
+              {pctA>0 && <div style={{ width:`${pctA}%`, background:"#0B6E8A", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctA}%</div>}
+              {pctE>0 && <div style={{ width:`${pctE}%`, background:"#4ECDC4", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctE}%</div>}
+              {pctB>0 && <div style={{ width:`${pctB}%`, background:"#ffe082", display:"flex", alignItems:"center", justifyContent:"center", color:"#a06000", fontSize:11, fontWeight:700 }}>{pctB}%</div>}
+            </div>
+            <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:12 }}>
+              {[["#0B6E8A","Adultes (12+)",totalAdultes,pctA],["#4ECDC4","Enfants (3-11)",totalEnfants12,pctE],["#ffe082","Moins de 3 ans",totalMoins3,pctB]].map(([bg,label,nb,pct])=>(
+                <div key={label} style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <div style={{ width:12, height:12, borderRadius:3, background:bg }}/>
+                  <div>
+                    <div style={{ fontSize:12, fontWeight:700, color:"#2C3E50" }}>{label}</div>
+                    <div style={{ fontSize:11, color:"#5a8a96" }}>{nb} pers. · {pct}%</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ background:"#f0fafc", borderRadius:8, padding:"9px 12px", fontSize:13, color:"#0B6E8A", fontWeight:600, textAlign:"center" }}>
+              Total : {totalPersonnes} participant{totalPersonnes>1?"s":""} sur {nbRes} réservation{nbRes>1?"s":""}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [mode, setMode] = useState("accueil"); // accueil | locataire | proprio | auth | compte
@@ -2469,135 +2778,8 @@ export default function App() {
             </div>
           )}
 
-          {ongletPropri === "stats" && (() => {
-            const locatairesAvecCompte = reservations.map(r => comptes[r.email]).filter(Boolean);
-            // Géo
-            const parVille = {};
-            locatairesAvecCompte.forEach(c => {
-              if (!c.ville) return;
-              const key = `${c.codePostal} ${c.ville}`;
-              parVille[key] = (parVille[key]||0) + 1;
-            });
-            const villesSorted = Object.entries(parVille).sort((a,b)=>b[1]-a[1]);
-            const totalGeo = locatairesAvecCompte.filter(c=>c.ville).length;
-            const parDept = {};
-            locatairesAvecCompte.forEach(c => {
-              if (!c.codePostal) return;
-              const dept = c.codePostal.slice(0,2);
-              parDept[dept] = (parDept[dept]||0) + 1;
-            });
-            const deptSorted = Object.entries(parDept).sort((a,b)=>b[1]-a[1]);
-            // Démographie
-            const totalAdultes = reservations.reduce((s,r)=>s+(r.adultes||0),0);
-            const totalEnfants12 = reservations.reduce((s,r)=>s+(r.enfants12||0),0);
-            const totalMoins3 = reservations.reduce((s,r)=>s+(r.moins3||0),0);
-            const totalPersonnes = totalAdultes + totalEnfants12 + totalMoins3;
-            const pctA = totalPersonnes ? Math.round(totalAdultes/totalPersonnes*100) : 0;
-            const pctE = totalPersonnes ? Math.round(totalEnfants12/totalPersonnes*100) : 0;
-            const pctB = totalPersonnes ? Math.round(totalMoins3/totalPersonnes*100) : 0;
-            // CA
-            const caTotal = reservations.reduce((s,r)=>s+(r.totalGeneral||r.prix||0),0);
-            const nbRes = reservations.length;
-            const panierMoyen = nbRes ? +(caTotal/nbRes).toFixed(2) : 0;
-            const noteMoyenne = (() => { const notes=reservations.filter(r=>r.note).map(r=>r.note); return notes.length ? (notes.reduce((s,n)=>s+n,0)/notes.length).toFixed(1) : null; })();
-            return (
-              <div>
-                {/* KPIs globaux */}
-                <div style={card}>
-                  <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", marginBottom:14, fontWeight:700 }}>📊 Tableau de bord</div>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:4 }}>
-                    {[[" 📅","Réservations",nbRes],[" 💶","CA total",formatEur(caTotal)],[" 🛒","Panier moyen",formatEur(panierMoyen)],[" ⭐","Note moyenne",noteMoyenne?`${noteMoyenne}/5`:"—"]].map(([emoji,label,val])=>(
-                      <div key={label} style={{ background:"#f0fafc", borderRadius:10, padding:"12px 10px", border:"1px solid #b0d8e3", textAlign:"center" }}>
-                        <div style={{ fontSize:22 }}>{emoji}</div>
-                        <div style={{ fontWeight:700, fontSize:16, color:"#0B6E8A", marginTop:2 }}>{val}</div>
-                        <div style={{ fontSize:10, color:"#5a8a96", marginTop:1 }}>{label}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+          {ongletPropri === "stats" && <StatsAvancees reservations={reservations} comptes={comptes} extras={extras} />}
 
-                {/* Démographie */}
-                <div style={card}>
-                  <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>👥 Répartition des participants</div>
-                  {totalPersonnes === 0 ? (
-                    <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucune donnée disponible.</div>
-                  ) : (
-                    <>
-                      {/* Barre empilée */}
-                      <div style={{ display:"flex", height:28, borderRadius:10, overflow:"hidden", marginBottom:12 }}>
-                        {pctA>0 && <div style={{ width:`${pctA}%`, background:"#0B6E8A", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700, transition:"width .3s" }}>{pctA}%</div>}
-                        {pctE>0 && <div style={{ width:`${pctE}%`, background:"#4ECDC4", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700, transition:"width .3s" }}>{pctE}%</div>}
-                        {pctB>0 && <div style={{ width:`${pctB}%`, background:"#ffe082", display:"flex", alignItems:"center", justifyContent:"center", color:"#a06000", fontSize:11, fontWeight:700, transition:"width .3s" }}>{pctB}%</div>}
-                      </div>
-                      {/* Légende */}
-                      <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:12 }}>
-                        {[["#0B6E8A","Adultes (12+)",totalAdultes,pctA],["#4ECDC4","Enfants (3-11)",totalEnfants12,pctE],["#ffe082","Moins de 3 ans",totalMoins3,pctB]].map(([bg,label,nb,pct])=>(
-                          <div key={label} style={{ display:"flex", alignItems:"center", gap:6 }}>
-                            <div style={{ width:12, height:12, borderRadius:3, background:bg }}/>
-                            <div>
-                              <div style={{ fontSize:12, fontWeight:700, color:"#2C3E50" }}>{label}</div>
-                              <div style={{ fontSize:11, color:"#5a8a96" }}>{nb} pers. · {pct}%</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ background:"#f0fafc", borderRadius:8, padding:"9px 12px", fontSize:13, color:"#0B6E8A", fontWeight:600, textAlign:"center" }}>
-                        Total : {totalPersonnes} participant{totalPersonnes>1?"s":""} sur {nbRes} réservation{nbRes>1?"s":""}
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Géographie */}
-                <div style={card}>
-                  <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>📍 Origine géographique</div>
-                  {totalGeo === 0 ? (
-                    <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>
-                      Aucune donnée. Les locataires inscrits avec adresse apparaîtront ici.
-                    </div>
-                  ) : (
-                    <>
-                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
-                        {[["🏙️","Villes",villesSorted.length],["🗺️","Départements",deptSorted.length],["👤","Géolocalisés",totalGeo],["📌","Ville #1",villesSorted[0]?.[0]?.split(" ").slice(1).join(" ")||"—"]].map(([emoji,label,val])=>(
-                          <div key={label} style={{ background:"#f0fafc", borderRadius:9, padding:"10px", border:"1px solid #b0d8e3", textAlign:"center" }}>
-                            <div style={{ fontSize:18 }}>{emoji}</div>
-                            <div style={{ fontWeight:700, fontSize:14, color:"#0B6E8A" }}>{val}</div>
-                            <div style={{ fontSize:10, color:"#5a8a96" }}>{label}</div>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ marginBottom:12 }}>
-                        <div style={{ fontSize:13, fontWeight:700, color:"#0B6E8A", marginBottom:8 }}>Par ville</div>
-                        {villesSorted.map(([ville,nb])=>{
-                          const pct=Math.round(nb/totalGeo*100);
-                          return (
-                            <div key={ville} style={{ marginBottom:8 }}>
-                              <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:3 }}>
-                                <span style={{ fontWeight:600, color:"#2C3E50" }}>{ville}</span>
-                                <span style={{ color:"#0B6E8A", fontWeight:700 }}>{nb} · {pct}%</span>
-                              </div>
-                              <div style={{ height:7, background:"#e8f4f7", borderRadius:4, overflow:"hidden" }}>
-                                <div style={{ height:"100%", width:`${pct}%`, background:"linear-gradient(90deg,#0B6E8A,#4ECDC4)", borderRadius:4 }}/>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {deptSorted.length>0 && (
-                        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                          {deptSorted.map(([dept,nb])=>(
-                            <div key={dept} style={{ background:"#0B6E8A", color:"#fff", borderRadius:8, padding:"6px 12px", fontSize:13, fontWeight:700, textAlign:"center" }}>
-                              {dept}<br/><span style={{fontSize:10,fontWeight:400}}>{nb} loc.</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
 
                     <button style={btnS} onClick={() => setMode("accueil")}>← Accueil</button>
           <button style={{ background:"transparent", color:"#FF6B6B", border:"2px solid #FF6B6B", borderRadius:10, padding:"11px 24px", fontSize:14, fontWeight:600, cursor:"pointer", width:"100%", marginTop:8 }}
