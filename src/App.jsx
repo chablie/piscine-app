@@ -1212,6 +1212,11 @@ export default function App() {
   const [galerieOuverte, setGalerieOuverte] = useState(false);
   const [step, setStep] = useState(1);
 
+  // Remonter en haut de la page à chaque changement de mode ou d'étape
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [mode, step]);
+
   // ── Admin (technique) & Propriétaire (métier) ──
   const [adminConnecte, setAdminConnecte] = useState(false);
   const [proprioConnecte, setProprioConnecte] = useState(false);
