@@ -1665,7 +1665,7 @@ export default function App() {
     setCompteConnecte(email);
     setForm(f => ({ ...f, prenom, nom, email, telephone }));
     setAuthErreur("");
-    setMode("locataire"); setStep(1);
+    setMode("accueil"); // → écran d'accueil personnalisé
   }
 
   function connecter() {
@@ -1687,7 +1687,7 @@ export default function App() {
     setTentativesLocataire(0);
     setForm(f => ({ ...f, prenom: compte.prenom, nom: compte.nom, email, telephone: compte.telephone }));
     setAuthErreur("");
-    setMode("locataire"); setStep(1);
+    setMode("accueil"); // → écran d'accueil personnalisé
   }
 
   function deconnecter() { setCompteConnecte(null); setMode("accueil"); }
@@ -1930,16 +1930,10 @@ export default function App() {
 
   function soumettreAvis() {
     if (note === 0) return;
-    const noteP = notesLocataires[reservation?.ref];
-    const promo = (noteP && noteP.note >= 4) ? genererCodePromo() : null;
-    setCodePromo(promo);
-    if (promo) {
-      const codeData = { expiration: promo.expiration, dateExpISO: promo.dateExpISO, utilise: false, reservationRef: reservation?.ref };
-      setRegistreCodes(prev => ({ ...prev, [promo.code]: codeData }));
-      sauvegarderCodePromo(promo.code, codeData);
-    }
+    // On enregistre l'avis du locataire — le code promo sera généré
+    // uniquement quand le propriétaire note le locataire ≥ 4 étoiles
     setReservations(prev => {
-      const next = prev.map(r => r.ref === reservation?.ref ? { ...r, note, commentaire, codePromo: promo } : r);
+      const next = prev.map(r => r.ref === reservation?.ref ? { ...r, note, commentaire } : r);
       const updated = next.find(r => r.ref === reservation?.ref);
       if (updated) sauvegarderReservation(updated);
       return next;
@@ -2003,7 +1997,23 @@ export default function App() {
 
   function soumettreNoteLocataire(ref) {
     if (noteProprioVal === 0) return;
-    setNotesLocataires(prev => ({ ...prev, [ref]: { note: noteProprioVal, commentaire: commentaireProprioVal } }));
+    const noteData = { note: noteProprioVal, commentaire: commentaireProprioVal };
+    setNotesLocataires(prev => ({ ...prev, [ref]: noteData }));
+    sauvegarderNoteLocataire(ref, noteData);
+    // Générer un code promo si note ≥ 4
+    if (noteProprioVal >= 4) {
+      const promo = genererCodePromo();
+      const codeData = { expiration: promo.expiration, dateExpISO: promo.dateExpISO, utilise: false, reservationRef: ref };
+      setRegistreCodes(prev => ({ ...prev, [promo.code]: codeData }));
+      sauvegarderCodePromo(promo.code, codeData);
+      // Stocker le code dans la réservation pour que le locataire le voie
+      setReservations(prev => {
+        const next = prev.map(r => r.ref === ref ? { ...r, codePromo: promo } : r);
+        const updated = next.find(r => r.ref === ref);
+        if (updated) sauvegarderReservation(updated);
+        return next;
+      });
+    }
     setNoteEnCoursRef(null); setNoteProprioVal(0); setCommentaireProprioVal("");
   }
 
@@ -2662,7 +2672,13 @@ export default function App() {
                   {noteP && (
                     <div style={{ fontSize: 12, marginTop: 4, color: noteP.note >= 4 ? "#0B6E8A" : "#888" }}>
                       Note propriétaire : {"⭐".repeat(noteP.note)}
-                      {r.codePromo && <span style={{ color: "#4ECDC4", marginLeft: 6, fontWeight: 600 }}>✓ Code promo reçu : {r.codePromo.code}</span>}
+                      {r.codePromo && (
+                        <div style={{ marginTop: 8, background: "linear-gradient(135deg,#0B6E8A,#4ECDC4)", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+                          <div style={{ fontSize: 11, color: "#b8e8f0", marginBottom: 2 }}>🎁 Code promo -5%</div>
+                          <div style={{ fontSize: 17, fontWeight: 900, color: "#fff", fontFamily: "monospace", letterSpacing: 2 }}>{r.codePromo.code}</div>
+                          <div style={{ fontSize: 11, color: "#b8e8f0", marginTop: 2 }}>Valable jusqu'au {r.codePromo.expiration} · usage unique</div>
+                        </div>
+                      )}
                     </div>
                   )}
                   {/* Bouton facture */}
@@ -4164,26 +4180,38 @@ export default function App() {
           </div>
         ) : (() => {
           const noteP = notesLocataires[reservation?.ref];
+          // Le code promo est stocké directement dans la réservation (persisté en base)
+          const resActuelle = reservations.find(r => r.ref === reservation?.ref);
+          const promoRecue = resActuelle?.codePromo;
           if (!noteP) return (
             <div style={card}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 34, marginBottom: 8 }}>⏳</div>
                 <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, color: "#0B6E8A", fontWeight: 700, marginBottom: 8 }}>Merci pour votre avis !</div>
-                <div style={{ fontSize: 13, color: "#5a8a96", lineHeight: 1.7 }}>{"⭐".repeat(note)} — votre retour a bien été enregistré.<br />Si le propriétaire vous attribue 4 étoiles ou plus, vous recevrez un <strong>code -5%</strong> par email.</div>
+                <div style={{ fontSize: 13, color: "#5a8a96", lineHeight: 1.7 }}>{"⭐".repeat(note)} — votre retour a bien été enregistré.<br />Si le propriétaire vous attribue 4 étoiles ou plus, vous recevrez un <strong>code -5%</strong>.</div>
               </div>
             </div>
           );
-          if (noteP.note >= 4 && codePromo) return (
+          if (noteP.note >= 4 && promoRecue) return (
             <div style={card}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 34, marginBottom: 8 }}>🎁</div>
                 <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, color: "#0B6E8A", fontWeight: 700, marginBottom: 6 }}>Bravo, vous méritez une réduction !</div>
-                <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14 }}>Le propriétaire vous a attribué <strong>{"⭐".repeat(noteP.note)}</strong>.<br />Code <strong>-5%</strong> valable jusqu'au <strong>{codePromo?.expiration}</strong> :</div>
+                <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14 }}>Le propriétaire vous a attribué <strong>{"⭐".repeat(noteP.note)}</strong>.<br />Code <strong>-5%</strong> valable jusqu'au <strong>{promoRecue?.expiration}</strong> :</div>
                 <div style={{ background: "linear-gradient(135deg,#0B6E8A,#4ECDC4)", borderRadius: 12, padding: "14px 18px", display: "inline-block", marginBottom: 12 }}>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: 2, fontFamily: "monospace" }}>{codePromo?.code}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: 2, fontFamily: "monospace" }}>{promoRecue?.code}</div>
                   <div style={{ fontSize: 11, color: "#b8e8f0", marginTop: 2 }}>-5% · usage unique · 1 mois</div>
                 </div>
                 <div style={{ fontSize: 12, color: "#5a8a96" }}>📋 Copiez ce code pour votre prochaine réservation.</div>
+              </div>
+            </div>
+          );
+          if (noteP.note >= 4 && !promoRecue) return (
+            <div style={card}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 34, marginBottom: 8 }}>⏳</div>
+                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, color: "#0B6E8A", fontWeight: 700, marginBottom: 8 }}>Super note reçue !</div>
+                <div style={{ fontSize: 13, color: "#5a8a96", lineHeight: 1.7 }}>{"⭐".repeat(noteP.note)} — votre code -5% est en cours de génération.<br />Revenez dans quelques instants ou rafraîchissez la page.</div>
               </div>
             </div>
           );
