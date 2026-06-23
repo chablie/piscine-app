@@ -1210,6 +1210,9 @@ export default function App() {
   const [consentementCookies, setConsentementCookies] = useState(null); // null = pas encore répondu | true | false
   const [modeOrigineAvantLegal, setModeOrigineAvantLegal] = useState("accueil"); // pour revenir après consultation des pages légales
   const [confirmationSuppression, setConfirmationSuppression] = useState(false);
+  const [factureOuverte, setFactureOuverte] = useState(null);
+  // Affichage mot de passe (œil)
+  const [showMdp, setShowMdp] = useState({ mdp: false, mdp2: false, login: false, loginInline: false, reset1: false, reset2: false, admin: false, proprio: false });
   const [chargementInitial, setChargementInitial] = useState(true);
   const [erreurChargement, setErreurChargement] = useState(false);
   const [photoAffichee, setPhotoAffichee] = useState(0);
@@ -2357,20 +2360,52 @@ export default function App() {
   );
 
   // ── PAGE ACCUEIL ──────────────────────────────────────────────────────────
-  if (mode === "accueil") return (
+  if (mode === "accueil") {
+    const prochaine = compteConnecte
+      ? reservations.filter(r => r.email?.toLowerCase() === compteConnecte.toLowerCase() && r.date >= today() && r.statut !== "annulee" && r.statut !== "refusee").sort((a,b) => a.date.localeCompare(b.date))[0]
+      : null;
+    return (
     <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
       <Header showSteps={false} />
       <div style={{ padding: "16px 16px 32px" }}>
         <div style={{ ...card, textAlign: "center" }}>
-          <div style={{ fontSize: 14, color: "#5a8a96", marginBottom: 18, lineHeight: 1.6 }}>Bienvenue ! Réservez notre piscine privée ou gérez vos disponibilités.</div>
-          <button style={btnP} onClick={() => setMode("annonce")}>🏊 Voir l'annonce & Réserver</button>
-          {!compteConnecte ? (
-            <button style={{ ...btnS, marginTop: 10 }} onClick={() => { setAuthMode("login"); setMode("auth"); }}>👤 Se connecter / Créer un compte</button>
+          {compteConnecte ? (
+            // ── Accueil locataire connecté ──
+            <>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
+              <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: "#0B6E8A", marginBottom: 4 }}>
+                Bonjour {comptes[compteConnecte]?.prenom} !
+              </div>
+              {prochaine ? (
+                <div style={{ background: prochaine.statut === "acceptee" ? "#e6faf8" : "#fff8e1", border: `2px solid ${prochaine.statut === "acceptee" ? "#4ECDC4" : "#f0c040"}`, borderRadius: 12, padding: "12px 14px", margin: "14px 0", textAlign: "left" }}>
+                  <div style={{ fontSize: 12, color: "#5a8a96", marginBottom: 4 }}>
+                    {prochaine.statut === "acceptee" ? "✅ Prochaine réservation confirmée" : "⏳ Demande en attente de validation"}
+                  </div>
+                  <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 14 }}>{prochaine.ref}</div>
+                  <div style={{ fontSize: 13, color: "#2C3E50" }}>📅 {prochaine.date} · {padH(prochaine.heureDebut)} → {padH(prochaine.heureFin)}</div>
+                  <div style={{ fontSize: 12, color: "#5a8a96", marginTop: 4 }}>{prochaine.adultes} adulte{prochaine.adultes > 1 ? "s" : ""}{prochaine.enfants12 > 0 ? ` + ${prochaine.enfants12} enfant` : ""} · {formatEur(prochaine.totalGeneral || prochaine.prix)}</div>
+                </div>
+              ) : (
+                <div style={{ color: "#5a8a96", fontSize: 13, margin: "12px 0" }}>Vous n'avez pas de réservation à venir.</div>
+              )}
+              <button style={{ ...btnP, marginBottom: 10 }} onClick={() => setMode("annonce")}>🏊 Réserver un créneau</button>
+              <button style={{ ...btnS }} onClick={() => setMode("compte")}>📋 Mes réservations</button>
+              <button style={{ ...btnS, marginTop: 10, color: "#c0302a", borderColor: "#c0302a", fontSize: 12, padding: "8px 20px" }} onClick={() => { setCompteConnecte(null); }}>
+                Déconnexion
+              </button>
+            </>
           ) : (
-            <button style={{ ...btnS, marginTop: 10 }} onClick={() => setMode("compte")}>📋 Mon compte & réservations</button>
+            // ── Accueil visiteur ──
+            <>
+              <div style={{ fontSize: 14, color: "#5a8a96", marginBottom: 18, lineHeight: 1.6 }}>Bienvenue ! Réservez notre piscine privée ou accédez à votre espace.</div>
+              <button style={btnP} onClick={() => setMode("annonce")}>🏊 Voir l'annonce & Réserver</button>
+              <button style={{ ...btnS, marginTop: 10 }} onClick={() => { setAuthMode("login"); setMode("auth"); }}>👤 Se connecter / Créer un compte</button>
+            </>
           )}
-          <button style={{ ...btnS, marginTop: 10, borderColor: "#0B6E8A", color: "#0B6E8A" }} onClick={() => setMode(proprioConnecte || adminConnecte ? "proprio" : "loginProprio")}>🔑 Espace propriétaire</button>
-          <button style={{ ...btnS, marginTop: 10, borderColor: "#aaa", color: "#888", fontSize:12, padding:"8px 24px" }} onClick={() => setMode(adminConnecte ? "proprio" : "loginAdmin")}>⚙️ Accès administrateur</button>
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid #e0eef2", display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+            <button style={{ background:"none", border:"1px solid #b0d8e3", borderRadius:8, padding:"6px 14px", fontSize:12, color:"#0B6E8A", cursor:"pointer" }} onClick={() => setMode(proprioConnecte || adminConnecte ? "proprio" : "loginProprio")}>🔑 Espace propriétaire</button>
+            <button style={{ background:"none", border:"1px solid #ddd", borderRadius:8, padding:"6px 14px", fontSize:11, color:"#aaa", cursor:"pointer" }} onClick={() => setMode(adminConnecte ? "proprio" : "loginAdmin")}>⚙️ Admin</button>
+          </div>
         </div>
         {(proprioConnecte || adminConnecte) && (
           <div style={card}>
@@ -2392,119 +2427,147 @@ export default function App() {
       </div>
     </div>
   );
+  }
 
   // ── PAGE AUTH ─────────────────────────────────────────────────────────────
-  if (mode === "auth") return (
-    <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+  if (mode === "auth") {
+    // Honeypot : champ caché, les robots le remplissent, les humains non
+    const honeypotStyle = { position:"absolute", left:"-9999px", opacity:0, height:0, overflow:"hidden" };
+    const champOeil = (key, val, onChange, placeholder) => (
+      <div style={{ position:"relative" }}>
+        <input style={{ ...inp, paddingRight:42 }} type={showMdp[key] ? "text" : "password"} value={val} onChange={onChange} placeholder={placeholder || "••••••••"} autoComplete="new-password"/>
+        <button type="button" onClick={()=>setShowMdp(p=>({...p,[key]:!p[key]}))}
+          style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:18, color:"#5a8a96", padding:2 }}>
+          {showMdp[key] ? "🙈" : "👁️"}
+        </button>
+      </div>
+    );
+    return (
+    <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh" }}>
       <Header showSteps={false} />
-      <div style={{ padding: "16px 16px 32px" }}>
-        <div style={{ display: "flex", gap: 0, marginBottom: 14, background: "#e8f4f7", borderRadius: 10, padding: 4 }}>
-          {[["login", "Se connecter"], ["register", "Créer un compte"]].map(([v, label]) => (
-            <button key={v} onClick={() => { setAuthMode(v); setAuthErreur(""); }} style={{ flex: 1, padding: "9px", borderRadius: 8, border: "none", background: authMode === v ? "#0B6E8A" : "transparent", color: authMode === v ? "#fff" : "#0B6E8A", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{label}</button>
+      <div style={{ padding:"16px 16px 40px", maxWidth:480, margin:"0 auto" }}>
+        <div style={{ display:"flex", gap:0, marginBottom:14, background:"#e8f4f7", borderRadius:10, padding:4 }}>
+          {[["login","Se connecter"],["register","Créer un compte"]].map(([v,label]) => (
+            <button key={v} onClick={()=>{setAuthMode(v);setAuthErreur("");}} style={{ flex:1, padding:"9px", borderRadius:8, border:"none", background:authMode===v?"#0B6E8A":"transparent", color:authMode===v?"#fff":"#0B6E8A", fontWeight:700, fontSize:13, cursor:"pointer" }}>{label}</button>
           ))}
         </div>
         <div style={card}>
-          {authMode === "register" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-              <div><label style={lbl}>Prénom</label><input style={inp} value={authForm.prenom} onChange={e => setAuthForm(f => ({ ...f, prenom: e.target.value }))} /></div>
-              <div><label style={lbl}>Nom</label><input style={inp} value={authForm.nom} onChange={e => setAuthForm(f => ({ ...f, nom: e.target.value }))} /></div>
+
+          {/* ── INSCRIPTION ── */}
+          {authMode === "register" && (<>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+              <div><label style={lbl}>Prénom *</label><input style={inp} value={authForm.prenom} onChange={e=>setAuthForm(f=>({...f,prenom:e.target.value}))}/></div>
+              <div><label style={lbl}>Nom *</label><input style={inp} value={authForm.nom} onChange={e=>setAuthForm(f=>({...f,nom:e.target.value}))}/></div>
             </div>
-          )}
-          {authMode === "register" && (
-            <div style={{ marginBottom: 10 }}><label style={lbl}>Téléphone</label><input style={inp} type="tel" value={authForm.telephone} onChange={e => setAuthForm(f => ({ ...f, telephone: e.target.value }))} /></div>
-          )}
-          {authMode === "register" && (
-            <div style={{ marginBottom: 10 }}>
-              <label style={lbl}>Adresse</label>
-              <input style={inp} placeholder="N° et nom de rue" value={authForm.adresse} onChange={e => setAuthForm(f => ({ ...f, adresse: e.target.value }))} />
-            </div>
-          )}
-          {authMode === "register" && (
+            <div style={{ marginBottom:10 }}><label style={lbl}>Téléphone *</label><input style={inp} type="tel" value={authForm.telephone} onChange={e=>setAuthForm(f=>({...f,telephone:e.target.value}))}/></div>
+            <div style={{ marginBottom:10 }}><label style={lbl}>Adresse *</label><input style={inp} placeholder="N° et nom de rue" value={authForm.adresse||""} onChange={e=>setAuthForm(f=>({...f,adresse:e.target.value}))}/></div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 2fr", gap:10, marginBottom:10 }}>
-              <div>
-                <label style={lbl}>Code postal</label>
-                <input style={inp} placeholder="49000" maxLength={5} value={authForm.codePostal} onChange={e => setAuthForm(f => ({ ...f, codePostal: e.target.value }))} />
-              </div>
-              <div>
-                <label style={lbl}>Ville</label>
-                <input style={inp} placeholder="Angers" value={authForm.ville} onChange={e => setAuthForm(f => ({ ...f, ville: e.target.value }))} />
-              </div>
+              <div><label style={lbl}>Code postal *</label><input style={inp} placeholder="49000" maxLength={5} value={authForm.codePostal||""} onChange={e=>setAuthForm(f=>({...f,codePostal:e.target.value.replace(/\D/g,"")}))} /></div>
+              <div><label style={lbl}>Ville *</label><input style={inp} placeholder="Angers" value={authForm.ville||""} onChange={e=>setAuthForm(f=>({...f,ville:e.target.value}))}/></div>
+            </div>
+          </>)}
+
+          {/* Email + détection compte existant */}
+          <div style={{ marginBottom:10 }}>
+            <label style={lbl}>Email *</label>
+            <input style={inp} type="email" value={authForm.email}
+              onChange={e=>{
+                setAuthForm(f=>({...f,email:e.target.value}));
+                // Détecter si l'email existe déjà (lors de l'inscription)
+                if (authMode==="register" && comptes[e.target.value.trim().toLowerCase()]) {
+                  setAuthErreur("⚠️ Un compte existe déjà avec cet email. Connectez-vous plutôt !");
+                } else { setAuthErreur(""); }
+              }}/>
+          </div>
+
+          {/* Détection compte existant → proposition de connexion */}
+          {authMode === "register" && authForm.email && comptes[authForm.email.trim().toLowerCase()] && (
+            <div style={{ background:"#fff8e1", border:"2px solid #f0c040", borderRadius:10, padding:"12px 14px", marginBottom:12 }}>
+              <div style={{ fontWeight:700, color:"#a06000", fontSize:13, marginBottom:6 }}>👤 Vous avez déjà un compte !</div>
+              <div style={{ fontSize:12, color:"#5a8a96", marginBottom:10 }}>Un compte existe pour <strong>{authForm.email}</strong>. Connectez-vous pour retrouver toutes vos réservations.</div>
+              <button onClick={()=>{setAuthMode("login");setAuthErreur("");}}
+                style={{ width:"100%", padding:"10px", borderRadius:8, background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                → Se connecter à mon compte
+              </button>
             </div>
           )}
+
+          {/* Mot de passe */}
+          <div style={{ marginBottom:10 }}>
+            <label style={lbl}>Mot de passe {authMode==="register" ? "* (8 caractères min.)" : ""}</label>
+            {champOeil("login", authForm.motdepasse, e=>setAuthForm(f=>({...f,motdepasse:e.target.value})))}
+          </div>
+
+          {/* Confirmation mot de passe — en dessous, pas à côté */}
           {authMode === "register" && (
-            <div style={{ marginBottom: 10 }}>
-              <label style={lbl}>Adresse *</label>
-              <input style={inp} placeholder="N° et nom de rue" value={authForm.adresse} onChange={e => setAuthForm(f => ({ ...f, adresse: e.target.value }))} />
+            <div style={{ marginBottom:14 }}>
+              <label style={lbl}>Confirmer le mot de passe *</label>
+              {champOeil("mdp2", authForm.motdepasse2, e=>setAuthForm(f=>({...f,motdepasse2:e.target.value})))}
+              {authForm.motdepasse2 && authForm.motdepasse !== authForm.motdepasse2 && (
+                <div style={{ color:"#FF6B6B", fontSize:12, marginTop:4 }}>❌ Les mots de passe ne correspondent pas</div>
+              )}
+              {authForm.motdepasse2 && authForm.motdepasse === authForm.motdepasse2 && authForm.motdepasse.length >= 8 && (
+                <div style={{ color:"#4ECDC4", fontSize:12, marginTop:4 }}>✅ Mots de passe identiques</div>
+              )}
             </div>
           )}
+
+          {/* Honeypot anti-robot (champ invisible) */}
           {authMode === "register" && (
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 2fr", gap:10, marginBottom:10 }}>
-              <div>
-                <label style={lbl}>Code postal *</label>
-                <input style={inp} placeholder="49000" maxLength={5} value={authForm.codePostal} onChange={e => setAuthForm(f => ({ ...f, codePostal: e.target.value.replace(/\D/g,"") }))} />
-              </div>
-              <div>
-                <label style={lbl}>Ville *</label>
-                <input style={inp} placeholder="Angers" value={authForm.ville} onChange={e => setAuthForm(f => ({ ...f, ville: e.target.value }))} />
-              </div>
+            <div style={honeypotStyle} aria-hidden="true">
+              <input tabIndex={-1} autoComplete="off" value={authForm._hp||""} onChange={e=>setAuthForm(f=>({...f,_hp:e.target.value}))} />
             </div>
           )}
-          <div style={{ marginBottom: 10 }}><label style={lbl}>Email</label><input style={inp} type="email" value={authForm.email} onChange={e => setAuthForm(f => ({ ...f, email: e.target.value }))} /></div>
-          <div style={{ marginBottom: 10 }}><label style={lbl}>Mot de passe</label><input style={inp} type="password" value={authForm.motdepasse} onChange={e => setAuthForm(f => ({ ...f, motdepasse: e.target.value }))} /></div>
-          {authMode === "register" && (
-            <div style={{ marginBottom: 10 }}><label style={lbl}>Confirmer le mot de passe</label><input style={inp} type="password" value={authForm.motdepasse2} onChange={e => setAuthForm(f => ({ ...f, motdepasse2: e.target.value }))} /></div>
-          )}
+
+          {/* CGU */}
           {authMode === "register" && (
             <label style={{ display:"flex", alignItems:"flex-start", gap:8, marginBottom:14, cursor:"pointer" }}>
-              <input type="checkbox" checked={authForm.cguAcceptees||false} onChange={e=>setAuthForm(f=>({...f,cguAcceptees:e.target.checked}))} style={{ marginTop:2, width:16, height:16, accentColor:"#0B6E8A" }}/>
-              <span style={{ fontSize:12, color:"#5a8a96", lineHeight:1.5 }}>
+              <input type="checkbox" checked={authForm.cguAcceptees||false} onChange={e=>setAuthForm(f=>({...f,cguAcceptees:e.target.checked}))} style={{ marginTop:3, width:16, height:16, accentColor:"#0B6E8A", flexShrink:0 }}/>
+              <span style={{ fontSize:12, color:"#5a8a96", lineHeight:1.6 }}>
                 J'accepte les{" "}
-                <span onClick={e=>{e.preventDefault();e.stopPropagation();setModeOrigineAvantLegal("auth");setMode("cgu");}} style={{ color:"#0B6E8A", fontWeight:600, textDecoration:"underline" }}>CGU</span>
+                <span onClick={e=>{e.preventDefault();e.stopPropagation();setModeOrigineAvantLegal("auth");setMode("cgu");}} style={{ color:"#0B6E8A", fontWeight:600, textDecoration:"underline", cursor:"pointer" }}>CGU</span>
                 {" "}et la{" "}
-                <span onClick={e=>{e.preventDefault();e.stopPropagation();setModeOrigineAvantLegal("auth");setMode("confidentialite");}} style={{ color:"#0B6E8A", fontWeight:600, textDecoration:"underline" }}>politique de confidentialité</span>
+                <span onClick={e=>{e.preventDefault();e.stopPropagation();setModeOrigineAvantLegal("auth");setMode("confidentialite");}} style={{ color:"#0B6E8A", fontWeight:600, textDecoration:"underline", cursor:"pointer" }}>politique de confidentialité</span>
               </span>
             </label>
           )}
-          {authErreur && <div style={{ color: "#FF6B6B", fontSize: 13, marginBottom: 8, padding: "8px 10px", background: "#fff0f0", borderRadius: 8 }}>{authErreur}</div>}
-          {authMode === "login" && estBloque("locataire") && (
+
+          {authErreur && <div style={{ color:"#FF6B6B", fontSize:13, marginBottom:10, padding:"8px 10px", background:"#fff0f0", borderRadius:8 }}>{authErreur}</div>}
+          {authMode==="login" && estBloque("locataire") && (
             <div style={{ background:"#fff3cd", border:"1px solid #f0c040", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#a06000", marginBottom:10 }}>
-              🔒 Compte bloqué encore {tempsRestant("locataire")} min. Réinitialisez votre mot de passe.
+              🔒 Compte bloqué encore {tempsRestant("locataire")} min. Utilisez « Mot de passe oublié ».
             </div>
           )}
-          <button style={{ ...btnP, opacity: (authMode === "register" && !authForm.cguAcceptees) || (authMode === "login" && estBloque("locataire")) ? .4 : 1 }}
-            disabled={(authMode === "register" && !authForm.cguAcceptees) || (authMode === "login" && estBloque("locataire"))}
-            onClick={authMode === "login" ? connecter : inscrire}>
-            {authMode === "login" ? "Se connecter" : "Créer mon compte"}
+          <button
+            style={{ ...btnP, opacity:(authMode==="register"&&(!authForm.cguAcceptees||authForm._hp))||(authMode==="login"&&estBloque("locataire"))?.4:1 }}
+            disabled={(authMode==="register"&&(!authForm.cguAcceptees||!!authForm._hp))||(authMode==="login"&&estBloque("locataire"))}
+            onClick={authMode==="login" ? connecter : inscrire}>
+            {authMode==="login" ? "Se connecter" : "Créer mon compte"}
           </button>
-          {authMode === "login" && (
-            <button onClick={()=>{ setResetEmail(authForm.email || ""); ouvrirReset("locataire"); }}
-              style={{ background:"none", border:"none", color:"#5a8a96", fontSize:13, cursor:"pointer", textDecoration:"underline", width:"100%", marginTop:6 }}>
+          {authMode==="login" && (
+            <button onClick={()=>{setResetEmail(authForm.email||"");ouvrirReset("locataire");}}
+              style={{ background:"none", border:"none", color:"#5a8a96", fontSize:13, cursor:"pointer", textDecoration:"underline", width:"100%", marginTop:8 }}>
               Mot de passe oublié ?
             </button>
           )}
         </div>
-        <button style={btnS} onClick={() => setMode("accueil")}>← Accueil</button>
+        <button style={btnS} onClick={()=>setMode("accueil")}>← Accueil</button>
       </div>
     </div>
-  );
-
+    );
+  }
   // ── PAGE COMPTE LOCATAIRE ─────────────────────────────────────────────────
   if (mode === "compte") {
     const compte = comptes[compteConnecte];
-    // Filtre par email directement (plus fiable que la liste dans le compte)
     const mesRes = reservations
       .filter(r => r.email && r.email.toLowerCase() === (compteConnecte || "").toLowerCase())
       .sort((a, b) => {
-        // À venir d'abord, puis par date, puis par heure
         const aAvenir = a.date >= today();
         const bAvenir = b.date >= today();
         if (aAvenir && !bAvenir) return -1;
         if (!aAvenir && bAvenir) return 1;
-        return aAvenir
-          ? a.date.localeCompare(b.date) // futures : plus proche en premier
-          : b.date.localeCompare(a.date); // passées : plus récente en premier
+        return aAvenir ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date);
       });
-    const [factureOuverte, setFactureOuverte] = useState(null);
     return (
       <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
         <Header showSteps={false} />
@@ -2848,10 +2911,12 @@ export default function App() {
           </div>
           <div style={{ marginBottom:16 }}>
             <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Mot de passe</label>
-            <input type="password" style={{ width:"100%", padding:"11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }}
-              value={authAdmin.password} onChange={e=>setAuthAdmin(a=>({...a,password:e.target.value}))}
-              onKeyDown={e=>e.key==="Enter"&&connecterAdmin()}
-              placeholder="••••••••"/>
+            <div style={{ position:"relative" }}>
+              <input type={showMdp.admin?"text":"password"} style={{ width:"100%", padding:"11px 42px 11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }}
+                value={authAdmin.password} onChange={e=>setAuthAdmin(a=>({...a,password:e.target.value}))}
+                onKeyDown={e=>e.key==="Enter"&&connecterAdmin()} placeholder="••••••••"/>
+              <button type="button" onClick={()=>setShowMdp(p=>({...p,admin:!p.admin}))} style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:18, color:"#5a8a96" }}>{showMdp.admin?"🙈":"👁️"}</button>
+            </div>
           </div>
           {erreurAdmin && (
             <div style={{ background:"#fff0f0", border:"1px solid #FF6B6B", borderRadius:8, padding:"10px 12px", color:"#c0302a", fontSize:13, marginBottom:12 }}>
@@ -2900,10 +2965,12 @@ export default function App() {
           </div>
           <div style={{ marginBottom:16 }}>
             <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Mot de passe</label>
-            <input type="password" style={{ width:"100%", padding:"11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }}
-              value={authProprio.password} onChange={e=>setAuthProprio(a=>({...a,password:e.target.value}))}
-              onKeyDown={e=>e.key==="Enter"&&connecterProprio()}
-              placeholder="••••••••"/>
+            <div style={{ position:"relative" }}>
+              <input type={showMdp.proprio?"text":"password"} style={{ width:"100%", padding:"11px 42px 11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }}
+                value={authProprio.password} onChange={e=>setAuthProprio(a=>({...a,password:e.target.value}))}
+                onKeyDown={e=>e.key==="Enter"&&connecterProprio()} placeholder="••••••••"/>
+              <button type="button" onClick={()=>setShowMdp(p=>({...p,proprio:!p.proprio}))} style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:18, color:"#5a8a96" }}>{showMdp.proprio?"🙈":"👁️"}</button>
+            </div>
           </div>
           {erreurProprio && (
             <div style={{ background:"#fff0f0", border:"1px solid #FF6B6B", borderRadius:8, padding:"10px 12px", color:"#c0302a", fontSize:13, marginBottom:12 }}>
