@@ -1231,6 +1231,27 @@ export default function App() {
   const [authProprio, setAuthProprio] = useState({ email:"", password:"" });
   const [erreurProprio, setErreurProprio] = useState("");
 
+  // ── Blocage après tentatives échouées ──
+  const [tentativesAdmin, setTentativesAdmin] = useState(0);
+  const [tentativesProprio, setTentativesProprio] = useState(0);
+  const [tentativesLocataire, setTentativesLocataire] = useState(0);
+  const [bloqueJusquA, setBloqueJusquA] = useState({ admin: null, proprio: null, locataire: null });
+
+  // ── Réinitialisation mot de passe ──
+  const [resetMode, setResetMode] = useState(null); // null | "admin" | "proprio" | "locataire"
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetOtpEnvoye, setResetOtpEnvoye] = useState(false);
+  const [resetOtpCode, setResetOtpCode] = useState("");
+  const [resetOtpSaisi, setResetOtpSaisi] = useState("");
+  const [resetOtpExp, setResetOtpExp] = useState(null);
+  const [resetNouveauMdp, setResetNouveauMdp] = useState("");
+  const [resetNouveauMdp2, setResetNouveauMdp2] = useState("");
+  const [resetErreur, setResetErreur] = useState("");
+  const [resetEtape, setResetEtape] = useState(1); // 1=email, 2=code, 3=nouveau mdp, 4=succès
+  // Mots de passe modifiables en runtime (initialisés depuis les constantes)
+  const [mdpAdmin, setMdpAdmin] = useState(ADMIN_PASSWORD);
+  const [mdpProprio, setMdpProprio] = useState(PROPRIO_PASSWORD);
+
   // ── Annonce ──
   const [annonce, setAnnonce] = useState(ANNONCE_DEFAUT);
 
@@ -1364,7 +1385,13 @@ export default function App() {
   const [edlResaRef, setEdlResaRef] = useState(null);
 
   // ── Formulaire réservation ──
-  const [form, setForm] = useState({ prenom: "", nom: "", email: "", telephone: "", date: "", creneaux: [], adultes: 1, enfants12: 0, moins3: 0, reglementAccepte: false });
+  const [form, setForm] = useState({ prenom: "", nom: "", email: "", telephone: "", adresse: "", codePostal: "", ville: "", date: "", creneaux: [], adultes: 1, enfants12: 0, moins3: 0, reglementAccepte: false });
+  // Création de compte inline pendant la réservation
+  const [formMdp, setFormMdp] = useState({ motdepasse: "", motdepasse2: "" });
+  const [emailExistant, setEmailExistant] = useState(false); // true si l'email est déjà un compte
+  const [loginInlineMode, setLoginInlineMode] = useState(false); // true = on propose de se connecter
+  const [loginInlineMdp, setLoginInlineMdp] = useState("");
+  const [loginInlineErreur, setLoginInlineErreur] = useState("");
   const [extrasChoisis, setExtrasChoisis] = useState({}); // { id: true/false }
   const [modePaiement, setModePaiement] = useState(null); // "cb" | "especes" 
   const [photosAvant, setPhotosAvant] = useState([]);
@@ -1374,6 +1401,15 @@ export default function App() {
   const [descriptionCasse, setDescriptionCasse] = useState("");
   const [reservation, setReservation] = useState(null);
   const [erreurs, setErreurs] = useState({});
+
+  // ── Vérification téléphone OTP ──
+  const [otpEnvoye, setOtpEnvoye] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSaisi, setOtpSaisi] = useState("");
+  const [otpErreur, setOtpErreur] = useState("");
+  const [otpVerifie, setOtpVerifie] = useState(false);
+  const [otpEnCours, setOtpEnCours] = useState(false);
+  const [otpExpiration, setOtpExpiration] = useState(null);
 
   // ── Avis ──
   const [note, setNote] = useState(0);
@@ -1408,14 +1444,40 @@ export default function App() {
   const [noteProprioVal, setNoteProprioVal] = useState(0);
   const [commentaireProprioVal, setCommentaireProprioVal] = useState("");
 
+  // ── Helpers blocage ──
+  function estBloque(type) {
+    const b = bloqueJusquA[type];
+    if (!b) return false;
+    if (Date.now() < b) return true;
+    setBloqueJusquA(prev => ({ ...prev, [type]: null }));
+    if (type === "admin") setTentativesAdmin(0);
+    if (type === "proprio") setTentativesProprio(0);
+    if (type === "locataire") setTentativesLocataire(0);
+    return false;
+  }
+  function tempsRestant(type) {
+    const b = bloqueJusquA[type];
+    if (!b) return 0;
+    return Math.max(0, Math.ceil((b - Date.now()) / 60000));
+  }
+
   // ── Fonctions admin ──
   function connecterAdmin() {
-    if (authAdmin.email === ADMIN_EMAIL && authAdmin.password === ADMIN_PASSWORD) {
+    if (estBloque("admin")) return;
+    if (authAdmin.email === ADMIN_EMAIL && authAdmin.password === mdpAdmin) {
       setAdminConnecte(true);
       setErreurAdmin("");
+      setTentativesAdmin(0);
       setMode("proprio");
     } else {
-      setErreurAdmin("Email ou mot de passe incorrect.");
+      const nouvellesTentatives = tentativesAdmin + 1;
+      setTentativesAdmin(nouvellesTentatives);
+      if (nouvellesTentatives >= 5) {
+        setBloqueJusquA(prev => ({ ...prev, admin: Date.now() + 30 * 60 * 1000 }));
+        setErreurAdmin("Compte bloqué 30 minutes après 5 tentatives échouées.");
+      } else {
+        setErreurAdmin(`Email ou mot de passe incorrect. (${nouvellesTentatives}/5 tentatives)`);
+      }
     }
   }
 
@@ -1425,18 +1487,97 @@ export default function App() {
   }
 
   function connecterProprio() {
-    if (authProprio.email === PROPRIO_EMAIL && authProprio.password === PROPRIO_PASSWORD) {
+    if (estBloque("proprio")) return;
+    if (authProprio.email === PROPRIO_EMAIL && authProprio.password === mdpProprio) {
       setProprioConnecte(true);
       setErreurProprio("");
+      setTentativesProprio(0);
       setMode("proprio");
     } else {
-      setErreurProprio("Email ou mot de passe incorrect.");
+      const nouvellesTentatives = tentativesProprio + 1;
+      setTentativesProprio(nouvellesTentatives);
+      if (nouvellesTentatives >= 5) {
+        setBloqueJusquA(prev => ({ ...prev, proprio: Date.now() + 30 * 60 * 1000 }));
+        setErreurProprio("Compte bloqué 30 minutes après 5 tentatives échouées.");
+      } else {
+        setErreurProprio(`Email ou mot de passe incorrect. (${nouvellesTentatives}/5 tentatives)`);
+      }
     }
   }
 
   function deconnecterProprio() {
     setProprioConnecte(false);
     setMode("accueil");
+  }
+
+  // ── Réinitialisation mot de passe ──
+  function ouvrirReset(type) {
+    setResetMode(type);
+    setResetEmail(type === "admin" ? ADMIN_EMAIL : type === "proprio" ? PROPRIO_EMAIL : "");
+    setResetOtpEnvoye(false);
+    setResetOtpCode("");
+    setResetOtpSaisi("");
+    setResetNouveauMdp("");
+    setResetNouveauMdp2("");
+    setResetErreur("");
+    setResetEtape(1);
+    setMode("resetMdp");
+  }
+
+  async function envoyerResetOTP() {
+    const email = resetEmail.trim();
+    if (!email) { setResetErreur("Veuillez saisir votre email."); return; }
+    // Vérifier que l'email correspond au bon compte
+    if (resetMode === "admin" && email !== ADMIN_EMAIL) { setResetErreur("Email inconnu pour ce compte."); return; }
+    if (resetMode === "proprio" && email !== PROPRIO_EMAIL) { setResetErreur("Email inconnu pour ce compte."); return; }
+    if (resetMode === "locataire" && !comptes[email]) { setResetErreur("Aucun compte locataire trouvé avec cet email."); return; }
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const exp = Date.now() + 15 * 60 * 1000; // 15 min
+    setResetOtpCode(code);
+    setResetOtpExp(exp);
+    setResetErreur("");
+    const html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;background:#F7F0E6;padding:24px;">
+      <div style="text-align:center;margin-bottom:20px;"><div style="font-size:32px;">🏊</div><div style="font-size:20px;font-weight:700;color:#0B6E8A;">Ma Piscine Privée</div></div>
+      <div style="background:#fff;border-radius:12px;padding:24px;">
+        <h2 style="color:#0B6E8A;margin-top:0;">🔐 Réinitialisation de mot de passe</h2>
+        <p style="color:#2C3E50;font-size:14px;">Voici votre code de vérification pour réinitialiser votre mot de passe :</p>
+        <div style="text-align:center;font-size:42px;font-weight:900;letter-spacing:10px;color:#0B6E8A;margin:24px 0;font-family:monospace;">${code}</div>
+        <p style="color:#888;font-size:12px;text-align:center;">Ce code est valable 15 minutes. Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
+      </div></div>`;
+    try {
+      await fetch('/api/envoyer-email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ destinataire: email, sujet: `🔐 Code de réinitialisation : ${code}`, html }) });
+      setResetOtpEnvoye(true);
+      setResetEtape(2);
+    } catch(e) {
+      setResetErreur("Erreur lors de l'envoi. Vérifiez votre connexion.");
+    }
+  }
+
+  function validerResetOTP() {
+    if (Date.now() > resetOtpExp) { setResetErreur("Code expiré. Cliquez sur « Renvoyer »."); setResetEtape(1); return; }
+    if (resetOtpSaisi.trim() === resetOtpCode) { setResetErreur(""); setResetEtape(3); }
+    else { setResetErreur("Code incorrect. Réessayez."); }
+  }
+
+  function validerNouveauMdp() {
+    if (resetNouveauMdp.length < 8) { setResetErreur("Le mot de passe doit contenir au moins 8 caractères."); return; }
+    if (resetNouveauMdp !== resetNouveauMdp2) { setResetErreur("Les deux mots de passe ne correspondent pas."); return; }
+    if (resetMode === "admin") setMdpAdmin(resetNouveauMdp);
+    if (resetMode === "proprio") setMdpProprio(resetNouveauMdp);
+    if (resetMode === "locataire") {
+      setComptes(prev => {
+        const next = { ...prev, [resetEmail]: { ...prev[resetEmail], motdepasse: resetNouveauMdp } };
+        sauvegarderCompte(resetEmail, next[resetEmail]);
+        return next;
+      });
+    }
+    // Débloquer le compte si bloqué
+    setBloqueJusquA(prev => ({ ...prev, [resetMode]: null }));
+    if (resetMode === "admin") setTentativesAdmin(0);
+    if (resetMode === "proprio") setTentativesProprio(0);
+    if (resetMode === "locataire") setTentativesLocataire(0);
+    setResetEtape(4);
+    setResetErreur("");
   }
 
   // Consentement cookies : lu une seule fois au démarrage
@@ -1525,10 +1666,22 @@ export default function App() {
   }
 
   function connecter() {
+    if (estBloque("locataire")) return;
     const { email, motdepasse } = authForm;
     const compte = comptes[email];
-    if (!compte || compte.motdepasse !== motdepasse) { setAuthErreur("Email ou mot de passe incorrect."); return; }
+    if (!compte || compte.motdepasse !== motdepasse) {
+      const nouvellesTentatives = tentativesLocataire + 1;
+      setTentativesLocataire(nouvellesTentatives);
+      if (nouvellesTentatives >= 5) {
+        setBloqueJusquA(prev => ({ ...prev, locataire: Date.now() + 30 * 60 * 1000 }));
+        setAuthErreur("Compte bloqué 30 minutes après 5 tentatives échouées. Utilisez « Mot de passe oublié ».");
+      } else {
+        setAuthErreur(`Email ou mot de passe incorrect. (${nouvellesTentatives}/5 tentatives)`);
+      }
+      return;
+    }
     setCompteConnecte(email);
+    setTentativesLocataire(0);
     setForm(f => ({ ...f, prenom: compte.prenom, nom: compte.nom, email, telephone: compte.telephone }));
     setAuthErreur("");
     setMode("locataire"); setStep(1);
@@ -1558,6 +1711,42 @@ export default function App() {
     if (!form.date) e.date = "Sélectionnez une date";
     if (form.creneaux.length === 0) e.creneaux = "Sélectionnez au moins un créneau";
     if (form.adultes < 1) e.adultes = "Minimum 1 adulte";
+
+    // Si pas encore connecté, vérifier la partie compte
+    if (!compteConnecte) {
+      const emailTrim = form.email.trim().toLowerCase();
+      const compteExistant = comptes[emailTrim];
+      if (compteExistant && !loginInlineMode) {
+        // Email connu mais pas en mode login : proposer la connexion
+        setEmailExistant(true);
+        setLoginInlineMode(true);
+        setErreurs(e);
+        return false;
+      }
+      if (loginInlineMode) {
+        // Mode connexion avec compte existant
+        if (!loginInlineMdp) { e.mdp = "Mot de passe requis"; }
+        else if (!compteExistant || compteExistant.motdepasse !== loginInlineMdp) {
+          e.mdp = "Mot de passe incorrect";
+        }
+        setErreurs(e);
+        if (Object.keys(e).length === 0) {
+          // Connexion OK, charger le compte
+          setCompteConnecte(emailTrim);
+          setForm(f => ({ ...f, prenom: compteExistant.prenom, nom: compteExistant.nom, telephone: compteExistant.telephone, adresse: compteExistant.adresse || "", codePostal: compteExistant.codePostal || "", ville: compteExistant.ville || "" }));
+          setLoginInlineMode(false); setEmailExistant(false); setLoginInlineMdp(""); setLoginInlineErreur("");
+          return true;
+        }
+        return false;
+      }
+      // Nouveau compte : vérifier mdp
+      if (!form.adresse?.trim()) e.adresse = "Requis";
+      if (!form.codePostal?.trim()) e.codePostal = "Requis";
+      if (!form.ville?.trim()) e.ville = "Requis";
+      if (!formMdp.motdepasse || formMdp.motdepasse.length < 8) e.mdp = "8 caractères minimum";
+      if (formMdp.motdepasse !== formMdp.motdepasse2) e.mdp2 = "Les mots de passe ne correspondent pas";
+    }
+
     setErreurs(e);
     return Object.keys(e).length === 0;
   }
@@ -1606,10 +1795,71 @@ export default function App() {
     setAlerteEdl(null);
   }
 
+  // ── Vérification téléphone par OTP ──
+  async function envoyerOTP() {
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const exp = Date.now() + 10 * 60 * 1000; // 10 minutes
+    setOtpCode(code);
+    setOtpExpiration(exp);
+    setOtpErreur("");
+    setOtpEnCours(true);
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #F7F0E6; padding: 24px;">
+        <div style="text-align:center; margin-bottom:20px;">
+          <div style="font-size:32px;">🏊</div>
+          <div style="font-size:20px; font-weight:700; color:#0B6E8A;">Ma Piscine Privée</div>
+        </div>
+        <div style="background:#fff; border-radius:12px; padding:24px;">
+          <h2 style="color:#0B6E8A; margin-top:0;">📱 Vérification de votre numéro</h2>
+          <p style="color:#2C3E50; font-size:14px;">Pour confirmer votre réservation, entrez ce code dans l'application :</p>
+          <div style="text-align:center; font-size:42px; font-weight:900; letter-spacing:10px; color:#0B6E8A; margin:24px 0; font-family:monospace;">${code}</div>
+          <p style="color:#888; font-size:12px; text-align:center;">Ce code est valable 10 minutes.</p>
+        </div>
+      </div>`;
+    try {
+      await fetch('/api/envoyer-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ destinataire: form.email, sujet: `🔐 Code de vérification : ${code}`, html }),
+      });
+      setOtpEnvoye(true);
+    } catch(e) {
+      setOtpErreur("Erreur lors de l'envoi. Vérifiez votre connexion.");
+    }
+    setOtpEnCours(false);
+  }
+
+  function validerOTP() {
+    if (!otpCode) { setOtpErreur("Code non généré, renvoyez-le."); return; }
+    if (Date.now() > otpExpiration) { setOtpErreur("Ce code a expiré. Cliquez sur « Renvoyer le code »."); setOtpEnvoye(false); return; }
+    if (otpSaisi.trim() === otpCode) {
+      setOtpVerifie(true);
+      setOtpErreur("");
+    } else {
+      setOtpErreur("Code incorrect. Vérifiez votre email et réessayez.");
+    }
+  }
+
   function confirmerReservation() {
     const ref = "RES-" + Date.now().toString(36).toUpperCase();
-    const compteInfo = compteConnecte ? comptes[compteConnecte] : {};
-    const r = { ...form, heureDebut, heureFin, prix: prixFinal, remise, extrasChoisis, totalExtras, totalGeneral, modePaiement, acompte, resteARegler, ref, photosAvant: [], photosApres: [], adresse: compteInfo.adresse||"", codePostal: compteInfo.codePostal||"", ville: compteInfo.ville||"", statut: "en_attente" };
+    const emailRes = form.email.trim().toLowerCase();
+    // Créer le compte si c'est un nouveau locataire (non connecté)
+    let compteActif = compteConnecte;
+    if (!compteActif && formMdp.motdepasse) {
+      const nouveau = {
+        prenom: form.prenom, nom: form.nom, email: emailRes,
+        telephone: form.telephone, adresse: form.adresse || "",
+        codePostal: form.codePostal || "", ville: form.ville || "",
+        motdepasse: formMdp.motdepasse, reservations: []
+      };
+      setComptes(prev => ({ ...prev, [emailRes]: nouveau }));
+      sauvegarderCompte(emailRes, nouveau);
+      setCompteConnecte(emailRes);
+      compteActif = emailRes;
+    }
+    const compteInfo = compteActif ? (comptes[compteActif] || {}) : {};
+    const demandeISO = new Date().toISOString();
+    const r = { ...form, email: emailRes, heureDebut, heureFin, prix: prixFinal, remise, extrasChoisis, totalExtras, totalGeneral, modePaiement, acompte, resteARegler, ref, photosAvant: [], photosApres: [], adresse: form.adresse || compteInfo.adresse || "", codePostal: form.codePostal || compteInfo.codePostal || "", ville: form.ville || compteInfo.ville || "", statut: "en_attente", demandeISO };
     setReservations(prev => [...prev, r]);
     setReservation(r);
     sauvegarderReservation(r);
@@ -1624,10 +1874,10 @@ export default function App() {
       });
     }
     // Associer au compte locataire
-    if (compteConnecte) {
+    if (compteActif) {
       setComptes(prev => {
-        const next = { ...prev, [compteConnecte]: { ...prev[compteConnecte], reservations: [...(prev[compteConnecte].reservations || []), ref] } };
-        sauvegarderCompte(compteConnecte, next[compteConnecte]);
+        const next = { ...prev, [compteActif]: { ...prev[compteActif], reservations: [...(prev[compteActif]?.reservations || []), ref] } };
+        sauvegarderCompte(compteActif, next[compteActif]);
         return next;
       });
     }
@@ -1805,6 +2055,8 @@ export default function App() {
     setReservation(null); setNote(0); setCommentaire(""); setAvisEnvoye(false); setCodePromo(null);
     setCodePromoSaisi(""); setCodePromoStatut(null); setRemise(0);
     setExtrasChoisis({}); setModePaiement(null);
+    setOtpEnvoye(false); setOtpCode(""); setOtpSaisi(""); setOtpErreur(""); setOtpVerifie(false); setOtpEnCours(false); setOtpExpiration(null);
+    setFormMdp({ motdepasse: "", motdepasse2: "" }); setEmailExistant(false); setLoginInlineMode(false); setLoginInlineMdp(""); setLoginInlineErreur("");
   }
 
   // ── HEADER ────────────────────────────────────────────────────────────────
@@ -2214,9 +2466,22 @@ export default function App() {
             </label>
           )}
           {authErreur && <div style={{ color: "#FF6B6B", fontSize: 13, marginBottom: 8, padding: "8px 10px", background: "#fff0f0", borderRadius: 8 }}>{authErreur}</div>}
-          <button style={{ ...btnP, opacity: (authMode === "register" && !authForm.cguAcceptees) ? .5 : 1 }} disabled={authMode === "register" && !authForm.cguAcceptees} onClick={authMode === "login" ? connecter : inscrire}>
+          {authMode === "login" && estBloque("locataire") && (
+            <div style={{ background:"#fff3cd", border:"1px solid #f0c040", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#a06000", marginBottom:10 }}>
+              🔒 Compte bloqué encore {tempsRestant("locataire")} min. Réinitialisez votre mot de passe.
+            </div>
+          )}
+          <button style={{ ...btnP, opacity: (authMode === "register" && !authForm.cguAcceptees) || (authMode === "login" && estBloque("locataire")) ? .4 : 1 }}
+            disabled={(authMode === "register" && !authForm.cguAcceptees) || (authMode === "login" && estBloque("locataire"))}
+            onClick={authMode === "login" ? connecter : inscrire}>
             {authMode === "login" ? "Se connecter" : "Créer mon compte"}
           </button>
+          {authMode === "login" && (
+            <button onClick={()=>{ setResetEmail(authForm.email || ""); ouvrirReset("locataire"); }}
+              style={{ background:"none", border:"none", color:"#5a8a96", fontSize:13, cursor:"pointer", textDecoration:"underline", width:"100%", marginTop:6 }}>
+              Mot de passe oublié ?
+            </button>
+          )}
         </div>
         <button style={btnS} onClick={() => setMode("accueil")}>← Accueil</button>
       </div>
@@ -2226,7 +2491,19 @@ export default function App() {
   // ── PAGE COMPTE LOCATAIRE ─────────────────────────────────────────────────
   if (mode === "compte") {
     const compte = comptes[compteConnecte];
-    const mesRes = reservations.filter(r => compte?.reservations?.includes(r.ref)).sort((a, b) => b.date.localeCompare(a.date));
+    // Filtre par email directement (plus fiable que la liste dans le compte)
+    const mesRes = reservations
+      .filter(r => r.email && r.email.toLowerCase() === (compteConnecte || "").toLowerCase())
+      .sort((a, b) => {
+        // À venir d'abord, puis par date, puis par heure
+        const aAvenir = a.date >= today();
+        const bAvenir = b.date >= today();
+        if (aAvenir && !bAvenir) return -1;
+        if (!aAvenir && bAvenir) return 1;
+        return aAvenir
+          ? a.date.localeCompare(b.date) // futures : plus proche en premier
+          : b.date.localeCompare(a.date); // passées : plus récente en premier
+      });
     const [factureOuverte, setFactureOuverte] = useState(null);
     return (
       <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
@@ -2258,10 +2535,45 @@ export default function App() {
                       <div style={{ fontSize: 12, color: "#5a8a96" }}>{r.date} · {padH(r.heureDebut ?? parseInt(r.heureDebut))} → {padH(r.heureFin ?? parseInt(r.heureFin))}</div>
                       <div style={{ fontSize: 12, color: "#5a8a96" }}>{r.adultes} adulte{r.adultes > 1 ? "s" : ""}{r.enfants12 > 0 ? ` + ${r.enfants12} enfant` : ""} · {formatEur(r.totalGeneral || r.prix)}</div>
                     </div>
-                    <div style={{ fontSize: 11, padding: "3px 8px", borderRadius: 20, background: r.date >= today() ? "#e6faf8" : "#f0f0f0", color: r.date >= today() ? "#0B6E8A" : "#888", fontWeight: 600 }}>
-                      {r.date >= today() ? "À venir" : "Passée"}
+                    <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}>
+                      {/* Badge statut validation */}
+                      {(() => {
+                        const s = r.statut || "en_attente";
+                        const cfg = {
+                          en_attente: { bg:"#fff8e1", color:"#a06000", border:"#f0c040", label:"⏳ En attente" },
+                          acceptee:   { bg:"#e6faf8", color:"#0B6E8A", border:"#4ECDC4", label:"✅ Confirmée" },
+                          refusee:    { bg:"#fff0f0", color:"#c0302a", border:"#FF6B6B", label:"✗ Non acceptée" },
+                          annulee:    { bg:"#f5f5f5", color:"#888",    border:"#ccc",    label:"🚫 Annulée" },
+                        }[s] || { bg:"#f0fafc", color:"#0B6E8A", border:"#b0d8e3", label:"—" };
+                        return (
+                          <span style={{ fontSize:11, padding:"3px 9px", borderRadius:20, background:cfg.bg, color:cfg.color, border:`1px solid ${cfg.border}`, fontWeight:700 }}>
+                            {cfg.label}
+                          </span>
+                        );
+                      })()}
+                      {/* Badge à venir / passée */}
+                      <span style={{ fontSize:11, padding:"3px 8px", borderRadius:20, background: r.date >= today() ? "#f0fafc" : "#f0f0f0", color: r.date >= today() ? "#0B6E8A" : "#888", fontWeight:600 }}>
+                        {r.date >= today() ? "À venir" : "Passée"}
+                      </span>
                     </div>
                   </div>
+
+                  {/* Message contextuel selon statut */}
+                  {r.statut === "en_attente" && (
+                    <div style={{ marginTop:10, background:"#fff8e1", borderRadius:8, padding:"9px 12px", fontSize:12, color:"#a06000", lineHeight:1.5 }}>
+                      🕐 Votre demande est en attente de validation par le propriétaire. Vous recevrez un email dès qu'elle sera traitée.
+                    </div>
+                  )}
+                  {r.statut === "refusee" && (
+                    <div style={{ marginTop:10, background:"#fff0f0", borderRadius:8, padding:"9px 12px", fontSize:12, color:"#c0302a", lineHeight:1.5 }}>
+                      Le propriétaire n'a pas pu accepter votre demande.{r.motifRefus ? ` Motif : "${r.motifRefus}"` : ""} Vous serez remboursé(e) intégralement.
+                    </div>
+                  )}
+                  {r.statut === "annulee" && (
+                    <div style={{ marginTop:10, background:"#f5f5f5", borderRadius:8, padding:"9px 12px", fontSize:12, color:"#888", lineHeight:1.5 }}>
+                      🚫 Cette réservation a été annulée.{r.motifAnnulation ? ` Motif : "${r.motifAnnulation}"` : ""} Vous serez remboursé(e) intégralement.
+                    </div>
+                  )}
                   {r.statut === "acceptee" && r.date === today() && (
                     <div style={{ display:"flex", gap:8, marginTop:10 }}>
                       {!r.edlEntreeFait && (
@@ -2407,6 +2719,114 @@ export default function App() {
   }
 
   // ── PAGE LOGIN ADMIN ─────────────────────────────────────────────────────────
+  // ── PAGE RÉINITIALISATION MOT DE PASSE ──────────────────────────────────────
+  if (mode === "resetMdp") {
+    const titres = { admin: "Administrateur", proprio: "Propriétaire", locataire: "Mon compte" };
+    return (
+      <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh" }}>
+        <div style={{ background:"linear-gradient(160deg,#0B6E8A 0%,#1a9fbd 100%)", paddingBottom:0 }}>
+          <div style={{ padding:"28px 16px 8px", textAlign:"center" }}>
+            <div style={{ fontSize:32 }}>🔐</div>
+            <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, fontWeight:700, color:"#fff", marginTop:4 }}>Mot de passe oublié</div>
+            <div style={{ color:"#b8e8f0", fontSize:12, marginTop:2 }}>Espace {titres[resetMode]}</div>
+          </div>
+          <Waves/>
+        </div>
+        <div style={{ padding:"24px 16px 32px" }}>
+          <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"24px 20px", marginBottom:14 }}>
+
+            {/* Étape 1 : saisie email */}
+            {resetEtape === 1 && (<>
+              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", fontWeight:700, marginBottom:8 }}>Vérification de votre identité</div>
+              <div style={{ fontSize:13, color:"#5a8a96", marginBottom:16 }}>
+                Saisissez votre adresse email. Nous vous enverrons un code de vérification à 6 chiffres.
+              </div>
+              {resetMode === "locataire" && (
+                <div style={{ marginBottom:12 }}>
+                  <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Votre adresse email</label>
+                  <input type="email" value={resetEmail} onChange={e=>{ setResetEmail(e.target.value); setResetErreur(""); }}
+                    style={{ width:"100%", padding:"11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b0d8e3", boxSizing:"border-box" }}
+                    placeholder="votre@email.fr"/>
+                </div>
+              )}
+              {resetMode !== "locataire" && (
+                <div style={{ background:"#f0fafc", borderRadius:10, padding:"12px 14px", marginBottom:14, fontSize:13, color:"#0B6E8A" }}>
+                  📧 Un code sera envoyé à <strong>{resetEmail}</strong>
+                </div>
+              )}
+              {resetErreur && <div style={{ color:"#FF6B6B", fontSize:13, marginBottom:10 }}>❌ {resetErreur}</div>}
+              <button onClick={envoyerResetOTP}
+                style={{ width:"100%", padding:"13px", borderRadius:10, background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer", marginBottom:10 }}>
+                📨 Envoyer le code de vérification
+              </button>
+            </>)}
+
+            {/* Étape 2 : saisie du code */}
+            {resetEtape === 2 && (<>
+              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", fontWeight:700, marginBottom:8 }}>Entrez votre code</div>
+              <div style={{ background:"#e6faf8", borderRadius:10, padding:"10px 14px", marginBottom:14, fontSize:13, color:"#0B6E8A" }}>
+                📧 Un code à 6 chiffres a été envoyé à <strong>{resetEmail}</strong>. Valable 15 minutes.
+              </div>
+              <input type="text" inputMode="numeric" maxLength={6} placeholder="Code à 6 chiffres"
+                value={resetOtpSaisi} onChange={e=>{ setResetOtpSaisi(e.target.value.replace(/\D/g,"")); setResetErreur(""); }}
+                style={{ width:"100%", padding:"14px", borderRadius:10, border:`2px solid ${resetErreur ? "#FF6B6B" : "#b0d8e3"}`, fontSize:28, fontWeight:900, letterSpacing:12, textAlign:"center", boxSizing:"border-box", marginBottom:10 }}/>
+              {resetErreur && <div style={{ color:"#FF6B6B", fontSize:13, marginBottom:8 }}>❌ {resetErreur}</div>}
+              <button onClick={validerResetOTP}
+                style={{ width:"100%", padding:"13px", borderRadius:10, background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer", marginBottom:10 }}>
+                Valider le code →
+              </button>
+              <button onClick={()=>{ setResetEtape(1); setResetOtpSaisi(""); setResetErreur(""); }}
+                style={{ background:"none", border:"none", color:"#5a8a96", fontSize:13, cursor:"pointer", textDecoration:"underline" }}>
+                Renvoyer le code
+              </button>
+            </>)}
+
+            {/* Étape 3 : nouveau mot de passe */}
+            {resetEtape === 3 && (<>
+              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", fontWeight:700, marginBottom:8 }}>Nouveau mot de passe</div>
+              <div style={{ fontSize:13, color:"#5a8a96", marginBottom:14 }}>Choisissez un mot de passe sécurisé (8 caractères minimum).</div>
+              <div style={{ marginBottom:10 }}>
+                <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Nouveau mot de passe</label>
+                <input type="password" value={resetNouveauMdp} onChange={e=>{ setResetNouveauMdp(e.target.value); setResetErreur(""); }}
+                  style={{ width:"100%", padding:"11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b0d8e3", boxSizing:"border-box" }}
+                  placeholder="Minimum 8 caractères"/>
+              </div>
+              <div style={{ marginBottom:14 }}>
+                <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Confirmer le mot de passe</label>
+                <input type="password" value={resetNouveauMdp2} onChange={e=>{ setResetNouveauMdp2(e.target.value); setResetErreur(""); }}
+                  style={{ width:"100%", padding:"11px 12px", borderRadius:8, fontSize:15, border:`1.5px solid ${resetErreur ? "#FF6B6B" : "#b0d8e3"}`, boxSizing:"border-box" }}
+                  placeholder="Répétez le mot de passe"/>
+              </div>
+              {resetErreur && <div style={{ color:"#FF6B6B", fontSize:13, marginBottom:10 }}>❌ {resetErreur}</div>}
+              <button onClick={validerNouveauMdp}
+                style={{ width:"100%", padding:"13px", borderRadius:10, background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer" }}>
+                ✓ Enregistrer le nouveau mot de passe
+              </button>
+            </>)}
+
+            {/* Étape 4 : succès */}
+            {resetEtape === 4 && (<>
+              <div style={{ textAlign:"center", padding:"16px 0" }}>
+                <div style={{ fontSize:48, marginBottom:12 }}>✅</div>
+                <div style={{ fontFamily:"'Playfair Display',serif", fontSize:20, color:"#0B6E8A", fontWeight:700, marginBottom:8 }}>Mot de passe modifié !</div>
+                <div style={{ fontSize:14, color:"#5a8a96", marginBottom:20 }}>Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.</div>
+                <button onClick={()=>{ setMode(resetMode === "locataire" ? "compte" : resetMode === "proprio" ? "loginProprio" : "loginAdmin"); }}
+                  style={{ width:"100%", padding:"13px", borderRadius:10, background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer" }}>
+                  → Se connecter
+                </button>
+              </div>
+            </>)}
+
+          </div>
+          <button onClick={()=>setMode(resetMode === "locataire" ? "compte" : resetMode === "proprio" ? "loginProprio" : "loginAdmin")}
+            style={{ background:"transparent", color:"#0B6E8A", border:"2px solid #0B6E8A", borderRadius:10, padding:"11px 24px", fontSize:14, fontWeight:600, cursor:"pointer", width:"100%" }}>
+            ← Retour
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (mode === "loginAdmin") return (
     <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh" }}>
       <div style={{ background:"linear-gradient(160deg,#0B6E8A 0%,#1a9fbd 100%)", paddingBottom:0 }}>
@@ -2438,9 +2858,18 @@ export default function App() {
               ❌ {erreurAdmin}
             </div>
           )}
-          <button style={{ background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", borderRadius:10, padding:"13px 24px", fontSize:15, fontWeight:700, cursor:"pointer", width:"100%", marginBottom:10 }}
-            onClick={connecterAdmin}>
+          {estBloque("admin") && (
+            <div style={{ background:"#fff3cd", border:"1px solid #f0c040", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#a06000", marginBottom:12 }}>
+              🔒 Compte bloqué encore {tempsRestant("admin")} min. Réinitialisez votre mot de passe.
+            </div>
+          )}
+          <button style={{ background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", borderRadius:10, padding:"13px 24px", fontSize:15, fontWeight:700, cursor:"pointer", width:"100%", marginBottom:10, opacity: estBloque("admin") ? 0.4 : 1 }}
+            onClick={connecterAdmin} disabled={estBloque("admin")}>
             Se connecter
+          </button>
+          <button onClick={()=>ouvrirReset("admin")}
+            style={{ background:"none", border:"none", color:"#5a8a96", fontSize:13, cursor:"pointer", textDecoration:"underline", width:"100%", marginBottom:4 }}>
+            Mot de passe oublié ?
           </button>
         </div>
         <button style={{ background:"transparent", color:"#0B6E8A", border:"2px solid #0B6E8A", borderRadius:10, padding:"11px 24px", fontSize:14, fontWeight:600, cursor:"pointer", width:"100%" }}
@@ -2481,9 +2910,18 @@ export default function App() {
               ❌ {erreurProprio}
             </div>
           )}
-          <button style={{ background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", borderRadius:10, padding:"13px 24px", fontSize:15, fontWeight:700, cursor:"pointer", width:"100%", marginBottom:10 }}
-            onClick={connecterProprio}>
+          {estBloque("proprio") && (
+            <div style={{ background:"#fff3cd", border:"1px solid #f0c040", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#a06000", marginBottom:12 }}>
+              🔒 Compte bloqué encore {tempsRestant("proprio")} min. Réinitialisez votre mot de passe.
+            </div>
+          )}
+          <button style={{ background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", borderRadius:10, padding:"13px 24px", fontSize:15, fontWeight:700, cursor:"pointer", width:"100%", marginBottom:10, opacity: estBloque("proprio") ? 0.4 : 1 }}
+            onClick={connecterProprio} disabled={estBloque("proprio")}>
             Se connecter
+          </button>
+          <button onClick={()=>ouvrirReset("proprio")}
+            style={{ background:"none", border:"none", color:"#5a8a96", fontSize:13, cursor:"pointer", textDecoration:"underline", width:"100%", marginBottom:4 }}>
+            Mot de passe oublié ?
           </button>
         </div>
         <button style={{ background:"transparent", color:"#0B6E8A", border:"2px solid #0B6E8A", borderRadius:10, padding:"11px 24px", fontSize:14, fontWeight:600, cursor:"pointer", width:"100%" }}
@@ -2912,11 +3350,17 @@ export default function App() {
 
               {reservations.length === 0 ? (
                 <div style={{ color: "#5a8a96", fontSize: 14, textAlign: "center", padding: "16px 0" }}>Aucune réservation.</div>
-              ) : reservations.sort((a, b) => {
-                  // En attente d'abord, puis par date
+              ) : [...reservations].sort((a, b) => {
+                  // En attente d'abord, puis par date de réservation, puis par heure de demande
                   if (a.statut === "en_attente" && b.statut !== "en_attente") return -1;
                   if (b.statut === "en_attente" && a.statut !== "en_attente") return 1;
-                  return a.date.localeCompare(b.date);
+                  const dateCmp = a.date.localeCompare(b.date);
+                  if (dateCmp !== 0) return dateCmp;
+                  // Même date de réservation : trier par heure de début
+                  const haCmp = (a.heureDebut || 0) - (b.heureDebut || 0);
+                  if (haCmp !== 0) return haCmp;
+                  // Même créneau : trier par heure de la demande (la plus récente en premier)
+                  return (b.demandeISO || "").localeCompare(a.demandeISO || "");
                 }).map(r => {
                 const noteP = notesLocataires[r.ref];
                 const sessionPassee = r.date <= today();
@@ -2939,6 +3383,9 @@ export default function App() {
                     {comptes[r.email]?.ville && <div style={{ fontSize: 11, color: "#5a8a96" }}>📍 {comptes[r.email]?.codePostal} {comptes[r.email]?.ville}</div>}
                     <div style={{ fontSize: 12, color: "#5a8a96" }}>{r.date} · {padH(r.heureDebut ?? parseInt(r.heureDebut))} → {padH(r.heureFin ?? parseInt(r.heureFin))}</div>
                     <div style={{ fontSize: 12, color: "#5a8a96" }}>{r.adultes} adulte{r.adultes > 1 ? "s" : ""}{r.enfants12 > 0 ? ` + ${r.enfants12} enfant` : ""} · {formatEur(r.prix)}</div>
+                    {r.demandeISO && <div style={{ fontSize: 11, color: "#aabbc0", marginTop: 2 }}>
+                      🕐 Demande reçue le {new Date(r.demandeISO).toLocaleDateString("fr-FR")} à {new Date(r.demandeISO).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                    </div>}
                     {r.note && <div style={{ fontSize: 12, color: "#f0a500", marginTop: 4 }}>💬 {"⭐".repeat(r.note)}{r.commentaire && ` — "${r.commentaire}"`}</div>}
                     {r.photosCasse && r.photosCasse.length > 0 && <div style={{ marginTop: 5, background: "#fff0f0", borderRadius: 7, padding: "5px 10px", fontSize: 12, color: "#FF6B6B" }}>⚠️ Casse : {r.descriptionCasse || "sans description"}</div>}
 
@@ -3046,15 +3493,100 @@ export default function App() {
           <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, color: "#0B6E8A", marginBottom: 14, fontWeight: 700 }}>Votre réservation</div>
           {!compteConnecte && (
             <div style={{ background: "#e8f4f7", borderRadius: 10, padding: "10px 12px", marginBottom: 12, fontSize: 13, color: "#0B6E8A" }}>
-              💡 <a href="#" onClick={e => { e.preventDefault(); setAuthMode("login"); setMode("auth"); }} style={{ color: "#0B6E8A", fontWeight: 700 }}>Connectez-vous</a> pour retrouver vos réservations facilement.
+              💡 Déjà un compte ? <a href="#" onClick={e => { e.preventDefault(); setAuthMode("login"); setMode("auth"); }} style={{ color: "#0B6E8A", fontWeight: 700 }}>Connectez-vous</a> pour retrouver vos réservations facilement.
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
             <div><label style={lbl}>Prénom *</label><input style={{ ...inp, border: erreurs.prenom ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} value={form.prenom} onChange={e => setF("prenom", e.target.value)} />{erreurs.prenom && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.prenom}</div>}</div>
             <div><label style={lbl}>Nom *</label><input style={{ ...inp, border: erreurs.nom ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} value={form.nom} onChange={e => setF("nom", e.target.value)} />{erreurs.nom && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.nom}</div>}</div>
           </div>
-          <div style={{ marginBottom: 10 }}><label style={lbl}>Email *</label><input style={{ ...inp, border: erreurs.email ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} type="email" value={form.email} onChange={e => setF("email", e.target.value)} />{erreurs.email && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.email}</div>}</div>
-          <div style={{ marginBottom: 0 }}><label style={lbl}>Téléphone *</label><input style={inp} type="tel" value={form.telephone} onChange={e => setF("telephone", e.target.value)} />{erreurs.telephone && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.telephone}</div>}</div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={lbl}>Email *</label>
+            <input style={{ ...inp, border: erreurs.email ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} type="email" value={form.email}
+              onChange={e => {
+                setF("email", e.target.value);
+                // Détecter si l'email correspond à un compte existant
+                const val = e.target.value.trim().toLowerCase();
+                const existe = !!comptes[val];
+                setEmailExistant(existe);
+                setLoginInlineMode(false);
+                setLoginInlineMdp("");
+                setLoginInlineErreur("");
+              }} />
+            {erreurs.email && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.email}</div>}
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={lbl}>Téléphone *</label>
+            <input style={inp} type="tel" value={form.telephone} onChange={e => setF("telephone", e.target.value)} />
+            {erreurs.telephone && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.telephone}</div>}
+          </div>
+
+          {/* Bloc compte : connexion ou création selon si l'email existe déjà */}
+          {!compteConnecte && form.email.includes("@") && (
+            emailExistant ? (
+              /* Email déjà connu → proposer la connexion */
+              <div style={{ background: "#fff8e1", border: "2px solid #f0c040", borderRadius: 12, padding: "14px 16px", marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, color: "#a06000", fontSize: 14, marginBottom: 6 }}>👤 Compte existant détecté</div>
+                <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 10 }}>
+                  Un compte existe déjà pour <strong>{form.email}</strong>. Entrez votre mot de passe pour continuer.
+                </div>
+                <label style={lbl}>Mot de passe</label>
+                <input type="password" value={loginInlineMdp} onChange={e => { setLoginInlineMdp(e.target.value); setLoginInlineErreur(""); }}
+                  style={{ ...inp, border: erreurs.mdp ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3", marginBottom: 6 }}
+                  placeholder="Votre mot de passe" />
+                {erreurs.mdp && <div style={{ color: "#FF6B6B", fontSize: 12 }}>❌ {erreurs.mdp}</div>}
+                <button onClick={e => { e.preventDefault(); setResetEmail(form.email); ouvrirReset("locataire"); }}
+                  style={{ background: "none", border: "none", color: "#5a8a96", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0, marginTop: 4 }}>
+                  Mot de passe oublié ?
+                </button>
+              </div>
+            ) : (
+              /* Nouvel email → créer le compte */
+              <div style={{ background: "#f0fafc", border: "2px solid #4ECDC4", borderRadius: 12, padding: "14px 16px", marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 14, marginBottom: 4 }}>🆕 Création de votre compte</div>
+                <div style={{ fontSize: 12, color: "#5a8a96", marginBottom: 12 }}>
+                  Un compte sera créé automatiquement pour retrouver vos réservations.
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                  <div>
+                    <label style={lbl}>Adresse *</label>
+                    <input style={{ ...inp, border: erreurs.adresse ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} value={form.adresse || ""} onChange={e => setF("adresse", e.target.value)} placeholder="Rue, numéro" />
+                    {erreurs.adresse && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.adresse}</div>}
+                  </div>
+                  <div>
+                    <label style={lbl}>Code postal *</label>
+                    <input style={{ ...inp, border: erreurs.codePostal ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} maxLength={5} value={form.codePostal || ""} onChange={e => setF("codePostal", e.target.value)} />
+                    {erreurs.codePostal && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.codePostal}</div>}
+                  </div>
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={lbl}>Ville *</label>
+                  <input style={{ ...inp, border: erreurs.ville ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} value={form.ville || ""} onChange={e => setF("ville", e.target.value)} />
+                  {erreurs.ville && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.ville}</div>}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <div>
+                    <label style={lbl}>Mot de passe * <span style={{ fontWeight: 400, color: "#aaa" }}>(8 car. min.)</span></label>
+                    <input type="password" value={formMdp.motdepasse} onChange={e => setFormMdp(p => ({ ...p, motdepasse: e.target.value }))}
+                      style={{ ...inp, border: erreurs.mdp ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} placeholder="••••••••" />
+                    {erreurs.mdp && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.mdp}</div>}
+                  </div>
+                  <div>
+                    <label style={lbl}>Confirmer *</label>
+                    <input type="password" value={formMdp.motdepasse2} onChange={e => setFormMdp(p => ({ ...p, motdepasse2: e.target.value }))}
+                      style={{ ...inp, border: erreurs.mdp2 ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} placeholder="••••••••" />
+                    {erreurs.mdp2 && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.mdp2}</div>}
+                  </div>
+                </div>
+              </div>
+            )
+          )}
+
+          {compteConnecte && (
+            <div style={{ background: "#e6faf8", borderRadius: 10, padding: "10px 12px", marginBottom: 10, fontSize: 13, color: "#0B6E8A", display: "flex", alignItems: "center", gap: 8 }}>
+              ✅ Connecté en tant que <strong>{comptes[compteConnecte]?.prenom} {comptes[compteConnecte]?.nom}</strong>
+            </div>
+          )}
         </div>
 
         {/* Calendrier */}
@@ -3323,12 +3855,72 @@ export default function App() {
             </div>
           )}
 
-          <div style={{ border: "2px dashed #b0d8e3", borderRadius: 10, padding: "12px", textAlign: "center", marginBottom: 12 }}>
+          <div style={{ border: "2px dashed #b0d8e3", borderRadius: 10, padding: "12px", textAlign: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 20, marginBottom: 3 }}>💳</div>
             <div style={{ fontWeight: 600, color: "#0B6E8A", marginBottom: 2 }}>Paiement sécurisé Stripe</div>
             <div style={{ fontSize: 12, color: "#5a8a96" }}>Module Stripe activé lors du déploiement.</div>
           </div>
-          <button style={{ ...btnP, opacity: modePaiement ? 1 : 0.5 }} onClick={() => modePaiement && confirmerReservation()}>
+
+          {/* ── Vérification email OTP ── */}
+          {modePaiement && (
+            <div style={{ background: otpVerifie ? "#e6faf8" : "#f0fafc", border: `2px solid ${otpVerifie ? "#4ECDC4" : "#b0d8e3"}`, borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
+              {otpVerifie ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ fontSize: 22 }}>✅</div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 14 }}>Email vérifié</div>
+                    <div style={{ fontSize: 12, color: "#5a8a96" }}>Votre adresse email a été confirmée. Vous pouvez finaliser votre réservation.</div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 14, marginBottom: 6 }}>🔐 Vérification de votre email</div>
+                  <div style={{ fontSize: 12, color: "#5a8a96", marginBottom: 10 }}>
+                    Pour confirmer votre réservation, nous devons vérifier votre adresse email <strong>{form.email}</strong>.
+                  </div>
+                  {!otpEnvoye ? (
+                    <button
+                      onClick={envoyerOTP}
+                      disabled={otpEnCours}
+                      style={{ width: "100%", padding: "11px", borderRadius: 9, background: "#0B6E8A", color: "#fff", border: "none", fontWeight: 700, fontSize: 14, cursor: otpEnCours ? "not-allowed" : "pointer", opacity: otpEnCours ? 0.7 : 1 }}>
+                      {otpEnCours ? "Envoi en cours…" : "📨 Recevoir mon code de vérification"}
+                    </button>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 12, color: "#0B6E8A", background: "#e6faf8", borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
+                        📧 Un code à 6 chiffres a été envoyé à <strong>{form.email}</strong>. Valable 10 minutes.
+                      </div>
+                      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          placeholder="Code à 6 chiffres"
+                          value={otpSaisi}
+                          onChange={e => { setOtpSaisi(e.target.value.replace(/\D/g,"")); setOtpErreur(""); }}
+                          style={{ flex: 1, padding: "11px 14px", borderRadius: 9, border: otpErreur ? "2px solid #FF6B6B" : "2px solid #b0d8e3", fontSize: 18, fontWeight: 700, letterSpacing: 6, textAlign: "center" }}
+                        />
+                        <button
+                          onClick={validerOTP}
+                          style={{ padding: "11px 18px", borderRadius: 9, background: "#0B6E8A", color: "#fff", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                          Valider
+                        </button>
+                      </div>
+                      {otpErreur && <div style={{ fontSize: 12, color: "#FF6B6B", marginBottom: 6 }}>❌ {otpErreur}</div>}
+                      <button onClick={() => { setOtpEnvoye(false); setOtpSaisi(""); setOtpErreur(""); }}
+                        style={{ fontSize: 12, color: "#5a8a96", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
+                        Renvoyer le code
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          <button
+            style={{ ...btnP, opacity: (modePaiement && otpVerifie) ? 1 : 0.4 }}
+            onClick={() => modePaiement && otpVerifie && confirmerReservation()}>
             {modePaiement === "especes" ? `✓ Payer l'acompte ${formatEur(acompte)}` : `✓ Payer ${formatEur(totalGeneral)}`}
           </button>
           <button style={btnS} onClick={() => setStep(3)}>← Retour</button>
