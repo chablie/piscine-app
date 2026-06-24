@@ -1211,6 +1211,13 @@ export default function App() {
   const [modeOrigineAvantLegal, setModeOrigineAvantLegal] = useState("accueil"); // pour revenir après consultation des pages légales
   const [confirmationSuppression, setConfirmationSuppression] = useState(false);
   const [factureOuverte, setFactureOuverte] = useState(null);
+  // Annulation par le locataire
+  const [annulLocRef, setAnnulLocRef] = useState(null);
+  const [annulLocMotif, setAnnulLocMotif] = useState("");
+  const [annulLocConfirm, setAnnulLocConfirm] = useState(false);
+  // Remboursement commercial proprio (après location)
+  const [rembRef, setRembRef] = useState(null);
+  const [rembMontant, setRembMontant] = useState("");
   // Affichage mot de passe (œil)
   const [showMdp, setShowMdp] = useState({ mdp: false, mdp2: false, login: false, loginInline: false, reset1: false, reset2: false, admin: false, proprio: false });
   const [chargementInitial, setChargementInitial] = useState(true);
@@ -1607,29 +1614,47 @@ export default function App() {
     const verifier = () => {
       const maintenant = new Date();
       const heure = maintenant.getHours();
+      const minutes = maintenant.getMinutes();
       const dateAujourdhui = maintenant.toISOString().split("T")[0];
 
       reservations.forEach(r => {
         if (r.date !== dateAujourdhui) return;
-        if (r.statut !== "acceptee") return; // seules les réservations validées déclenchent un état des lieux
-        // Si un locataire est connecté, on ne l'alerte que pour SA réservation (pas celle des autres)
-        if (compteConnecte && r.email !== compteConnecte) return;
-        // Si personne n'est connecté (admin/proprio non plus), pas d'alerte côté locataire anonyme
+        if (r.statut !== "acceptee") return;
+        if (compteConnecte && r.email?.toLowerCase() !== compteConnecte.toLowerCase()) return;
         if (!compteConnecte && !adminConnecte && !proprioConnecte) return;
-        // Début de session → alerte état des lieux d'entrée
-        if (heure === r.heureDebut && !r.edlEntreeFait) {
+
+        // Conversion en Number pour éviter "9" === 9 → false
+        const debut = parseInt(r.heureDebut, 10);
+        const fin = parseInt(r.heureFin, 10);
+
+        // Alerte entrée : pendant toute la 1re heure du créneau (pas seulement à la minute pile)
+        const enPeriodeEntree = heure === debut || (heure === debut && minutes < 60);
+        // Plus large : dès que l'heure courante est >= début et < début+1 (toute la première heure)
+        const enSessionEntree = heure >= debut && heure < debut + 1;
+        if (enSessionEntree && !r.edlEntreeFait) {
           setAlerteEdl("entree");
           setEdlResaRef(r.ref);
+          setReservation(r);
         }
-        // Fin de session → alerte état des lieux de sortie
-        if (heure === r.heureFin && !r.edlSortieFait) {
+
+        // Alerte sortie : pendant toute la dernière heure (heure = fin, jusqu'à fin+1)
+        const enSessionSortie = heure >= fin && heure < fin + 1;
+        if (enSessionSortie && r.edlEntreeFait && !r.edlSortieFait) {
           setAlerteEdl("sortie");
           setEdlResaRef(r.ref);
+          setReservation(r);
+        }
+
+        // Rappel : si EDL entrée pas fait ET on est déjà dans la session (passé le début)
+        if (heure > debut && heure < fin && !r.edlEntreeFait) {
+          setAlerteEdl("entree");
+          setEdlResaRef(r.ref);
+          setReservation(r);
         }
       });
     };
     verifier();
-    const interval = setInterval(verifier, 60000); // vérifier chaque minute
+    const interval = setInterval(verifier, 60000);
     return () => clearInterval(interval);
   }, [reservations, compteConnecte, adminConnecte, proprioConnecte]);
 
@@ -1691,6 +1716,43 @@ export default function App() {
   }
 
   function deconnecter() { setCompteConnecte(null); setMode("accueil"); }
+
+  // ── Calcul des pénalités d'annulation locataire ──
+  function calculerPenalite(r) {
+    const dateRes = new Date(`${r.date}T${String(parseInt(r.heureDebut,10)).padStart(2,"0")}:00:00`);
+    const maintenant = new Date();
+    const diffH = (dateRes - maintenant) / 3600000; // différence en heures
+    if (diffH <= 0) return { impossible: true, label: "La session a déjà commencé — annulation impossible." };
+    if (diffH < 24) return { taux: 0.50, retenu: (r.totalGeneral||r.prix)*0.50, rembourse: (r.totalGeneral||r.prix)*0.50, label: "Annulation le jour même : 50% retenu" };
+    if (diffH < 48) return { taux: 0.20, retenu: (r.totalGeneral||r.prix)*0.20, rembourse: (r.totalGeneral||r.prix)*0.80, label: "Annulation < 48h : 20% retenu" };
+    return { taux: 0, retenu: 0, rembourse: r.totalGeneral||r.prix, label: "Annulation > 48h : remboursement intégral" };
+  }
+
+  function annulerParLocataire(ref) {
+    const r = reservations.find(x => x.ref === ref);
+    if (!r) return;
+    const penalite = calculerPenalite(r);
+    if (penalite.impossible) return;
+    const updated = { ...r, statut: "annulee", motifAnnulation: annulLocMotif || "Annulation à la demande du locataire", annulationParLocataire: true, penaliteTaux: penalite.taux, montantRetenu: penalite.retenu, montantRembourse: penalite.rembourse };
+    setReservations(prev => prev.map(x => x.ref === ref ? updated : x));
+    sauvegarderReservation(updated);
+    envoyerEmailAnnulation(updated);
+    setAnnulLocRef(null); setAnnulLocMotif(""); setAnnulLocConfirm(false);
+  }
+
+  // ── Remboursement commercial (geste proprio après location) ──
+  function appliquerRemboursement(ref) {
+    const montant = parseFloat(rembMontant);
+    if (!montant || montant <= 0) return;
+    const fraisGestion = montant * 0.25;
+    const netRembourse = montant - fraisGestion;
+    const r = reservations.find(x => x.ref === ref);
+    if (!r) return;
+    const updated = { ...r, remboursementCommercial: { montantDemande: montant, fraisGestion, netRembourse, date: new Date().toISOString() } };
+    setReservations(prev => prev.map(x => x.ref === ref ? updated : x));
+    sauvegarderReservation(updated);
+    setRembRef(null); setRembMontant("");
+  }
 
   // Droit à l'effacement RGPD : suppression du compte locataire et de ses données
   async function supprimerMonCompte() {
@@ -2374,6 +2436,17 @@ export default function App() {
     const prochaine = compteConnecte
       ? reservations.filter(r => r.email?.toLowerCase() === compteConnecte.toLowerCase() && r.date >= today() && r.statut !== "annulee" && r.statut !== "refusee").sort((a,b) => a.date.localeCompare(b.date))[0]
       : null;
+    // Réservation en cours maintenant (session active)
+    const heureNow = new Date().getHours();
+    const sessionEnCours = compteConnecte
+      ? reservations.find(r =>
+          r.email?.toLowerCase() === compteConnecte.toLowerCase() &&
+          r.date === today() &&
+          r.statut === "acceptee" &&
+          parseInt(r.heureDebut, 10) <= heureNow &&
+          parseInt(r.heureFin, 10) > heureNow
+        )
+      : null;
     return (
     <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
       <Header showSteps={false} />
@@ -2386,7 +2459,28 @@ export default function App() {
               <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: "#0B6E8A", marginBottom: 4 }}>
                 Bonjour {comptes[compteConnecte]?.prenom} !
               </div>
-              {prochaine ? (
+              {sessionEnCours ? (
+                // Session active en ce moment
+                <div style={{ background: "linear-gradient(135deg,#4ECDC4,#0B6E8A)", borderRadius: 14, padding: "16px", margin: "12px 0", color: "#fff" }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>🏊 Session en cours !</div>
+                  <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 12 }}>{sessionEnCours.ref} · {padH(sessionEnCours.heureDebut)} → {padH(sessionEnCours.heureFin)}</div>
+                  {!sessionEnCours.edlEntreeFait ? (
+                    <button onClick={() => { setReservation(sessionEnCours); setMode("edlEntree"); }}
+                      style={{ width: "100%", padding: "11px", borderRadius: 10, background: "#fff", color: "#0B6E8A", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                      📷 Faire l'état des lieux d'entrée
+                    </button>
+                  ) : !sessionEnCours.edlSortieFait ? (
+                    <button onClick={() => { setReservation(sessionEnCours); setMode("edlSortie"); }}
+                      style={{ width: "100%", padding: "11px", borderRadius: 10, background: "#fff", color: "#0B6E8A", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                      📷 Faire l'état des lieux de sortie
+                    </button>
+                  ) : (
+                    <div style={{ background: "rgba(255,255,255,.2)", borderRadius: 10, padding: "10px", textAlign: "center", fontSize: 13 }}>
+                      ✅ États des lieux complétés
+                    </div>
+                  )}
+                </div>
+              ) : prochaine ? (
                 <div style={{ background: prochaine.statut === "acceptee" ? "#e6faf8" : "#fff8e1", border: `2px solid ${prochaine.statut === "acceptee" ? "#4ECDC4" : "#f0c040"}`, borderRadius: 12, padding: "12px 14px", margin: "14px 0", textAlign: "left" }}>
                   <div style={{ fontSize: 12, color: "#5a8a96", marginBottom: 4 }}>
                     {prochaine.statut === "acceptee" ? "✅ Prochaine réservation confirmée" : "⏳ Demande en attente de validation"}
@@ -2582,6 +2676,10 @@ export default function App() {
       <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
         <Header showSteps={false} />
         <div style={{ padding: "16px 16px 32px" }}>
+          <button onClick={() => setMode("accueil")}
+            style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", color:"#0B6E8A", fontWeight:600, fontSize:14, cursor:"pointer", marginBottom:14, padding:0 }}>
+            ← Retour à l'accueil
+          </button>
           <div style={card}>
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", fontWeight: 700, marginBottom: 12 }}>👤 Mon compte</div>
             <div style={{ fontSize: 14, color: "#2C3E50", lineHeight: 2 }}>
@@ -2644,10 +2742,54 @@ export default function App() {
                   )}
                   {r.statut === "annulee" && (
                     <div style={{ marginTop:10, background:"#f5f5f5", borderRadius:8, padding:"9px 12px", fontSize:12, color:"#888", lineHeight:1.5 }}>
-                      🚫 Cette réservation a été annulée.{r.motifAnnulation ? ` Motif : "${r.motifAnnulation}"` : ""} Vous serez remboursé(e) intégralement.
+                      🚫 Réservation annulée.{r.motifAnnulation ? ` Motif : "${r.motifAnnulation}"` : ""}
+                      {r.montantRembourse !== undefined && (
+                        <div style={{ marginTop:4 }}>
+                          {r.montantRetenu > 0
+                            ? <>💸 Retenu : <strong>{formatEur(r.montantRetenu)}</strong> · Remboursé : <strong>{formatEur(r.montantRembourse)}</strong></>
+                            : <>✅ Remboursement intégral : <strong>{formatEur(r.montantRembourse)}</strong></>
+                          }
+                        </div>
+                      )}
                     </div>
                   )}
-                  {r.statut === "acceptee" && r.date === today() && (
+
+                  {/* Bouton annulation locataire — uniquement si statut en_attente ou acceptee et pas encore commencée */}
+                  {(r.statut === "en_attente" || r.statut === "acceptee") && (() => {
+                    const pen = calculerPenalite(r);
+                    if (pen.impossible) return null;
+                    return annulLocRef === r.ref ? (
+                      <div style={{ marginTop:10, background:"#fff0f0", border:"2px solid #FF6B6B", borderRadius:10, padding:"12px 14px" }}>
+                        <div style={{ fontWeight:700, color:"#c0302a", fontSize:13, marginBottom:6 }}>Confirmer l'annulation</div>
+                        <div style={{ fontSize:12, color:"#c0302a", background:"#fff8f8", borderRadius:8, padding:"8px 10px", marginBottom:10, lineHeight:1.6 }}>
+                          ⚠️ {pen.label}<br/>
+                          {pen.taux > 0
+                            ? <>Montant retenu : <strong>{formatEur(pen.retenu)}</strong> · Remboursé : <strong>{formatEur(pen.rembourse)}</strong></>
+                            : <strong>Vous serez remboursé(e) intégralement.</strong>
+                          }
+                        </div>
+                        <label style={{ fontSize:12, color:"#5a8a96", marginBottom:6, display:"block" }}>Motif (optionnel)</label>
+                        <input value={annulLocMotif} onChange={e=>setAnnulLocMotif(e.target.value)}
+                          style={{ width:"100%", padding:"9px 10px", borderRadius:8, border:"1.5px solid #FFb0b0", fontSize:13, marginBottom:10, boxSizing:"border-box" }}
+                          placeholder="Raison de l'annulation..."/>
+                        <div style={{ display:"flex", gap:8 }}>
+                          <button onClick={()=>annulerParLocataire(r.ref)}
+                            style={{ flex:1, padding:"10px", borderRadius:8, background:"#FF6B6B", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                            ✗ Confirmer l'annulation
+                          </button>
+                          <button onClick={()=>{ setAnnulLocRef(null); setAnnulLocMotif(""); }}
+                            style={{ flex:1, padding:"10px", borderRadius:8, background:"#e8f4f7", color:"#0B6E8A", border:"none", fontWeight:600, fontSize:13, cursor:"pointer" }}>
+                            Garder ma réservation
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button onClick={()=>setAnnulLocRef(r.ref)}
+                        style={{ marginTop:10, width:"100%", padding:"9px", borderRadius:8, background:"none", border:"1.5px solid #FF6B6B", color:"#c0302a", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+                        ✗ Annuler cette réservation
+                      </button>
+                    )
+                  })()}
                     <div style={{ display:"flex", gap:8, marginTop:10 }}>
                       {!r.edlEntreeFait && (
                         <button onClick={() => { setReservation(r); setMode("edlEntree"); }}
@@ -2793,9 +2935,13 @@ export default function App() {
             </div>
           )}
         </div>
+        <div style={{ padding: "0 8px 24px" }}>
+          <button style={{ width:"100%", padding:"12px", borderRadius:10, background:"transparent", border:"2px solid #0B6E8A", color:"#0B6E8A", fontWeight:700, fontSize:14, cursor:"pointer" }} onClick={() => setMode("accueil")}>← Retour à l'accueil</button>
+        </div>
       </div>
     );
   }
+
 
   // ── PAGE LOGIN ADMIN ─────────────────────────────────────────────────────────
   // ── PAGE RÉINITIALISATION MOT DE PASSE ──────────────────────────────────────
@@ -3501,20 +3647,34 @@ export default function App() {
                       )
                     )}
 
-                    {/* Annulation d'une réservation déjà acceptée */}
-                    {statut === "acceptee" && !sessionPassee && (
-                      annulEnCoursRef === r.ref ? (
+                    {/* Annulation d'une réservation déjà acceptée — avec règles selon délai */}
+                    {statut === "acceptee" && !sessionPassee && (() => {
+                      const pen = calculerPenalite(r);
+                      return annulEnCoursRef === r.ref ? (
                         <div style={{ marginTop:10, background:"#fff", borderRadius:10, padding:"12px", border:"1.5px solid #FF6B6B" }}>
-                          <div style={{ fontWeight:700, color:"#c0302a", fontSize:13, marginBottom:8 }}>Motif de l'annulation</div>
+                          <div style={{ fontWeight:700, color:"#c0302a", fontSize:13, marginBottom:6 }}>Annulation propriétaire</div>
+                          {/* Règles de pénalité si le locataire a demandé l'annulation */}
+                          <div style={{ background:"#fff8f8", borderRadius:8, padding:"8px 10px", marginBottom:10, fontSize:12, color:"#c0302a", lineHeight:1.6 }}>
+                            <strong>Si annulation à votre initiative :</strong> remboursement intégral au locataire (aucune pénalité).<br/>
+                            <strong>Si annulation demandée par le locataire :</strong> {pen.impossible ? "Session déjà commencée." : pen.label}.
+                            {!pen.impossible && pen.taux > 0 && <> Retenu : <strong>{formatEur(pen.retenu)}</strong> · Remboursé : <strong>{formatEur(pen.rembourse)}</strong></>}
+                          </div>
                           <label style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8, cursor:"pointer" }}>
                             <input type="checkbox" checked={annulationParLocataireVal} onChange={e=>setAnnulationParLocataireVal(e.target.checked)} style={{ accentColor:"#0B6E8A" }}/>
-                            <span style={{ fontSize:12, color:"#2C3E50" }}>Le locataire m'a demandé d'annuler</span>
+                            <span style={{ fontSize:12, color:"#2C3E50" }}>Le locataire m'a demandé d'annuler (pénalités ci-dessus s'appliquent)</span>
                           </label>
-                          <textarea value={motifAnnulVal} onChange={e=>setMotifAnnulVal(e.target.value)} placeholder="Ex: indisponibilité imprévue de la piscine..."
+                          <textarea value={motifAnnulVal} onChange={e=>setMotifAnnulVal(e.target.value)} placeholder="Ex: force majeure, indisponibilité imprévue..."
                             style={{ ...inp, height:60, resize:"vertical", fontSize:12, marginBottom:8 }}/>
                           <div style={{ display:"flex", gap:8 }}>
                             <button style={{ flex:1, padding:"9px", borderRadius:8, background:"#FF6B6B", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}
-                              onClick={() => { annulerReservation(r.ref, motifAnnulVal, annulationParLocataireVal); setAnnulEnCoursRef(null); setMotifAnnulVal(""); setAnnulationParLocataireVal(false); }}>
+                              onClick={() => {
+                                const montantRemb = annulationParLocataireVal && !pen.impossible ? pen.rembourse : (r.totalGeneral||r.prix);
+                                const montantRet = annulationParLocataireVal && !pen.impossible ? pen.retenu : 0;
+                                const updated = { ...r, statut:"annulee", motifAnnulation: motifAnnulVal||"", annulationParLocataire: annulationParLocataireVal, montantRetenu: montantRet, montantRembourse: montantRemb, penaliteTaux: annulationParLocataireVal && !pen.impossible ? pen.taux : 0 };
+                                setReservations(prev => { const next = prev.map(x => x.ref===r.ref?updated:x); sauvegarderReservation(updated); return next; });
+                                envoyerEmailAnnulation(updated);
+                                setAnnulEnCoursRef(null); setMotifAnnulVal(""); setAnnulationParLocataireVal(false);
+                              }}>
                               Confirmer l'annulation
                             </button>
                             <button style={{ ...btnS, marginTop:0, fontSize:13, padding:"9px" }} onClick={() => { setAnnulEnCoursRef(null); setMotifAnnulVal(""); setAnnulationParLocataireVal(false); }}>Annuler</button>
@@ -3525,6 +3685,43 @@ export default function App() {
                           onClick={() => setAnnulEnCoursRef(r.ref)}>
                           🚫 Annuler cette réservation
                         </button>
+                      )
+                    })()}
+
+                    {/* Remboursement commercial après la location */}
+                    {sessionPassee && statut === "acceptee" && (
+                      rembRef === r.ref ? (
+                        <div style={{ marginTop:10, background:"#f0fafc", borderRadius:10, padding:"12px", border:"1.5px solid #4ECDC4" }}>
+                          <div style={{ fontWeight:700, color:"#0B6E8A", fontSize:13, marginBottom:6 }}>💸 Remboursement commercial</div>
+                          <div style={{ fontSize:12, color:"#5a8a96", marginBottom:10, lineHeight:1.6 }}>
+                            Total payé : <strong>{formatEur(r.totalGeneral||r.prix)}</strong><br/>
+                            Frais de gestion : <strong>25%</strong> du montant remboursé<br/>
+                            {rembMontant && parseFloat(rembMontant) > 0 && (
+                              <>Net versé au locataire : <strong style={{ color:"#0B6E8A" }}>{formatEur(parseFloat(rembMontant)*0.75)}</strong> (frais : {formatEur(parseFloat(rembMontant)*0.25)})</>
+                            )}
+                          </div>
+                          <label style={{ fontSize:12, color:"#5a8a96", marginBottom:4, display:"block" }}>Montant à rembourser (avant frais)</label>
+                          <input type="number" min="0" max={r.totalGeneral||r.prix} value={rembMontant} onChange={e=>setRembMontant(e.target.value)}
+                            style={{ ...inp, marginBottom:10 }} placeholder="Ex: 20"/>
+                          <div style={{ display:"flex", gap:8 }}>
+                            <button onClick={()=>appliquerRemboursement(r.ref)}
+                              style={{ flex:1, padding:"9px", borderRadius:8, background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                              ✓ Valider le remboursement
+                            </button>
+                            <button onClick={()=>{ setRembRef(null); setRembMontant(""); }}
+                              style={{ ...btnS, marginTop:0, fontSize:13, padding:"9px" }}>Annuler</button>
+                          </div>
+                        </div>
+                      ) : !r.remboursementCommercial ? (
+                        <button onClick={()=>{ setRembRef(r.ref); setRembMontant(""); }}
+                          style={{ marginTop:10, width:"100%", padding:"9px", borderRadius:8, background:"none", border:"1.5px solid #4ECDC4", color:"#0B6E8A", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+                          💸 Effectuer un remboursement commercial
+                        </button>
+                      ) : (
+                        <div style={{ marginTop:10, background:"#e6faf8", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#0B6E8A" }}>
+                          ✅ Remboursement de {formatEur(r.remboursementCommercial.montantDemande)} effectué
+                          (net versé : {formatEur(r.remboursementCommercial.netRembourse)} · frais : {formatEur(r.remboursementCommercial.fraisGestion)})
+                        </div>
                       )
                     )}
                     {noteP ? (
