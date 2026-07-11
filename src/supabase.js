@@ -104,11 +104,11 @@ export async function chargerComptes() {
 }
 
 export async function sauvegarderCompte(email, compteData) {
-  const rep = await fetch('/api/sauvegarder-compte', {
+  const rep = await fetch('/api/auth', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
-    body: JSON.stringify({ email, data: compteData }),
+    body: JSON.stringify({ action: 'sauvegarder-compte', email, data: compteData }),
   });
   if (!rep.ok) console.error('sauvegarderCompte', await rep.json().catch(() => ({})));
   return rep.ok;

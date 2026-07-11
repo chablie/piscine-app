@@ -8,8 +8,8 @@
 //     (acceptation, refus, annulation, remboursement...).
 // Sans session valide correspondant à ces règles, la requête est rejetée.
 
-import { sessionDepuisRequete } from './_lib/session.js';
-import { selectUn, upsert } from './_lib/supabaseAdmin.js';
+import { sessionDepuisRequete } from '../lib/session.js';
+import { selectUn, upsert } from '../lib/supabaseAdmin.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Méthode non autorisée' });

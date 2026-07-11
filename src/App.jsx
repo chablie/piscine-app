@@ -1527,9 +1527,9 @@ export default function App() {
   async function connecterAdmin() {
     if (estBloque("admin")) return;
     try {
-      const rep = await fetch('/api/connexion-admin', {
+      const rep = await fetch('/api/auth', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-        body: JSON.stringify({ email: authAdmin.email, motdepasse: authAdmin.password }),
+        body: JSON.stringify({ action: 'connexion-admin', email: authAdmin.email, motdepasse: authAdmin.password }),
       });
       if (rep.ok) {
         setAdminConnecte(true);
@@ -1550,7 +1550,7 @@ export default function App() {
   }
 
   function deconnecterAdmin() {
-    fetch('/api/deconnexion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ roles: ['admin'] }) }).catch(() => {});
+    fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ action: 'deconnexion', roles: ['admin'] }) }).catch(() => {});
     setAdminConnecte(false);
     setMode("accueil");
   }
@@ -1558,9 +1558,9 @@ export default function App() {
   async function connecterProprio() {
     if (estBloque("proprio")) return;
     try {
-      const rep = await fetch('/api/connexion-proprio', {
+      const rep = await fetch('/api/auth', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-        body: JSON.stringify({ email: authProprio.email, motdepasse: authProprio.password }),
+        body: JSON.stringify({ action: 'connexion-proprio', email: authProprio.email, motdepasse: authProprio.password }),
       });
       if (rep.ok) {
         setProprioConnecte(true);
@@ -1581,7 +1581,7 @@ export default function App() {
   }
 
   function deconnecterProprio() {
-    fetch('/api/deconnexion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ roles: ['proprio'] }) }).catch(() => {});
+    fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ action: 'deconnexion', roles: ['proprio'] }) }).catch(() => {});
     setProprioConnecte(false);
     setMode("accueil");
   }
@@ -1648,9 +1648,9 @@ export default function App() {
     if (resetNouveauMdp.length < 8) { setResetErreur("Le mot de passe doit contenir au moins 8 caractères."); return; }
     if (resetNouveauMdp !== resetNouveauMdp2) { setResetErreur("Les deux mots de passe ne correspondent pas."); return; }
     try {
-      const rep = await fetch('/api/reinitialiser-mdp-locataire', {
+      const rep = await fetch('/api/auth', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-        body: JSON.stringify({ email: resetEmail, nouveauMotdepasse: resetNouveauMdp }),
+        body: JSON.stringify({ action: 'reinitialiser-mdp-locataire', email: resetEmail, nouveauMotdepasse: resetNouveauMdp }),
       });
       if (!rep.ok) { setResetErreur("Erreur lors de la réinitialisation. Réessayez."); return; }
     } catch (e) {
@@ -1762,9 +1762,9 @@ export default function App() {
     const { adresse, codePostal, ville } = authForm;
     if (!adresse || !codePostal || !ville) { setAuthErreur("Veuillez renseigner votre adresse complète."); return; }
     try {
-      const rep = await fetch('/api/creer-compte', {
+      const rep = await fetch('/api/auth', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-        body: JSON.stringify({ prenom, nom, email: emailNorm, telephone, adresse, codePostal, ville, motdepasse }),
+        body: JSON.stringify({ action: 'creer-compte', prenom, nom, email: emailNorm, telephone, adresse, codePostal, ville, motdepasse }),
       });
       const d = await rep.json().catch(() => ({}));
       if (!rep.ok) { setAuthErreur(d.error || "Erreur lors de la création du compte."); return; }
@@ -1784,9 +1784,9 @@ export default function App() {
     const { email, motdepasse } = authForm;
     const emailNorm = email.trim().toLowerCase();
     try {
-      const rep = await fetch('/api/connexion-locataire', {
+      const rep = await fetch('/api/auth', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-        body: JSON.stringify({ email: emailNorm, motdepasse }),
+        body: JSON.stringify({ action: 'connexion-locataire', email: emailNorm, motdepasse }),
       });
       if (rep.ok) {
         const d = await rep.json();
@@ -1810,7 +1810,7 @@ export default function App() {
   }
 
   function deconnecter() {
-    fetch('/api/deconnexion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ roles: ['locataire'] }) }).catch(() => {});
+    fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ action: 'deconnexion', roles: ['locataire'] }) }).catch(() => {});
     setCompteConnecte(null); setMode("accueil");
   }
 
@@ -1855,7 +1855,7 @@ export default function App() {
   async function supprimerMonCompte() {
     if (!compteConnecte) return;
     try {
-      await fetch('/api/supprimer-mon-compte', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin' });
+      await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ action: 'supprimer-mon-compte' }) });
     } catch (e) { console.error('Erreur suppression compte:', e); }
     setComptes(prev => { const n = { ...prev }; delete n[compteConnecte]; return n; });
     setCompteConnecte(null);
@@ -1890,9 +1890,9 @@ export default function App() {
         // Mode connexion avec compte existant : vérification côté serveur
         if (!loginInlineMdp) { e.mdp = "Mot de passe requis"; setErreurs(e); return false; }
         try {
-          const rep = await fetch('/api/connexion-locataire', {
+          const rep = await fetch('/api/auth', {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-            body: JSON.stringify({ email: emailTrim, motdepasse: loginInlineMdp }),
+            body: JSON.stringify({ action: 'connexion-locataire', email: emailTrim, motdepasse: loginInlineMdp }),
           });
           if (!rep.ok) { e.mdp = "Mot de passe incorrect"; setErreurs(e); return false; }
           const d = await rep.json();
@@ -2017,9 +2017,10 @@ export default function App() {
     let compteActif = compteConnecte;
     if (!compteActif && formMdp.motdepasse) {
       try {
-        const rep = await fetch('/api/creer-compte', {
+        const rep = await fetch('/api/auth', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
           body: JSON.stringify({
+            action: 'creer-compte',
             prenom: form.prenom, nom: form.nom, email: emailRes, telephone: form.telephone,
             adresse: form.adresse || "", codePostal: form.codePostal || "", ville: form.ville || "",
             motdepasse: formMdp.motdepasse,
@@ -2069,10 +2070,10 @@ export default function App() {
     // Dépôt de l'empreinte bancaire : redirection vers Stripe (capture différée,
     // aucun débit tant que le propriétaire n'a pas accepté la demande)
     try {
-      const rep = await fetch('/api/creer-session-empreinte', {
+      const rep = await fetch('/api/paiement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ref }),
+        body: JSON.stringify({ action: 'creer-session-empreinte', ref }),
       });
       if (rep.ok) {
         const d = await rep.json();
@@ -2096,10 +2097,10 @@ export default function App() {
     // 1. Cas nominal : une empreinte bancaire est déposée → on capture (débit effectif)
     if (paiement?.paymentIntentId && paiement.statut === "empreinte_ok") {
       try {
-        const rep = await fetch('/api/capturer-paiement', {
+        const rep = await fetch('/api/paiement', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ref }),
+          body: JSON.stringify({ action: 'capturer-paiement', ref }),
         });
         const d = await rep.json().catch(() => ({}));
         if (rep.ok) {
@@ -2118,10 +2119,10 @@ export default function App() {
     //    → on génère un lien de paiement classique envoyé par email
     if (!paiement || (paiement.statut !== "paye" && !paiement.url)) {
       try {
-        const rep = await fetch('/api/creer-lien-paiement', {
+        const rep = await fetch('/api/paiement', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ref }),
+          body: JSON.stringify({ action: 'creer-lien-paiement', ref }),
         });
         if (rep.ok) {
           const d = await rep.json();
@@ -2154,10 +2155,10 @@ export default function App() {
   // avait abandonné le paiement en cours de route
   async function reprendreEmpreinte(ref) {
     try {
-      const rep = await fetch('/api/creer-session-empreinte', {
+      const rep = await fetch('/api/paiement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ref }),
+        body: JSON.stringify({ action: 'creer-session-empreinte', ref }),
       });
       if (rep.ok) {
         const d = await rep.json();
@@ -2174,10 +2175,10 @@ export default function App() {
   async function libererEmpreinte(r) {
     if (!r?.paiement?.paymentIntentId || r.paiement.statut === "paye") return;
     try {
-      await fetch('/api/annuler-empreinte', {
+      await fetch('/api/paiement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ref: r.ref }),
+        body: JSON.stringify({ action: 'annuler-empreinte', ref: r.ref }),
       });
       setReservations(prev => prev.map(x => x.ref === r.ref ? { ...x, paiement: { ...x.paiement, statut: "empreinte_annulee" } } : x));
     } catch (e) {

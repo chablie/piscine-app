@@ -4,8 +4,8 @@
 // réinitialisation des statistiques). Exige une session "proprio" ou "admin".
 // Utilise la clé service_role — jamais exposée au navigateur.
 
-import { sessionDepuisRequete } from './_lib/session.js';
-import { upsert, supprimerUn, supprimerTout } from './_lib/supabaseAdmin.js';
+import { sessionDepuisRequete } from '../lib/session.js';
+import { upsert, supprimerUn, supprimerTout } from '../lib/supabaseAdmin.js';
 
 // Tables autorisées et leur clé primaire (whitelist stricte — aucune autre table
 // n'est accessible via ce proxy, même avec une session valide)
