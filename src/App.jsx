@@ -41,6 +41,10 @@ const EXTRAS_DEFAUT = [
   { id:"e4", nom:"Bouée", description:"Bouée gonflable pour les enfants et adultes.", tarif:2, type:"personne", emoji:"🔵", actif:true },
 ];
 const ALL_HOURS = [7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23];
+const PAS = 0.5; // granularité des créneaux : 30 minutes
+const TAMPON = 0.5; // tampon de 30 min avant et après chaque réservation
+const ALL_SLOTS = ALL_HOURS.flatMap(h => [h, h + 0.5]); // créneaux de 30 min : 7:00, 7:30, ... 23:30
+const MIN_SLOTS = 2; // réservation minimum : 1 heure = 2 créneaux de 30 min
 const TARIF_SOIREE = 1; // majoration €/pers/h après 20h
 
 // ─── Comptes Admin & Propriétaire ──────────────────────────────────────────────
@@ -57,22 +61,42 @@ function prixTotal(adultes, enfants12, creneaux) {
   if (creneaux.length === 0) return 0;
   let total = 0;
   creneaux.forEach(h => {
-    const tarif = TARIF_BASE + (h >= 20 ? TARIF_SOIREE : 0);
-    const tarifEnfant = (TARIF_BASE * 0.5) + (h >= 20 ? TARIF_SOIREE * 0.5 : 0);
+    // Chaque créneau vaut 30 min → tarif horaire / 2
+    const tarif = (TARIF_BASE + (h >= 20 ? TARIF_SOIREE : 0)) * PAS;
+    const tarifEnfant = ((TARIF_BASE * 0.5) + (h >= 20 ? TARIF_SOIREE * 0.5 : 0)) * PAS;
     total += adultes * tarif + enfants12 * tarifEnfant;
   });
   return +total.toFixed(2);
 }
 
-// Détail du prix pour affichage
+// Détail du prix pour affichage (en heures)
 function detailPrix(adultes, enfants12, creneaux) {
   const normal = creneaux.filter(h => h < 20);
   const soir = creneaux.filter(h => h >= 20);
-  return { normal: normal.length, soir: soir.length };
+  return { normal: normal.length * PAS, soir: soir.length * PAS };
 }
 function formatEur(n) { return (n || 0).toFixed(2).replace(".", ",") + " €"; }
 function today() { return new Date().toISOString().split("T")[0]; }
-function padH(h) { return h === 24 ? "00:00" : String(h).padStart(2, "0") + ":00"; }
+function padH(h) {
+  const n = parseFloat(h);
+  const heure = Math.floor(n) % 24;
+  const minutes = Math.round((n - Math.floor(n)) * 60);
+  return String(heure).padStart(2, "0") + ":" + String(minutes).padStart(2, "0");
+}
+// Durée lisible à partir d'un nombre de créneaux de 30 min : 2 → "1h", 3 → "1h30"
+function formatDuree(nbSlots) {
+  const heures = Math.floor(nbSlots * PAS);
+  const demi = nbSlots % 2 !== 0;
+  if (heures === 0) return "30 min";
+  return `${heures}h${demi ? "30" : ""}`;
+}
+// Heure décimale → "HH:MM:SS" (pour construire des Date)
+function heureToTime(h) {
+  const n = parseFloat(h);
+  const heure = Math.floor(n);
+  const minutes = Math.round((n - heure) * 60);
+  return `${String(heure).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
+}
 function isoDate(y, m, d) { return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
 
 function genererCodePromo() {
@@ -88,20 +112,21 @@ function heuresBloquees(reservations, date) {
   const blocked = new Set();
   // Les réservations refusées ne bloquent plus le créneau
   reservations.filter(r => r.date === date && r.statut !== "refusee" && r.statut !== "annulee").forEach(r => {
-    const debut = parseInt(r.heureDebut), fin = parseInt(r.heureFin);
-    for (let h = debut - 1; h < fin + 1; h++) blocked.add(h);
+    const debut = parseFloat(r.heureDebut), fin = parseFloat(r.heureFin);
+    // Tampon de 30 min avant et après la réservation
+    for (let h = debut - TAMPON; h < fin + TAMPON; h += PAS) blocked.add(h);
   });
   return blocked;
 }
 
-// Pour une date donnée : retourne le statut heure par heure
+// Pour une date donnée : retourne le statut créneau par créneau (pas de 30 min)
 function statutHeures(disponibilites, reservations, date) {
   const plages = disponibilites[date] || [];
   const blocked = heuresBloquees(reservations, date);
   const result = {};
-  ALL_HOURS.forEach(h => {
+  ALL_SLOTS.forEach(h => {
     const dispo = plages.some(p => h >= p.debut && h < p.fin);
-    const res = reservations.find(r => r.date === date && r.statut !== "refusee" && r.statut !== "annulee" && parseInt(r.heureDebut) <= h && parseInt(r.heureFin) > h);
+    const res = reservations.find(r => r.date === date && r.statut !== "refusee" && r.statut !== "annulee" && parseFloat(r.heureDebut) <= h && parseFloat(r.heureFin) > h);
     if (res) result[h] = "reserve";
     else if (blocked.has(h)) result[h] = "tampon";
     else if (dispo) result[h] = "libre";
@@ -122,9 +147,9 @@ function tamponsOk(disponibilites, reservations, date, creneaux) {
   const statuts = statutHeures(disponibilites, reservations, date);
   const min = Math.min(...creneaux);
   const max = Math.max(...creneaux);
-  // L'heure avant et l'heure après doivent être libres ou hors plage
-  const avant = statuts[min - 1];
-  const apres = statuts[max + 1];
+  // Le créneau de 30 min avant et celui après doivent être libres ou hors plage
+  const avant = statuts[min - PAS];
+  const apres = statuts[max + PAS]; // créneau de 30 min juste après la fin de la sélection
   if (avant === "reserve") return false;
   if (apres === "reserve") return false;
   return true;
@@ -428,8 +453,10 @@ function CalendrierDisponibilites({ disponibilites, reservations, onSelectDate, 
     if (iso < todayStr) return "passe";
     if (!disponibilites[iso] || disponibilites[iso].length === 0) return "ferme";
     const statuts = statutHeures(disponibilites, reservations, iso);
-    const libres = ALL_HOURS.filter(h => statuts[h] === "libre");
-    if (libres.length === 0) return "complet";
+    // Dispo seulement s'il reste au moins 1h consécutive (2 créneaux de 30 min adjacents)
+    const libres = ALL_SLOTS.filter(h => statuts[h] === "libre");
+    const auMoinsUneHeure = libres.some(h => libres.includes(h + PAS));
+    if (!auMoinsUneHeure) return "complet";
     return "dispo";
   }
 
@@ -506,7 +533,7 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
         next = [h];
       } else {
         const min = Math.min(...creneaux), max = Math.max(...creneaux);
-        if (h === min - 1 || h === max + 1) next = [...creneaux, h].sort((a,b)=>a-b);
+        if (h === min - PAS || h === max + PAS) next = [...creneaux, h].sort((a,b)=>a-b);
         else return; // non adjacent
       }
     }
@@ -514,7 +541,7 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
     if (next.length > 0) {
       const allStatuts = statutHeures(disponibilites, reservations, date);
       const newMin = Math.min(...next), newMax = Math.max(...next);
-      if (allStatuts[newMin - 1] === "reserve" || allStatuts[newMax + 1] === "reserve") return;
+      if (allStatuts[newMin - PAS] === "reserve" || allStatuts[newMax + PAS] === "reserve") return;
     }
     onToggle(next);
   }
@@ -525,17 +552,17 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
   return (
     <div>
       <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 10, lineHeight: 1.5 }}>
-        Tapez sur les créneaux <strong style={{color:"#0B6E8A"}}>libres</strong> pour les sélectionner. Vous devez choisir des créneaux consécutifs.
+        Tapez sur les créneaux de <strong style={{color:"#0B6E8A"}}>30 minutes</strong> libres pour les sélectionner. Les créneaux doivent être consécutifs, avec un minimum d'<strong style={{color:"#0B6E8A"}}>1 heure</strong> de réservation.
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {ALL_HOURS.map(h => {
+        {ALL_SLOTS.map(h => {
           const st = statuts[h];
           const sel = creneaux.includes(h);
           const isMin = sel && h === Math.min(...creneaux);
           const isMax = sel && h === Math.max(...creneaux);
           const cliquable = st === "libre";
           // Adjacent au bloc = peut être sélectionné
-          const adjacent = creneaux.length > 0 && (h === Math.min(...creneaux) - 1 || h === Math.max(...creneaux) + 1);
+          const adjacent = creneaux.length > 0 && (h === Math.min(...creneaux) - PAS || h === Math.max(...creneaux) + PAS);
 
           let bg, color, border;
           if (sel) { bg = "#0B6E8A"; color = "#fff"; border = "2px solid #0B6E8A"; }
@@ -545,17 +572,17 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
           return (
             <div key={h} onClick={() => toggleHeure(h)}
               style={{
-                borderRadius: 10, padding: "10px 6px", fontSize: 12, fontWeight: 700,
+                borderRadius: 10, padding: "8px 4px", fontSize: 11, fontWeight: 700,
                 background: bg, color, border,
                 cursor: cliquable ? "pointer" : "not-allowed",
-                minWidth: 56, textAlign: "center",
+                minWidth: 50, textAlign: "center",
                 transition: "all .15s",
                 position: "relative",
               }}>
               {padH(h)}
               <br />
-              <span style={{ fontSize: 10, fontWeight: 400, opacity: .85 }}>
-                {sel ? (isMin && isMax ? "✓ 1h" : isMin ? "← début" : isMax ? "fin →" : "✓") : 
+              <span style={{ fontSize: 9, fontWeight: 400, opacity: .85 }}>
+                {sel ? (isMin && isMax ? "✓ 30 min" : isMin ? "← début" : isMax ? "fin →" : "✓") : 
                  st === "reserve" ? "Réservé" : st === "tampon" ? "Tampon" : st === "ferme" ? "Fermé" : "Libre"}
               </span>
               {h >= 20 && st === "libre" && !sel && <div style={{ fontSize: 8, color: "#f0a500", marginTop: 1 }}>+1€/h 🌙</div>}
@@ -566,10 +593,15 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
       {creneaux.length > 0 && (
         <div style={{ marginTop: 12, background: "linear-gradient(135deg,#0B6E8A,#4ECDC4)", borderRadius: 10, padding: "10px 14px", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontSize: 13, fontWeight: 600 }}>
-            {padH(Math.min(...creneaux))} → {padH(Math.max(...creneaux) + 1)}
+            {padH(Math.min(...creneaux))} → {padH(Math.max(...creneaux) + PAS)}
           </div>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>{creneaux.length}h sélectionnée{creneaux.length > 1 ? "s" : ""}</div>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>{formatDuree(creneaux.length)} sélectionnée{creneaux.length > 2 ? "s" : ""}</div>
           <button onClick={() => onToggle([])} style={{ background: "rgba(255,255,255,.25)", border: "none", color: "#fff", borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>Effacer</button>
+        </div>
+      )}
+      {creneaux.length === 1 && (
+        <div style={{ marginTop: 8, background: "#fff6e0", border: "1.5px solid #f0c040", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#a06000", fontWeight: 600 }}>
+          ⏱ Réservation minimum : 1 heure. Ajoutez au moins un créneau de 30 minutes.
         </div>
       )}
       {/* Légende */}
@@ -1623,22 +1655,22 @@ export default function App() {
         if (compteConnecte && r.email?.toLowerCase() !== compteConnecte.toLowerCase()) return;
         if (!compteConnecte && !adminConnecte && !proprioConnecte) return;
 
-        // Conversion en Number pour éviter "9" === 9 → false
-        const debut = parseInt(r.heureDebut, 10);
-        const fin = parseInt(r.heureFin, 10);
+        // Conversion en Number pour éviter "9" === 9 → false (parseFloat pour gérer les demi-heures, ex. 14.5)
+        const debut = parseFloat(r.heureDebut);
+        const fin = parseFloat(r.heureFin);
+        // Heure courante en décimal (ex. 14h30 → 14.5)
+        const nowDec = heure + minutes / 60;
 
-        // Alerte entrée : pendant toute la 1re heure du créneau (pas seulement à la minute pile)
-        const enPeriodeEntree = heure === debut || (heure === debut && minutes < 60);
-        // Plus large : dès que l'heure courante est >= début et < début+1 (toute la première heure)
-        const enSessionEntree = heure >= debut && heure < debut + 1;
+        // Alerte entrée : pendant toute la 1re heure du créneau
+        const enSessionEntree = nowDec >= debut && nowDec < debut + 1;
         if (enSessionEntree && !r.edlEntreeFait) {
           setAlerteEdl("entree");
           setEdlResaRef(r.ref);
           setReservation(r);
         }
 
-        // Alerte sortie : pendant toute la dernière heure (heure = fin, jusqu'à fin+1)
-        const enSessionSortie = heure >= fin && heure < fin + 1;
+        // Alerte sortie : pendant l'heure qui suit la fin de session
+        const enSessionSortie = nowDec >= fin && nowDec < fin + 1;
         if (enSessionSortie && r.edlEntreeFait && !r.edlSortieFait) {
           setAlerteEdl("sortie");
           setEdlResaRef(r.ref);
@@ -1646,7 +1678,7 @@ export default function App() {
         }
 
         // Rappel : si EDL entrée pas fait ET on est déjà dans la session (passé le début)
-        if (heure > debut && heure < fin && !r.edlEntreeFait) {
+        if (nowDec > debut && nowDec < fin && !r.edlEntreeFait) {
           setAlerteEdl("entree");
           setEdlResaRef(r.ref);
           setReservation(r);
@@ -1659,9 +1691,10 @@ export default function App() {
   }, [reservations, compteConnecte, adminConnecte, proprioConnecte]);
 
   function setF(k, v) { setForm(f => ({ ...f, [k]: v })); }
-  const duree = form.creneaux.length;
-  const heureDebut = duree > 0 ? Math.min(...form.creneaux) : null;
-  const heureFin = duree > 0 ? Math.max(...form.creneaux) + 1 : null;
+  const nbSlots = form.creneaux.length; // nombre de créneaux de 30 min
+  const duree = nbSlots * PAS; // durée en heures
+  const heureDebut = nbSlots > 0 ? Math.min(...form.creneaux) : null;
+  const heureFin = nbSlots > 0 ? Math.max(...form.creneaux) + PAS : null;
   const prix = prixTotal(form.adultes, form.enfants12, form.creneaux);
   const prixFinal = remise > 0 ? +(prix * (1 - remise / 100)).toFixed(2) : prix;
 
@@ -1719,7 +1752,7 @@ export default function App() {
 
   // ── Calcul des pénalités d'annulation locataire ──
   function calculerPenalite(r) {
-    const dateRes = new Date(`${r.date}T${String(parseInt(r.heureDebut,10)).padStart(2,"0")}:00:00`);
+    const dateRes = new Date(`${r.date}T${heureToTime(r.heureDebut)}`);
     const maintenant = new Date();
     const diffH = (dateRes - maintenant) / 3600000; // différence en heures
     if (diffH <= 0) return { impossible: true, label: "La session a déjà commencé — annulation impossible." };
@@ -1775,6 +1808,7 @@ export default function App() {
     if (!form.telephone.trim()) e.telephone = "Requis";
     if (!form.date) e.date = "Sélectionnez une date";
     if (form.creneaux.length === 0) e.creneaux = "Sélectionnez au moins un créneau";
+    else if (form.creneaux.length < MIN_SLOTS) e.creneaux = "La réservation doit durer au moins 1 heure";
     if (form.adultes < 1) e.adultes = "Minimum 1 adulte";
 
     // Si pas encore connecté, vérifier la partie compte
@@ -2094,18 +2128,18 @@ export default function App() {
       const estOuvert = plages.some(p => h >= p.debut && h < p.fin);
       let nouvPlages;
       if (estOuvert) {
-        // Fermer ce créneau : découper les plages existantes
+        // Fermer ce créneau de 30 min : découper les plages existantes
         nouvPlages = [];
         plages.forEach(p => {
           if (h >= p.fin || h < p.debut) { nouvPlages.push(p); }
           else {
             if (p.debut < h) nouvPlages.push({ debut: p.debut, fin: h });
-            if (h + 1 < p.fin) nouvPlages.push({ debut: h + 1, fin: p.fin });
+            if (h + PAS < p.fin) nouvPlages.push({ debut: h + PAS, fin: p.fin });
           }
         });
       } else {
-        // Ouvrir ce créneau : ajouter et fusionner
-        nouvPlages = [...plages, { debut: h, fin: h + 1 }]
+        // Ouvrir ce créneau de 30 min : ajouter et fusionner
+        nouvPlages = [...plages, { debut: h, fin: h + PAS }]
           .sort((a, b) => a.debut - b.debut)
           .reduce((acc, cur) => {
             if (acc.length && cur.debut <= acc[acc.length - 1].fin)
@@ -2437,14 +2471,14 @@ export default function App() {
       ? reservations.filter(r => r.email?.toLowerCase() === compteConnecte.toLowerCase() && r.date >= today() && r.statut !== "annulee" && r.statut !== "refusee").sort((a,b) => a.date.localeCompare(b.date))[0]
       : null;
     // Réservation en cours maintenant (session active)
-    const heureNow = new Date().getHours();
+    const heureNow = new Date().getHours() + new Date().getMinutes() / 60;
     const sessionEnCours = compteConnecte
       ? reservations.find(r =>
           r.email?.toLowerCase() === compteConnecte.toLowerCase() &&
           r.date === today() &&
           r.statut === "acceptee" &&
-          parseInt(r.heureDebut, 10) <= heureNow &&
-          parseInt(r.heureFin, 10) > heureNow
+          parseFloat(r.heureDebut) <= heureNow &&
+          parseFloat(r.heureFin) > heureNow
         )
       : null;
     return (
@@ -3296,13 +3330,13 @@ export default function App() {
                   <div>
                     <label style={lbl}>De</label>
                     <select value={propriDebut} onChange={e => setPropriDebut(+e.target.value)} style={inp}>
-                      {ALL_HOURS.map(h => <option key={h} value={h}>{padH(h)}</option>)}
+                      {ALL_SLOTS.map(h => <option key={h} value={h}>{padH(h)}</option>)}
                     </select>
                   </div>
                   <div>
                     <label style={lbl}>À</label>
                     <select value={propriFin} onChange={e => setProprieFin(+e.target.value)} style={inp}>
-                      {[...ALL_HOURS.filter(h=>h>propriDebut),24].map(h => <option key={h} value={h}>{padH(h)}</option>)}
+                      {[...ALL_SLOTS.filter(h=>h>propriDebut),24].map(h => <option key={h} value={h}>{padH(h)}</option>)}
                     </select>
                   </div>
                 </div>
@@ -3349,8 +3383,8 @@ export default function App() {
                 Appuyez sur un créneau pour l'<strong style={{color:"#4ECDC4"}}>ouvrir</strong> ou le <strong style={{color:"#FF6B6B"}}>fermer</strong> individuellement.
               </div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:14 }}>
-                {ALL_HOURS.map(h => {
-                  const res = reservations.find(r => r.date === propriDate && r.heureDebut <= h && r.heureFin > h);
+                {ALL_SLOTS.map(h => {
+                  const res = reservations.find(r => r.date === propriDate && r.statut !== "refusee" && r.statut !== "annulee" && parseFloat(r.heureDebut) <= h && parseFloat(r.heureFin) > h);
                   const blocked = blockedH.has(h) && !res;
                   const dispo = estOuvert(propriDate, h);
                   const isSoir = h >= 20;
@@ -3361,7 +3395,7 @@ export default function App() {
                   else { bg="#f5f5f5"; color="#bbb"; border="2px dashed #ddd"; labelH="—"; cliquable=true; }
                   return (
                     <div key={h} onClick={() => cliquable && toggleCreneauProprio(h)}
-                      style={{ borderRadius:10, padding:"9px 5px", fontSize:12, fontWeight:700, background:bg, color, border, cursor:cliquable?"pointer":"not-allowed", minWidth:52, textAlign:"center", transition:"all .15s" }}>
+                      style={{ borderRadius:10, padding:"8px 4px", fontSize:11, fontWeight:700, background:bg, color, border, cursor:cliquable?"pointer":"not-allowed", minWidth:48, textAlign:"center", transition:"all .15s" }}>
                       {padH(h)}<br/>
                       <span style={{ fontSize:9, fontWeight:400 }}>{labelH}</span>
                       {isSoir && !res && <div style={{ fontSize:8, opacity:.8, marginTop:1 }}>+1€/h</div>}
@@ -3745,7 +3779,7 @@ export default function App() {
                         <button style={{ marginTop: 10, width: "100%", padding: "8px", borderRadius: 8, background: "#0B6E8A", color: "#fff", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer" }} onClick={() => { setNoteEnCoursRef(r.ref); setNoteProprioVal(0); setCommentaireProprioVal(""); }}>⭐ Noter ce locataire</button>
                       )
                     )}
-                    <div style={{ fontSize: 11, color: "#aaa", marginTop: 5 }}>🔒 Tampon : {padH(parseInt(r.heureDebut) - 1)} – {padH(parseInt(r.heureFin) + 1)}</div>
+                    <div style={{ fontSize: 11, color: "#aaa", marginTop: 5 }}>🔒 Tampon : {padH(parseFloat(r.heureDebut) - TAMPON)} – {padH(parseFloat(r.heureFin) + TAMPON)}</div>
                   </div>
                 );
               })}
@@ -3912,7 +3946,7 @@ export default function App() {
         {form.creneaux.length > 0 && (
           <div style={{ background: "linear-gradient(135deg,#0B6E8A,#4ECDC4)", borderRadius: 13, padding: "13px 16px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <div style={{ color: "#b8e8f0", fontSize: 12 }}>{padH(heureDebut)} → {padH(heureFin)} ({duree}h)</div>
+              <div style={{ color: "#b8e8f0", fontSize: 12 }}>{padH(heureDebut)} → {padH(heureFin)} ({formatDuree(nbSlots)})</div>
               <div style={{ color: "#e0f4f8", fontSize: 11 }}>{form.adultes} adulte{form.adultes > 1 ? "s" : ""}{form.enfants12 > 0 ? ` + ${form.enfants12} enfant` : ""}</div>
               {form.creneaux.some(h => h >= 20) && <div style={{ color: "#ffe082", fontSize: 11 }}>🌙 Majoration soirée incluse (+1€/pers/h après 20h)</div>}
               {remise > 0 && <div style={{ color: "#ffe082", fontSize: 11, fontWeight: 700 }}>Code promo -{remise}% ✓</div>}
@@ -4035,7 +4069,7 @@ export default function App() {
         <div style={card}>
           <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, color: "#0B6E8A", marginBottom: 12, fontWeight: 700 }}>Récapitulatif & Paiement</div>
           <div style={{ background: "#f0fafc", borderRadius: 10, padding: "12px 14px", marginBottom: 12, border: "1px solid #b0d8e3" }}>
-            {[["Locataire", `${form.prenom} ${form.nom}`], ["Date", form.date], ["Créneau", `${padH(heureDebut)} → ${padH(heureFin)} (${duree}h)`], ["Participants", `${form.adultes} adulte${form.adultes > 1 ? "s" : ""}${form.enfants12 > 0 ? ` + ${form.enfants12} enfant` : ""}${form.moins3 > 0 ? ` + ${form.moins3} bébé` : ""}`]].map(([k, v]) => (
+            {[["Locataire", `${form.prenom} ${form.nom}`], ["Date", form.date], ["Créneau", `${padH(heureDebut)} → ${padH(heureFin)} (${formatDuree(nbSlots)})`], ["Participants", `${form.adultes} adulte${form.adultes > 1 ? "s" : ""}${form.enfants12 > 0 ? ` + ${form.enfants12} enfant` : ""}${form.moins3 > 0 ? ` + ${form.moins3} bébé` : ""}`]].map(([k, v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ color: "#5a8a96", fontSize: 13 }}>{k}</span><span style={{ fontWeight: 600, fontSize: 13 }}>{v}</span>
               </div>

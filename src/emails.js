@@ -45,6 +45,14 @@ function ligneInfo(label, valeur) {
 
 function formatEurEmail(n) { return (n || 0).toFixed(2).replace(".", ",") + " €"; }
 
+// Formate une heure décimale pour email : 14 → "14h00", 14.5 → "14h30"
+function formatHeureEmail(h) {
+  const n = parseFloat(h);
+  const heure = Math.floor(n) % 24;
+  const minutes = Math.round((n - Math.floor(n)) * 60);
+  return `${heure}h${String(minutes).padStart(2, "0")}`;
+}
+
 // ─── Email : nouvelle demande de réservation (au propriétaire) ──────────────
 export async function envoyerEmailNouvelleDemande(reservation, emailProprietaire) {
   const html = enveloppe(`
@@ -54,7 +62,7 @@ export async function envoyerEmailNouvelleDemande(reservation, emailProprietaire
       ${ligneInfo('Référence', reservation.ref)}
       ${ligneInfo('Locataire', `${reservation.prenom} ${reservation.nom}`)}
       ${ligneInfo('Date', reservation.date)}
-      ${ligneInfo('Créneau', `${reservation.heureDebut}h → ${reservation.heureFin}h`)}
+      ${ligneInfo('Créneau', `${formatHeureEmail(reservation.heureDebut)} → ${formatHeureEmail(reservation.heureFin)}`)}
       ${ligneInfo('Participants', `${reservation.adultes} adulte(s)${reservation.enfants12 ? ` + ${reservation.enfants12} enfant(s)` : ''}`)}
       ${ligneInfo('Montant', formatEurEmail(reservation.totalGeneral || reservation.prix))}
     </table>
@@ -71,7 +79,7 @@ export async function envoyerEmailAcceptation(reservation) {
     <table style="width: 100%; margin: 16px 0;">
       ${ligneInfo('Référence', reservation.ref)}
       ${ligneInfo('Date', reservation.date)}
-      ${ligneInfo('Créneau', `${reservation.heureDebut}h → ${reservation.heureFin}h`)}
+      ${ligneInfo('Créneau', `${formatHeureEmail(reservation.heureDebut)} → ${formatHeureEmail(reservation.heureFin)}`)}
     </table>
     <p style="color: #2C3E50; font-size: 14px;">Le jour de votre venue, vous pourrez réaliser l'état des lieux d'entrée et de sortie directement depuis votre espace "Mon compte".</p>
     <p style="color: #2C3E50; font-size: 14px;">À bientôt ! 🌊</p>
@@ -87,7 +95,7 @@ export async function envoyerEmailRefus(reservation) {
     <table style="width: 100%; margin: 16px 0;">
       ${ligneInfo('Référence', reservation.ref)}
       ${ligneInfo('Date', reservation.date)}
-      ${ligneInfo('Créneau', `${reservation.heureDebut}h → ${reservation.heureFin}h`)}
+      ${ligneInfo('Créneau', `${formatHeureEmail(reservation.heureDebut)} → ${formatHeureEmail(reservation.heureFin)}`)}
     </table>
     ${reservation.motifRefus ? `<p style="color: #2C3E50; font-size: 14px; font-style: italic;">"${reservation.motifRefus}"</p>` : ''}
     <p style="color: #2C3E50; font-size: 14px;">Vous serez remboursé(e) intégralement. N'hésitez pas à choisir un autre créneau.</p>
@@ -103,7 +111,7 @@ export async function envoyerEmailAnnulation(reservation) {
     <table style="width: 100%; margin: 16px 0;">
       ${ligneInfo('Référence', reservation.ref)}
       ${ligneInfo('Date', reservation.date)}
-      ${ligneInfo('Créneau', `${reservation.heureDebut}h → ${reservation.heureFin}h`)}
+      ${ligneInfo('Créneau', `${formatHeureEmail(reservation.heureDebut)} → ${formatHeureEmail(reservation.heureFin)}`)}
     </table>
     ${reservation.motifAnnulation ? `<p style="color: #2C3E50; font-size: 14px; font-style: italic;">"${reservation.motifAnnulation}"</p>` : ''}
     <p style="color: #2C3E50; font-size: 14px;">Vous serez remboursé(e) intégralement. Nous sommes désolés pour la gêne occasionnée.</p>
