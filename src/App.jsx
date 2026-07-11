@@ -10,6 +10,7 @@ import {
   chargerCodesPromo, sauvegarderCodePromo,
   chargerNotesLocataires, sauvegarderNoteLocataire,
   chargerConfig, sauvegarderConfig,
+  supprimerToutesReservations, supprimerToutesNotesLocataires, supprimerTousCodesPromo,
   ecouterReservations, ecouterAnnonce,
 } from "./supabase.js";
 import {
@@ -1315,6 +1316,10 @@ export default function App() {
   const [registreCodes, setRegistreCodes] = useState({});
   const [comptes, setComptes] = useState({}); // { email: { prenom, nom, telephone, motdepasse, reservations:[] } }
   const [notesLocataires, setNotesLocataires] = useState({});
+  // Réinitialisation des données de test (admin)
+  const [confirmSuppression, setConfirmSuppression] = useState("");
+  const [suppressionEnCours, setSuppressionEnCours] = useState(false);
+  const [suppressionResultat, setSuppressionResultat] = useState(null); // "ok" | "erreur" | null
   // Extras configurables
   const [extras, setExtras] = useState(EXTRAS_DEFAUT);
 
@@ -2069,6 +2074,28 @@ export default function App() {
   }
 
   function toutOuvrir(date) { ouvrirPlage(date, 7, 24); }
+
+  // ── Réinitialisation des données de test (admin uniquement) ──
+  // Supprime toutes les réservations, notes et codes promo → remet les stats à zéro.
+  // Ne touche PAS : annonce, disponibilités, extras, inventaire, comptes locataires, config.
+  async function reinitialiserDonneesTest() {
+    if (confirmSuppression !== "SUPPRIMER") return;
+    setSuppressionEnCours(true);
+    setSuppressionResultat(null);
+    const okRes = await supprimerToutesReservations();
+    const okNotes = await supprimerToutesNotesLocataires();
+    const okCodes = await supprimerTousCodesPromo();
+    if (okRes && okNotes && okCodes) {
+      setReservations([]);
+      setNotesLocataires({});
+      setRegistreCodes({});
+      setSuppressionResultat("ok");
+      setConfirmSuppression("");
+    } else {
+      setSuppressionResultat("erreur");
+    }
+    setSuppressionEnCours(false);
+  }
   function toutFermer(date) {
     setDisponibilites(prev => { const n={...prev}; delete n[date]; return n; });
   }
@@ -3299,6 +3326,49 @@ export default function App() {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Zone de réinitialisation des données de test — admin uniquement */}
+          {ongletPropri === "maintenance" && adminConnecte && (
+            <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"20px 16px", marginBottom:14, border:"2px solid #FF6B6B" }}>
+              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#c0302a", marginBottom:6, fontWeight:700 }}>🗑 Réinitialiser les données de test</div>
+              <div style={{ fontSize:13, color:"#5a8a96", lineHeight:1.5, marginBottom:10 }}>
+                Supprime définitivement <strong>toutes les réservations</strong>, les <strong>notes locataires</strong> et les <strong>codes promo</strong>. Les statistiques repartiront de zéro.
+              </div>
+              <div style={{ fontSize:12, color:"#2C3E50", background:"#f0fafc", borderRadius:8, padding:"8px 12px", marginBottom:12, lineHeight:1.5 }}>
+                ✅ Conservés : annonce, disponibilités, extras, éléments d'état des lieux, comptes locataires, réglages.
+              </div>
+              {suppressionResultat === "ok" && (
+                <div style={{ background:"#e6faf8", border:"1.5px solid #4ECDC4", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#0B6E8A", fontWeight:600, marginBottom:12 }}>
+                  ✅ Données de test supprimées. Les statistiques sont remises à zéro.
+                </div>
+              )}
+              {suppressionResultat === "erreur" && (
+                <div style={{ background:"#ffd6d6", border:"1.5px solid #c0302a", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#c0302a", fontWeight:600, marginBottom:12 }}>
+                  ❌ Une erreur est survenue pendant la suppression. Certaines données ont pu ne pas être effacées — vérifiez la console et réessayez.
+                </div>
+              )}
+              <label style={{ fontSize:13, fontWeight:600, color:"#c0302a", marginBottom:4, display:"block" }}>
+                Pour confirmer, tapez SUPPRIMER :
+              </label>
+              <input
+                value={confirmSuppression}
+                onChange={e => setConfirmSuppression(e.target.value)}
+                placeholder="SUPPRIMER"
+                style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #FF6B6B", outline:"none", background:"#fff", boxSizing:"border-box", marginBottom:10 }}
+              />
+              <button
+                onClick={reinitialiserDonneesTest}
+                disabled={confirmSuppression !== "SUPPRIMER" || suppressionEnCours}
+                style={{
+                  width:"100%", padding:"13px 24px", borderRadius:10, fontSize:15, fontWeight:700, border:"none",
+                  background: confirmSuppression === "SUPPRIMER" && !suppressionEnCours ? "#c0302a" : "#e0e0e0",
+                  color: confirmSuppression === "SUPPRIMER" && !suppressionEnCours ? "#fff" : "#aaa",
+                  cursor: confirmSuppression === "SUPPRIMER" && !suppressionEnCours ? "pointer" : "not-allowed",
+                }}>
+                {suppressionEnCours ? "Suppression en cours…" : "🗑 Supprimer définitivement les données de test"}
+              </button>
             </div>
           )}
 

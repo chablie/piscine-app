@@ -209,6 +209,27 @@ export async function sauvegarderConfig(modeMaintenance, messageMaintenance) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// RÉINITIALISATION DES DONNÉES DE TEST (admin uniquement)
+// ═══════════════════════════════════════════════════════════════════════
+export async function supprimerToutesReservations() {
+  const { error } = await supabase.from('reservations').delete().neq('ref', '__never__');
+  if (error) console.error('supprimerToutesReservations', error);
+  return !error;
+}
+
+export async function supprimerToutesNotesLocataires() {
+  const { error } = await supabase.from('notes_locataires').delete().neq('reservation_ref', '__never__');
+  if (error) console.error('supprimerToutesNotesLocataires', error);
+  return !error;
+}
+
+export async function supprimerTousCodesPromo() {
+  const { error } = await supabase.from('codes_promo').delete().neq('code', '__never__');
+  if (error) console.error('supprimerTousCodesPromo', error);
+  return !error;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // TEMPS RÉEL : s'abonner aux changements sur une table
 // ═══════════════════════════════════════════════════════════════════════
 export function ecouterReservations(callback) {
