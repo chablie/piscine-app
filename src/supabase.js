@@ -6,6 +6,24 @@ const SUPABASE_ANON_KEY = "sb_publishable_X1QS7GKVf1TVcYd6xa9VaA__Et6kJ_1";
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ═══════════════════════════════════════════════════════════════════════
+// Toutes les ÉCRITURES sensibles passent désormais par des fonctions serverless
+// protégées par une session (cookie httpOnly signé), qui utilisent la clé
+// service_role côté serveur — jamais exposée au navigateur. Les LECTURES restent
+// publiques via la clé anonyme, comme avant (RLS : lecture seule pour le public).
+// ═══════════════════════════════════════════════════════════════════════
+
+async function proprioAction(table, action, extra = {}) {
+  const rep = await fetch('/api/proprio-action', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ table, action, ...extra }),
+  });
+  if (!rep.ok) console.error(`proprioAction ${table}/${action}`, await rep.json().catch(() => ({})));
+  return rep.ok;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // ANNONCE (un seul enregistrement, id=1)
 // ═══════════════════════════════════════════════════════════════════════
 export async function chargerAnnonce() {
@@ -15,9 +33,7 @@ export async function chargerAnnonce() {
 }
 
 export async function sauvegarderAnnonce(annonceData) {
-  const { error } = await supabase.from('annonce').upsert({ id: 1, data: annonceData, updated_at: new Date().toISOString() });
-  if (error) console.error('sauvegarderAnnonce', error);
-  return !error;
+  return proprioAction('annonce', 'upsert', { ligne: { id: 1, data: annonceData, updated_at: new Date().toISOString() } });
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -33,30 +49,23 @@ export async function chargerDisponibilites() {
 
 export async function sauvegarderDisponibilites(disponibilitesObj) {
   // disponibilitesObj : { "2026-06-20": [{debut, fin}], ... }
-  // On récupère les dates actuellement en base pour détecter celles à supprimer
   const { data: existantes } = await supabase.from('disponibilites').select('date');
   const datesEnBase = (existantes || []).map(r => r.date);
   const datesActuelles = Object.keys(disponibilitesObj);
   const datesASupprimer = datesEnBase.filter(d => !datesActuelles.includes(d));
 
-  if (datesASupprimer.length > 0) {
-    const { error: delError } = await supabase.from('disponibilites').delete().in('date', datesASupprimer);
-    if (delError) console.error('sauvegarderDisponibilites delete', delError);
+  let ok = true;
+  for (const date of datesASupprimer) {
+    ok = (await proprioAction('disponibilites', 'delete', { cle: 'date', cleValeur: date })) && ok;
   }
-
-  const lignes = Object.entries(disponibilitesObj).map(([date, plages]) => ({
-    date, plages, updated_at: new Date().toISOString()
-  }));
-  if (lignes.length === 0) return true;
-  const { error } = await supabase.from('disponibilites').upsert(lignes);
-  if (error) console.error('sauvegarderDisponibilites', error);
-  return !error;
+  for (const [date, plages] of Object.entries(disponibilitesObj)) {
+    ok = (await proprioAction('disponibilites', 'upsert', { ligne: { date, plages, updated_at: new Date().toISOString() } })) && ok;
+  }
+  return ok;
 }
 
 export async function supprimerDateDisponibilite(date) {
-  const { error } = await supabase.from('disponibilites').delete().eq('date', date);
-  if (error) console.error('supprimerDateDisponibilite', error);
-  return !error;
+  return proprioAction('disponibilites', 'delete', { cle: 'date', cleValeur: date });
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -69,20 +78,22 @@ export async function chargerReservations() {
 }
 
 export async function sauvegarderReservation(reservation) {
-  const { error } = await supabase.from('reservations').upsert({
-    ref: reservation.ref,
-    data: reservation,
-    date: reservation.date,
-    email: reservation.email,
-    statut: reservation.statut || 'en_attente',
-    updated_at: new Date().toISOString(),
+  const rep = await fetch('/api/sauvegarder-reservation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ reservation }),
   });
-  if (error) console.error('sauvegarderReservation', error);
-  return !error;
+  if (!rep.ok) console.error('sauvegarderReservation', await rep.json().catch(() => ({})));
+  return rep.ok;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // COMPTES LOCATAIRES
+// La création (creer-compte), la connexion (connexion-locataire), la
+// réinitialisation de mot de passe et la suppression RGPD passent par des
+// fonctions serverless dédiées (voir App.jsx). sauvegarderCompte() ci-dessous
+// ne sert plus qu'aux mises à jour de profil (ex. lier une réservation).
 // ═══════════════════════════════════════════════════════════════════════
 export async function chargerComptes() {
   const { data, error } = await supabase.from('comptes').select('email, data');
@@ -93,9 +104,14 @@ export async function chargerComptes() {
 }
 
 export async function sauvegarderCompte(email, compteData) {
-  const { error } = await supabase.from('comptes').upsert({ email, data: compteData });
-  if (error) console.error('sauvegarderCompte', error);
-  return !error;
+  const rep = await fetch('/api/sauvegarder-compte', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ email, data: compteData }),
+  });
+  if (!rep.ok) console.error('sauvegarderCompte', await rep.json().catch(() => ({})));
+  return rep.ok;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -110,15 +126,11 @@ export async function chargerInventaire() {
 }
 
 export async function sauvegarderInventaireItem(item, photos) {
-  const { error } = await supabase.from('inventaire').upsert({ item, photos, updated_at: new Date().toISOString() });
-  if (error) console.error('sauvegarderInventaireItem', error);
-  return !error;
+  return proprioAction('inventaire', 'upsert', { ligne: { item, photos, updated_at: new Date().toISOString() } });
 }
 
 export async function supprimerInventaireItem(item) {
-  const { error } = await supabase.from('inventaire').delete().eq('item', item);
-  if (error) console.error('supprimerInventaireItem', error);
-  return !error;
+  return proprioAction('inventaire', 'delete', { cle: 'item', cleValeur: item });
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -131,9 +143,7 @@ export async function chargerElementsEdl() {
 }
 
 export async function sauvegarderElementsEdl(liste) {
-  const { error } = await supabase.from('elements_edl').upsert({ id: 1, liste, updated_at: new Date().toISOString() });
-  if (error) console.error('sauvegarderElementsEdl', error);
-  return !error;
+  return proprioAction('elements_edl', 'upsert', { ligne: { id: 1, liste, updated_at: new Date().toISOString() } });
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -148,13 +158,15 @@ export async function chargerExtras() {
 
 export async function sauvegarderExtras(extrasArray) {
   // On vide et on réinsère pour gérer suppressions/ajouts simplement
-  const { error: delError } = await supabase.from('extras').delete().neq('id', '__never__');
-  if (delError) console.error('sauvegarderExtras delete', delError);
-  if (extrasArray.length === 0) return true;
-  const lignes = extrasArray.map(e => ({ id: e.id, data: e, updated_at: new Date().toISOString() }));
-  const { error } = await supabase.from('extras').upsert(lignes);
-  if (error) console.error('sauvegarderExtras', error);
-  return !error;
+  const { data: existants } = await supabase.from('extras').select('id');
+  let ok = true;
+  for (const row of existants || []) {
+    ok = (await proprioAction('extras', 'delete', { cle: 'id', cleValeur: row.id })) && ok;
+  }
+  for (const e of extrasArray) {
+    ok = (await proprioAction('extras', 'upsert', { ligne: { id: e.id, data: e, updated_at: new Date().toISOString() } })) && ok;
+  }
+  return ok;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -169,9 +181,7 @@ export async function chargerCodesPromo() {
 }
 
 export async function sauvegarderCodePromo(code, codeData) {
-  const { error } = await supabase.from('codes_promo').upsert({ code, data: codeData });
-  if (error) console.error('sauvegarderCodePromo', error);
-  return !error;
+  return proprioAction('codes_promo', 'upsert', { ligne: { code, data: codeData } });
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -186,9 +196,7 @@ export async function chargerNotesLocataires() {
 }
 
 export async function sauvegarderNoteLocataire(reservationRef, noteData) {
-  const { error } = await supabase.from('notes_locataires').upsert({ reservation_ref: reservationRef, data: noteData });
-  if (error) console.error('sauvegarderNoteLocataire', error);
-  return !error;
+  return proprioAction('notes_locataires', 'upsert', { ligne: { reservation_ref: reservationRef, data: noteData } });
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -201,32 +209,24 @@ export async function chargerConfig() {
 }
 
 export async function sauvegarderConfig(modeMaintenance, messageMaintenance) {
-  const { error } = await supabase.from('config').upsert({
-    id: 1, mode_maintenance: modeMaintenance, message_maintenance: messageMaintenance, updated_at: new Date().toISOString()
+  return proprioAction('config', 'upsert', {
+    ligne: { id: 1, mode_maintenance: modeMaintenance, message_maintenance: messageMaintenance, updated_at: new Date().toISOString() },
   });
-  if (error) console.error('sauvegarderConfig', error);
-  return !error;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // RÉINITIALISATION DES DONNÉES DE TEST (admin uniquement)
 // ═══════════════════════════════════════════════════════════════════════
 export async function supprimerToutesReservations() {
-  const { error } = await supabase.from('reservations').delete().neq('ref', '__never__');
-  if (error) console.error('supprimerToutesReservations', error);
-  return !error;
+  return proprioAction('reservations', 'delete_all');
 }
 
 export async function supprimerToutesNotesLocataires() {
-  const { error } = await supabase.from('notes_locataires').delete().neq('reservation_ref', '__never__');
-  if (error) console.error('supprimerToutesNotesLocataires', error);
-  return !error;
+  return proprioAction('notes_locataires', 'delete_all');
 }
 
 export async function supprimerTousCodesPromo() {
-  const { error } = await supabase.from('codes_promo').delete().neq('code', '__never__');
-  if (error) console.error('supprimerTousCodesPromo', error);
-  return !error;
+  return proprioAction('codes_promo', 'delete_all');
 }
 
 // ═══════════════════════════════════════════════════════════════════════

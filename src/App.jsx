@@ -49,11 +49,11 @@ const MIN_SLOTS = 2; // réservation minimum : 1 heure = 2 créneaux de 30 min
 const TARIF_SOIREE = 1; // majoration €/pers/h après 20h
 
 // ─── Comptes Admin & Propriétaire ──────────────────────────────────────────────
-// Change ces identifiants avant de déployer !
+// Les mots de passe ne sont plus ici : ils vivent uniquement dans les variables
+// d'environnement Vercel (ADMIN_PASSWORD / PROPRIO_PASSWORD) et sont vérifiés
+// côté serveur par /api/connexion-admin et /api/connexion-proprio.
 const ADMIN_EMAIL = "aurelie.briand@yahoo.fr";
-const ADMIN_PASSWORD = "M@rtinique.972";
 const PROPRIO_EMAIL = "aurelie.briand@yahoo.fr";
-const PROPRIO_PASSWORD = "M@rtinique.972";
 const JOURS = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
 const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
@@ -1292,8 +1292,8 @@ export default function App() {
   const [resetErreur, setResetErreur] = useState("");
   const [resetEtape, setResetEtape] = useState(1); // 1=email, 2=code, 3=nouveau mdp, 4=succès
   // Mots de passe modifiables en runtime (initialisés depuis les constantes)
-  const [mdpAdmin, setMdpAdmin] = useState(ADMIN_PASSWORD);
-  const [mdpProprio, setMdpProprio] = useState(PROPRIO_PASSWORD);
+  // mdpAdmin/mdpProprio supprimés : les mots de passe vivent désormais uniquement
+  // côté serveur (variables d'environnement Vercel), jamais en state React.
 
   // ── Annonce ──
   const [annonce, setAnnonce] = useState(ANNONCE_DEFAUT);
@@ -1524,50 +1524,64 @@ export default function App() {
   }
 
   // ── Fonctions admin ──
-  function connecterAdmin() {
+  async function connecterAdmin() {
     if (estBloque("admin")) return;
-    if (authAdmin.email === ADMIN_EMAIL && authAdmin.password === mdpAdmin) {
-      setAdminConnecte(true);
-      setErreurAdmin("");
-      setTentativesAdmin(0);
-      setMode("proprio");
-    } else {
-      const nouvellesTentatives = tentativesAdmin + 1;
-      setTentativesAdmin(nouvellesTentatives);
-      if (nouvellesTentatives >= 5) {
-        setBloqueJusquA(prev => ({ ...prev, admin: Date.now() + 30 * 60 * 1000 }));
-        setErreurAdmin("Compte bloqué 30 minutes après 5 tentatives échouées.");
-      } else {
-        setErreurAdmin(`Email ou mot de passe incorrect. (${nouvellesTentatives}/5 tentatives)`);
+    try {
+      const rep = await fetch('/api/connexion-admin', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ email: authAdmin.email, motdepasse: authAdmin.password }),
+      });
+      if (rep.ok) {
+        setAdminConnecte(true);
+        setErreurAdmin("");
+        setTentativesAdmin(0);
+        setMode("proprio");
+        return;
       }
+    } catch (e) { console.error('Erreur connexion admin:', e); }
+    const nouvellesTentatives = tentativesAdmin + 1;
+    setTentativesAdmin(nouvellesTentatives);
+    if (nouvellesTentatives >= 5) {
+      setBloqueJusquA(prev => ({ ...prev, admin: Date.now() + 30 * 60 * 1000 }));
+      setErreurAdmin("Compte bloqué 30 minutes après 5 tentatives échouées.");
+    } else {
+      setErreurAdmin(`Email ou mot de passe incorrect. (${nouvellesTentatives}/5 tentatives)`);
     }
   }
 
   function deconnecterAdmin() {
+    fetch('/api/deconnexion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ roles: ['admin'] }) }).catch(() => {});
     setAdminConnecte(false);
     setMode("accueil");
   }
 
-  function connecterProprio() {
+  async function connecterProprio() {
     if (estBloque("proprio")) return;
-    if (authProprio.email === PROPRIO_EMAIL && authProprio.password === mdpProprio) {
-      setProprioConnecte(true);
-      setErreurProprio("");
-      setTentativesProprio(0);
-      setMode("proprio");
-    } else {
-      const nouvellesTentatives = tentativesProprio + 1;
-      setTentativesProprio(nouvellesTentatives);
-      if (nouvellesTentatives >= 5) {
-        setBloqueJusquA(prev => ({ ...prev, proprio: Date.now() + 30 * 60 * 1000 }));
-        setErreurProprio("Compte bloqué 30 minutes après 5 tentatives échouées.");
-      } else {
-        setErreurProprio(`Email ou mot de passe incorrect. (${nouvellesTentatives}/5 tentatives)`);
+    try {
+      const rep = await fetch('/api/connexion-proprio', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ email: authProprio.email, motdepasse: authProprio.password }),
+      });
+      if (rep.ok) {
+        setProprioConnecte(true);
+        setErreurProprio("");
+        setTentativesProprio(0);
+        setMode("proprio");
+        return;
       }
+    } catch (e) { console.error('Erreur connexion proprio:', e); }
+    const nouvellesTentatives = tentativesProprio + 1;
+    setTentativesProprio(nouvellesTentatives);
+    if (nouvellesTentatives >= 5) {
+      setBloqueJusquA(prev => ({ ...prev, proprio: Date.now() + 30 * 60 * 1000 }));
+      setErreurProprio("Compte bloqué 30 minutes après 5 tentatives échouées.");
+    } else {
+      setErreurProprio(`Email ou mot de passe incorrect. (${nouvellesTentatives}/5 tentatives)`);
     }
   }
 
   function deconnecterProprio() {
+    fetch('/api/deconnexion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ roles: ['proprio'] }) }).catch(() => {});
     setProprioConnecte(false);
     setMode("accueil");
   }
@@ -1621,23 +1635,32 @@ export default function App() {
     else { setResetErreur("Code incorrect. Réessayez."); }
   }
 
-  function validerNouveauMdp() {
+  async function validerNouveauMdp() {
+    if (resetMode === "admin" || resetMode === "proprio") {
+      // Les mots de passe admin/propriétaire ne vivent plus que dans les variables
+      // d'environnement Vercel (ADMIN_PASSWORD / PROPRIO_PASSWORD) — ils ne peuvent
+      // plus être changés depuis l'app, pour éviter qu'ils soient de nouveau exposés
+      // au navigateur. Il faut les modifier dans Vercel → Settings → Environment Variables.
+      setResetErreur("");
+      setResetEtape(4);
+      return;
+    }
     if (resetNouveauMdp.length < 8) { setResetErreur("Le mot de passe doit contenir au moins 8 caractères."); return; }
     if (resetNouveauMdp !== resetNouveauMdp2) { setResetErreur("Les deux mots de passe ne correspondent pas."); return; }
-    if (resetMode === "admin") setMdpAdmin(resetNouveauMdp);
-    if (resetMode === "proprio") setMdpProprio(resetNouveauMdp);
-    if (resetMode === "locataire") {
-      setComptes(prev => {
-        const next = { ...prev, [resetEmail]: { ...prev[resetEmail], motdepasse: resetNouveauMdp } };
-        sauvegarderCompte(resetEmail, next[resetEmail]);
-        return next;
+    try {
+      const rep = await fetch('/api/reinitialiser-mdp-locataire', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ email: resetEmail, nouveauMotdepasse: resetNouveauMdp }),
       });
+      if (!rep.ok) { setResetErreur("Erreur lors de la réinitialisation. Réessayez."); return; }
+    } catch (e) {
+      console.error('Erreur réinitialisation mdp:', e);
+      setResetErreur("Erreur réseau. Réessayez.");
+      return;
     }
     // Débloquer le compte si bloqué
-    setBloqueJusquA(prev => ({ ...prev, [resetMode]: null }));
-    if (resetMode === "admin") setTentativesAdmin(0);
-    if (resetMode === "proprio") setTentativesProprio(0);
-    if (resetMode === "locataire") setTentativesLocataire(0);
+    setBloqueJusquA(prev => ({ ...prev, locataire: null }));
+    setTentativesLocataire(0);
     setResetEtape(4);
     setResetErreur("");
   }
@@ -1729,46 +1752,67 @@ export default function App() {
   const resteARegler = modePaiement === "especes" ? +(totalGeneral * 0.80).toFixed(2) : 0;
 
   // ── Auth functions ──
-  function inscrire() {
+  async function inscrire() {
     const { prenom, nom, email, telephone, motdepasse, motdepasse2, cguAcceptees } = authForm;
-    if (!prenom || !nom || !email.includes("@") || !telephone || !motdepasse) { setAuthErreur("Tous les champs sont requis."); return; }
+    const emailNorm = email.trim().toLowerCase();
+    if (!prenom || !nom || !emailNorm.includes("@") || !telephone || !motdepasse) { setAuthErreur("Tous les champs sont requis."); return; }
     if (motdepasse !== motdepasse2) { setAuthErreur("Les mots de passe ne correspondent pas."); return; }
     if (!cguAcceptees) { setAuthErreur("Vous devez accepter les CGU et la politique de confidentialité."); return; }
-    if (comptes[email]) { setAuthErreur("Un compte existe déjà avec cet email."); return; }
+    if (comptes[emailNorm]) { setAuthErreur("Un compte existe déjà avec cet email."); return; }
     const { adresse, codePostal, ville } = authForm;
     if (!adresse || !codePostal || !ville) { setAuthErreur("Veuillez renseigner votre adresse complète."); return; }
-    const nouveau = { prenom, nom, email, telephone, adresse, codePostal, ville, motdepasse, reservations: [] };
-    setComptes(prev => ({ ...prev, [email]: nouveau }));
-    sauvegarderCompte(email, nouveau);
-    setCompteConnecte(email);
-    setForm(f => ({ ...f, prenom, nom, email, telephone }));
-    setAuthErreur("");
-    setMode("accueil"); // → écran d'accueil personnalisé
+    try {
+      const rep = await fetch('/api/creer-compte', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ prenom, nom, email: emailNorm, telephone, adresse, codePostal, ville, motdepasse }),
+      });
+      const d = await rep.json().catch(() => ({}));
+      if (!rep.ok) { setAuthErreur(d.error || "Erreur lors de la création du compte."); return; }
+      setComptes(prev => ({ ...prev, [emailNorm]: d.compte }));
+      setCompteConnecte(emailNorm);
+      setForm(f => ({ ...f, prenom, nom, email: emailNorm, telephone }));
+      setAuthErreur("");
+      setMode("accueil"); // → écran d'accueil personnalisé
+    } catch (e) {
+      console.error('Erreur inscription:', e);
+      setAuthErreur("Erreur réseau. Réessayez.");
+    }
   }
 
-  function connecter() {
+  async function connecter() {
     if (estBloque("locataire")) return;
     const { email, motdepasse } = authForm;
-    const compte = comptes[email];
-    if (!compte || compte.motdepasse !== motdepasse) {
-      const nouvellesTentatives = tentativesLocataire + 1;
-      setTentativesLocataire(nouvellesTentatives);
-      if (nouvellesTentatives >= 5) {
-        setBloqueJusquA(prev => ({ ...prev, locataire: Date.now() + 30 * 60 * 1000 }));
-        setAuthErreur("Compte bloqué 30 minutes après 5 tentatives échouées. Utilisez « Mot de passe oublié ».");
-      } else {
-        setAuthErreur(`Email ou mot de passe incorrect. (${nouvellesTentatives}/5 tentatives)`);
+    const emailNorm = email.trim().toLowerCase();
+    try {
+      const rep = await fetch('/api/connexion-locataire', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ email: emailNorm, motdepasse }),
+      });
+      if (rep.ok) {
+        const d = await rep.json();
+        setComptes(prev => ({ ...prev, [emailNorm]: d.compte }));
+        setCompteConnecte(emailNorm);
+        setTentativesLocataire(0);
+        setForm(f => ({ ...f, prenom: d.compte.prenom, nom: d.compte.nom, email: emailNorm, telephone: d.compte.telephone }));
+        setAuthErreur("");
+        setMode("accueil");
+        return;
       }
-      return;
+    } catch (e) { console.error('Erreur connexion locataire:', e); }
+    const nouvellesTentatives = tentativesLocataire + 1;
+    setTentativesLocataire(nouvellesTentatives);
+    if (nouvellesTentatives >= 5) {
+      setBloqueJusquA(prev => ({ ...prev, locataire: Date.now() + 30 * 60 * 1000 }));
+      setAuthErreur("Compte bloqué 30 minutes après 5 tentatives échouées. Utilisez « Mot de passe oublié ».");
+    } else {
+      setAuthErreur(`Email ou mot de passe incorrect. (${nouvellesTentatives}/5 tentatives)`);
     }
-    setCompteConnecte(email);
-    setTentativesLocataire(0);
-    setForm(f => ({ ...f, prenom: compte.prenom, nom: compte.nom, email, telephone: compte.telephone }));
-    setAuthErreur("");
-    setMode("accueil"); // → écran d'accueil personnalisé
   }
 
-  function deconnecter() { setCompteConnecte(null); setMode("accueil"); }
+  function deconnecter() {
+    fetch('/api/deconnexion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ roles: ['locataire'] }) }).catch(() => {});
+    setCompteConnecte(null); setMode("accueil");
+  }
 
   // ── Calcul des pénalités d'annulation locataire ──
   function calculerPenalite(r) {
@@ -1810,9 +1854,9 @@ export default function App() {
   // Droit à l'effacement RGPD : suppression du compte locataire et de ses données
   async function supprimerMonCompte() {
     if (!compteConnecte) return;
-    // Supprimer le compte de Supabase (anonymisation simple : on retire les infos identifiantes)
-    const { supabase } = await import("./supabase.js");
-    await supabase.from('comptes').delete().eq('email', compteConnecte);
+    try {
+      await fetch('/api/supprimer-mon-compte', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin' });
+    } catch (e) { console.error('Erreur suppression compte:', e); }
     setComptes(prev => { const n = { ...prev }; delete n[compteConnecte]; return n; });
     setCompteConnecte(null);
     setConfirmationSuppression(false);
@@ -1820,7 +1864,7 @@ export default function App() {
   }
 
   // ── Réservation functions ──
-  function validerEtape1() {
+  async function validerEtape1() {
     const e = {};
     if (!form.prenom.trim()) e.prenom = "Requis";
     if (!form.nom.trim()) e.nom = "Requis";
@@ -1843,20 +1887,26 @@ export default function App() {
         return false;
       }
       if (loginInlineMode) {
-        // Mode connexion avec compte existant
-        if (!loginInlineMdp) { e.mdp = "Mot de passe requis"; }
-        else if (!compteExistant || compteExistant.motdepasse !== loginInlineMdp) {
-          e.mdp = "Mot de passe incorrect";
-        }
-        setErreurs(e);
-        if (Object.keys(e).length === 0) {
-          // Connexion OK, charger le compte
+        // Mode connexion avec compte existant : vérification côté serveur
+        if (!loginInlineMdp) { e.mdp = "Mot de passe requis"; setErreurs(e); return false; }
+        try {
+          const rep = await fetch('/api/connexion-locataire', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+            body: JSON.stringify({ email: emailTrim, motdepasse: loginInlineMdp }),
+          });
+          if (!rep.ok) { e.mdp = "Mot de passe incorrect"; setErreurs(e); return false; }
+          const d = await rep.json();
+          setComptes(prev => ({ ...prev, [emailTrim]: d.compte }));
           setCompteConnecte(emailTrim);
-          setForm(f => ({ ...f, prenom: compteExistant.prenom, nom: compteExistant.nom, telephone: compteExistant.telephone, adresse: compteExistant.adresse || "", codePostal: compteExistant.codePostal || "", ville: compteExistant.ville || "" }));
+          setForm(f => ({ ...f, prenom: d.compte.prenom, nom: d.compte.nom, telephone: d.compte.telephone, adresse: d.compte.adresse || "", codePostal: d.compte.codePostal || "", ville: d.compte.ville || "" }));
           setLoginInlineMode(false); setEmailExistant(false); setLoginInlineMdp(""); setLoginInlineErreur("");
           return true;
+        } catch (err) {
+          console.error('Erreur login inline:', err);
+          e.mdp = "Erreur réseau, réessayez";
+          setErreurs(e);
+          return false;
         }
-        return false;
       }
       // Nouveau compte : vérifier mdp
       if (!form.adresse?.trim()) e.adresse = "Requis";
@@ -1962,19 +2012,35 @@ export default function App() {
   async function confirmerReservation() {
     const ref = "RES-" + Date.now().toString(36).toUpperCase();
     const emailRes = form.email.trim().toLowerCase();
-    // Créer le compte si c'est un nouveau locataire (non connecté)
+    // Créer le compte si c'est un nouveau locataire (non connecté) — hachage et
+    // session gérés côté serveur, jamais de mot de passe en clair stocké ici
     let compteActif = compteConnecte;
     if (!compteActif && formMdp.motdepasse) {
-      const nouveau = {
-        prenom: form.prenom, nom: form.nom, email: emailRes,
-        telephone: form.telephone, adresse: form.adresse || "",
-        codePostal: form.codePostal || "", ville: form.ville || "",
-        motdepasse: formMdp.motdepasse, reservations: []
-      };
-      setComptes(prev => ({ ...prev, [emailRes]: nouveau }));
-      sauvegarderCompte(emailRes, nouveau);
-      setCompteConnecte(emailRes);
-      compteActif = emailRes;
+      try {
+        const rep = await fetch('/api/creer-compte', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+          body: JSON.stringify({
+            prenom: form.prenom, nom: form.nom, email: emailRes, telephone: form.telephone,
+            adresse: form.adresse || "", codePostal: form.codePostal || "", ville: form.ville || "",
+            motdepasse: formMdp.motdepasse,
+          }),
+        });
+        if (rep.ok) {
+          const d = await rep.json();
+          setComptes(prev => ({ ...prev, [emailRes]: d.compte }));
+          setCompteConnecte(emailRes);
+          compteActif = emailRes;
+        } else {
+          const d = await rep.json().catch(() => ({}));
+          console.error('Création compte échouée:', d);
+          setAuthErreur(d.error || "Impossible de créer le compte. Réessayez.");
+          return;
+        }
+      } catch (e) {
+        console.error('Erreur réseau création compte:', e);
+        setAuthErreur("Erreur réseau. Réessayez.");
+        return;
+      }
     }
     const compteInfo = compteActif ? (comptes[compteActif] || {}) : {};
     const demandeISO = new Date().toISOString();
@@ -3237,7 +3303,17 @@ export default function App() {
             </>)}
 
             {/* Étape 3 : nouveau mot de passe */}
-            {resetEtape === 3 && (<>
+            {resetEtape === 3 && (resetMode === "admin" || resetMode === "proprio") && (<>
+              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", fontWeight:700, marginBottom:8 }}>Changement via Vercel</div>
+              <div style={{ fontSize:13, color:"#5a8a96", marginBottom:14, lineHeight:1.6 }}>
+                Pour votre sécurité, le mot de passe {resetMode === "admin" ? "administrateur" : "propriétaire"} ne peut plus être modifié depuis l'application — il vit uniquement dans les variables d'environnement de Vercel. Pour le changer : Vercel → Settings → Environment Variables → {resetMode === "admin" ? "ADMIN_PASSWORD" : "PROPRIO_PASSWORD"}, puis redéployez.
+              </div>
+              <button onClick={validerNouveauMdp}
+                style={{ width:"100%", padding:"13px", borderRadius:10, background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer" }}>
+                J'ai compris
+              </button>
+            </>)}
+            {resetEtape === 3 && resetMode === "locataire" && (<>
               <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", fontWeight:700, marginBottom:8 }}>Nouveau mot de passe</div>
               <div style={{ fontSize:13, color:"#5a8a96", marginBottom:14 }}>Choisissez un mot de passe sécurisé (8 caractères minimum).</div>
               <div style={{ marginBottom:10 }}>
@@ -4207,7 +4283,7 @@ export default function App() {
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: "#fff" }}>{formatEur(prixFinal)}</div>
           </div>
         )}
-        <button style={btnP} onClick={() => { if (validerEtape1()) setStep(2); }}>Continuer →</button>
+        <button style={btnP} onClick={async () => { if (await validerEtape1()) setStep(2); }}>Continuer →</button>
         <button style={btnS} onClick={() => setMode("accueil")}>← Accueil</button>
       </div>
     </div>
