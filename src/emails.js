@@ -73,18 +73,49 @@ export async function envoyerEmailNouvelleDemande(reservation, emailProprietaire
 
 // ─── Email : réservation acceptée (au locataire) ─────────────────────────────
 export async function envoyerEmailAcceptation(reservation) {
+  const p = reservation.paiement;
+  let blocPaiement = "";
+  if (p?.statut === "paye") {
+    // Empreinte capturée : le débit vient d'avoir lieu
+    blocPaiement = `
+    <div style="background: #e6faf8; border: 1.5px solid #4ECDC4; border-radius: 10px; padding: 14px 16px; margin: 16px 0;">
+      <div style="font-size: 14px; font-weight: 700; color: #0B6E8A; margin-bottom: 4px;">💳 Paiement effectué</div>
+      <div style="font-size: 13px; color: #2C3E50;">
+        Votre carte a été débitée de <strong>${formatEurEmail(p.montantPaye ?? p.montant)}</strong>, conformément à l'empreinte enregistrée lors de votre demande.
+        ${reservation.modePaiement === "especes"
+          ? ` Le solde de ${formatEurEmail((reservation.totalGeneral || reservation.prix || 0) - (p.montantPaye ?? p.montant))} sera à régler en espèces sur place.`
+          : ""}
+      </div>
+    </div>`;
+  } else if (p?.url) {
+    // Plan B : lien de paiement (empreinte absente ou expirée)
+    blocPaiement = `
+    <div style="background: #f0fafc; border: 1.5px solid #4ECDC4; border-radius: 10px; padding: 16px; margin: 16px 0; text-align: center;">
+      <div style="font-size: 14px; font-weight: 700; color: #0B6E8A; margin-bottom: 6px;">💳 Dernière étape : le règlement</div>
+      <div style="font-size: 13px; color: #2C3E50; margin-bottom: 12px;">
+        ${reservation.modePaiement === "especes"
+          ? `Réglez l'acompte de <strong>${formatEurEmail(p.montant)}</strong> pour confirmer définitivement votre réservation. Le solde de ${formatEurEmail((reservation.totalGeneral || reservation.prix || 0) - p.montant)} sera à régler en espèces sur place.`
+          : `Réglez <strong>${formatEurEmail(p.montant)}</strong> pour confirmer définitivement votre réservation.`}
+      </div>
+      <a href="${p.url}" style="display: inline-block; background: #0B6E8A; color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; padding: 12px 28px; border-radius: 8px;">
+        Payer ${formatEurEmail(p.montant)} en ligne
+      </a>
+      <div style="font-size: 11px; color: #5a8a96; margin-top: 10px;">Paiement sécurisé par Stripe. Vous retrouverez aussi ce lien dans votre espace "Mon compte".</div>
+    </div>`;
+  }
   const html = enveloppe(`
-    <h2 style="color: #0B6E8A; margin-top: 0;">🎉 Réservation confirmée !</h2>
+    <h2 style="color: #0B6E8A; margin-top: 0;">🎉 Réservation acceptée !</h2>
     <p style="color: #2C3E50; font-size: 14px;">Bonne nouvelle ${reservation.prenom}, votre demande de réservation a été acceptée !</p>
     <table style="width: 100%; margin: 16px 0;">
       ${ligneInfo('Référence', reservation.ref)}
       ${ligneInfo('Date', reservation.date)}
       ${ligneInfo('Créneau', `${formatHeureEmail(reservation.heureDebut)} → ${formatHeureEmail(reservation.heureFin)}`)}
     </table>
+    ${blocPaiement}
     <p style="color: #2C3E50; font-size: 14px;">Le jour de votre venue, vous pourrez réaliser l'état des lieux d'entrée et de sortie directement depuis votre espace "Mon compte".</p>
     <p style="color: #2C3E50; font-size: 14px;">À bientôt ! 🌊</p>
   `);
-  return envoyerEmail(reservation.email, `🎉 Réservation confirmée — ${reservation.ref}`, html);
+  return envoyerEmail(reservation.email, `🎉 Réservation acceptée — ${reservation.ref}`, html);
 }
 
 // ─── Email : réservation refusée (au locataire) ──────────────────────────────
