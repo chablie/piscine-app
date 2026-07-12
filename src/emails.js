@@ -76,19 +76,19 @@ export async function envoyerEmailAcceptation(reservation) {
   const p = reservation.paiement;
   let blocPaiement = "";
   if (p?.statut === "paye") {
-    // Empreinte capturée : le débit vient d'avoir lieu
+    // Cas rare : paiement déjà confirmé au moment de l'envoi de cet email
     blocPaiement = `
     <div style="background: #e6faf8; border: 1.5px solid #4ECDC4; border-radius: 10px; padding: 14px 16px; margin: 16px 0;">
       <div style="font-size: 14px; font-weight: 700; color: #0B6E8A; margin-bottom: 4px;">💳 Paiement effectué</div>
       <div style="font-size: 13px; color: #2C3E50;">
-        Votre carte a été débitée de <strong>${formatEurEmail(p.montantPaye ?? p.montant)}</strong>, conformément à l'empreinte enregistrée lors de votre demande.
+        Votre règlement de <strong>${formatEurEmail(p.montantPaye ?? p.montant)}</strong> a bien été reçu.
         ${reservation.modePaiement === "especes"
           ? ` Le solde de ${formatEurEmail((reservation.totalGeneral || reservation.prix || 0) - (p.montantPaye ?? p.montant))} sera à régler en espèces sur place.`
           : ""}
       </div>
     </div>`;
   } else if (p?.url) {
-    // Plan B : lien de paiement (empreinte absente ou expirée)
+    // Cas nominal : lien de paiement envoyé à l'acceptation
     blocPaiement = `
     <div style="background: #f0fafc; border: 1.5px solid #4ECDC4; border-radius: 10px; padding: 16px; margin: 16px 0; text-align: center;">
       <div style="font-size: 14px; font-weight: 700; color: #0B6E8A; margin-bottom: 6px;">💳 Dernière étape : le règlement</div>
@@ -101,7 +101,10 @@ export async function envoyerEmailAcceptation(reservation) {
         Payer ${formatEurEmail(p.montant)} en ligne
       </a>
       <div style="font-size: 11px; color: #5a8a96; margin-top: 10px;">Paiement sécurisé par Stripe. Vous retrouverez aussi ce lien dans votre espace "Mon compte".</div>
-    </div>`;
+    </div>
+    <p style="color: #a06000; font-size: 13px; background: #fff8e1; border-radius: 8px; padding: 10px 14px; margin: 0 0 16px;">
+      ⏱️ <strong>Votre créneau n'est pas encore garanti.</strong> D'autres personnes peuvent avoir demandé le même horaire — le premier qui règle obtient la réservation. Nous vous conseillons de payer rapidement pour ne pas risquer de le voir attribué à quelqu'un d'autre.
+    </p>`;
   }
   const html = enveloppe(`
     <h2 style="color: #0B6E8A; margin-top: 0;">🎉 Réservation acceptée !</h2>
@@ -148,4 +151,19 @@ export async function envoyerEmailAnnulation(reservation) {
     <p style="color: #2C3E50; font-size: 14px;">Vous serez remboursé(e) intégralement. Nous sommes désolés pour la gêne occasionnée.</p>
   `);
   return envoyerEmail(reservation.email, `Réservation annulée — ${reservation.ref}`, html);
+}
+
+// ─── Email : créneau perdu au profit d'un autre client plus rapide à payer ───
+export async function envoyerEmailCreneauPerdu(reservation) {
+  const html = enveloppe(`
+    <h2 style="color: #FF6B6B; margin-top: 0;">⏱️ Créneau attribué à un autre client</h2>
+    <p style="color: #2C3E50; font-size: 14px;">Bonjour ${reservation.prenom}, votre demande avait bien été acceptée, mais un autre client a réglé ce créneau avant vous :</p>
+    <table style="width: 100%; margin: 16px 0;">
+      ${ligneInfo('Référence', reservation.ref)}
+      ${ligneInfo('Date', reservation.date)}
+      ${ligneInfo('Créneau', `${formatHeureEmail(reservation.heureDebut)} → ${formatHeureEmail(reservation.heureFin)}`)}
+    </table>
+    <p style="color: #2C3E50; font-size: 14px;">Aucune somme ne vous a été prélevée. N'hésitez pas à choisir un autre créneau disponible — n'attendez pas trop longtemps pour régler la prochaine fois afin de garantir votre place !</p>
+  `);
+  return envoyerEmail(reservation.email, `Créneau attribué à un autre client — ${reservation.ref}`, html);
 }

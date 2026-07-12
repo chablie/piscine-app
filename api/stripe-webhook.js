@@ -1,8 +1,12 @@
 // Fonction serverless Vercel : POST /api/stripe-webhook
 // Reçoit les événements Stripe. Sur "checkout.session.completed" :
 //   1. vérifie la signature (STRIPE_WEBHOOK_SECRET)
-//   2. marque la réservation comme payée dans Supabase
-//   3. désactive le lien de paiement pour éviter un double règlement
+//   2. marque la réservation comme payée dans Supabase — premier arrivé,
+//      premier payé, gagne le créneau (voir statutHeures côté client, qui ne
+//      bloque un créneau que pour les réservations effectivement payées)
+//   3. annule automatiquement les autres demandes ACCEPTÉES mais non payées
+//      qui chevauchent ce même créneau, et prévient leurs auteurs par email
+//   4. désactive le lien de paiement pour éviter un double règlement
 // L'app se met à jour toute seule grâce à l'abonnement temps réel Supabase.
 //
 // Utilise la clé service_role (via lib/supabaseAdmin) : depuis la sécurisation
@@ -10,7 +14,66 @@
 // uniquement par Stripe après vérification de signature, doit contourner le RLS.
 
 import crypto from 'crypto';
-import { selectUn, upsert } from '../lib/supabaseAdmin.js';
+import { selectUn, selectPlusieurs, upsert } from '../lib/supabaseAdmin.js';
+
+const TAMPON = 0.5; // 30 minutes, doit rester cohérent avec le calcul côté client (src/App.jsx)
+
+// Deux réservations sont en conflit si elles ne respectent pas entre elles le
+// tampon de 30 min (même règle que côté client pour une nouvelle réservation :
+// src/App.jsx, tamponsOk). Deux réservations exactement séparées par le tampon
+// (ex. 14h-16h puis 16h30-18h) NE sont PAS en conflit — le tampon est partagé.
+function seChevauchent(a, b) {
+  const aDebut = parseFloat(a.heureDebut), aFin = parseFloat(a.heureFin);
+  const bDebut = parseFloat(b.heureDebut), bFin = parseFloat(b.heureFin);
+  const separees = (aFin + TAMPON <= bDebut) || (bFin + TAMPON <= aDebut);
+  return !separees;
+}
+
+// Envoi d'email direct via Resend (le webhook est server-side, il ne peut pas
+// réutiliser src/emails.js qui est écrit pour le navigateur)
+async function envoyerEmailDirect(destinataire, sujet, html) {
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  if (!RESEND_API_KEY || !destinataire) return false;
+  try {
+    const rep = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'Ma Piscine Privée <contact@mypiscineprivee.com>', to: [destinataire], subject: sujet, html }),
+    });
+    if (!rep.ok) console.error('Erreur Resend (webhook):', await rep.text());
+    return rep.ok;
+  } catch (e) {
+    console.error('Erreur réseau Resend (webhook):', e);
+    return false;
+  }
+}
+
+function formatHeure(h) {
+  const n = parseFloat(h);
+  const heure = Math.floor(n) % 24;
+  const minutes = Math.round((n - Math.floor(n)) * 60);
+  return `${heure}h${String(minutes).padStart(2, '0')}`;
+}
+
+function emailCreneauPerdu(r) {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #F7F0E6; padding: 24px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 32px;">🏊</div>
+        <div style="font-size: 20px; font-weight: 700; color: #0B6E8A; margin-top: 4px;">Ma Piscine Privée</div>
+      </div>
+      <div style="background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(11,110,138,.08);">
+        <h2 style="color: #FF6B6B; margin-top: 0;">⏱️ Créneau attribué à un autre client</h2>
+        <p style="color: #2C3E50; font-size: 14px;">Bonjour ${r.prenom || ''}, votre demande avait bien été acceptée, mais un autre client a réglé ce créneau avant vous :</p>
+        <table style="width: 100%; margin: 16px 0;">
+          <tr><td style="padding:4px 0;color:#5a8a96;font-size:13px;">Référence</td><td style="padding:4px 0;color:#2C3E50;font-size:13px;font-weight:600;text-align:right;">${r.ref}</td></tr>
+          <tr><td style="padding:4px 0;color:#5a8a96;font-size:13px;">Date</td><td style="padding:4px 0;color:#2C3E50;font-size:13px;font-weight:600;text-align:right;">${r.date}</td></tr>
+          <tr><td style="padding:4px 0;color:#5a8a96;font-size:13px;">Créneau</td><td style="padding:4px 0;color:#2C3E50;font-size:13px;font-weight:600;text-align:right;">${formatHeure(r.heureDebut)} → ${formatHeure(r.heureFin)}</td></tr>
+        </table>
+        <p style="color: #2C3E50; font-size: 14px;">Aucune somme ne vous a été prélevée. N'hésitez pas à choisir un autre créneau — n'attendez pas trop longtemps pour régler la prochaine fois afin de garantir votre place !</p>
+      </div>
+    </div>`;
+}
 
 // Lecture du corps brut (indispensable pour vérifier la signature Stripe)
 async function lireCorpsBrut(req) {
@@ -69,7 +132,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Lire la réservation (service_role : bypass RLS)
+    // 1. Lire la réservation payée (service_role : bypass RLS)
     const row = await selectUn('reservations', 'ref', ref, 'data');
     if (!row) {
       console.error('Réservation introuvable pour le webhook:', ref);
@@ -77,30 +140,49 @@ export default async function handler(req, res) {
     }
     const data = row.data;
 
-    // 2. Deux cas selon le type de session :
-    //    - payment_status "unpaid"  → empreinte déposée (capture manuelle), débit à l'acceptation
-    //    - payment_status "paid"    → paiement effectif (lien de paiement de secours)
-    if (session.payment_status === 'paid') {
-      data.paiement = {
-        ...(data.paiement || {}),
-        statut: 'paye',
-        datePaiement: new Date().toISOString(),
-        montantPaye: (session.amount_total || 0) / 100,
-        sessionId: session.id,
-        ...(session.payment_intent ? { paymentIntentId: session.payment_intent } : {}),
-      };
-    } else {
-      data.paiement = {
-        ...(data.paiement || {}),
-        statut: 'empreinte_ok',
-        dateEmpreinte: new Date().toISOString(),
-        montant: (session.amount_total || 0) / 100,
-        sessionId: session.id,
-        paymentIntentId: session.payment_intent || null,
-      };
+    // Déjà traité (webhook potentiellement reçu plusieurs fois) : rien à refaire
+    if (data.paiement?.statut === 'paye') {
+      return res.status(200).json({ received: true, deja: true });
     }
 
-    await upsert('reservations', { ref, data, updated_at: new Date().toISOString() });
+    data.paiement = {
+      ...(data.paiement || {}),
+      statut: 'paye',
+      datePaiement: new Date().toISOString(),
+      montantPaye: (session.amount_total || 0) / 100,
+      sessionId: session.id,
+      ...(session.payment_intent ? { paymentIntentId: session.payment_intent } : {}),
+    };
+
+    await upsert('reservations', {
+      ref, data,
+      date: data.date, email: data.email, statut: data.statut || 'en_attente',
+      updated_at: new Date().toISOString(),
+    });
+
+    // 2. Premier arrivé, premier payé : annuler les autres demandes acceptées
+    //    mais non payées qui chevauchent ce même créneau, et prévenir leurs auteurs
+    try {
+      const autresDuJour = await selectPlusieurs('reservations', 'date', data.date, 'ref,data');
+      for (const autre of autresDuJour) {
+        if (autre.ref === ref) continue;
+        const ad = autre.data;
+        if (ad.statut !== 'acceptee' || ad.paiement?.statut === 'paye') continue;
+        if (!seChevauchent(data, ad)) continue;
+        ad.statut = 'annulee';
+        ad.motifAnnulation = 'Créneau réglé par un autre client avant vous';
+        ad.annulationConflitPaiement = true;
+        await upsert('reservations', {
+          ref: autre.ref, data: ad,
+          date: ad.date, email: ad.email, statut: 'annulee',
+          updated_at: new Date().toISOString(),
+        });
+        await envoyerEmailDirect(ad.email, `Créneau attribué à un autre client — ${autre.ref}`, emailCreneauPerdu(ad));
+      }
+    } catch (e) {
+      // Ne bloque pas la confirmation du paiement principal si cette étape échoue
+      console.error('Erreur résolution de conflit de créneau:', e);
+    }
 
     // 3. Désactiver le lien de paiement (évite un double paiement)
     if (session.payment_link && STRIPE_SECRET_KEY) {

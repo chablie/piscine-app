@@ -111,8 +111,10 @@ function genererCodePromo() {
 
 function heuresBloquees(reservations, date) {
   const blocked = new Set();
-  // Les réservations refusées ne bloquent plus le créneau
-  reservations.filter(r => r.date === date && r.statut !== "refusee" && r.statut !== "annulee").forEach(r => {
+  // Seules les réservations effectivement PAYÉES bloquent le créneau — une
+  // demande en attente ou acceptée mais non payée n'empêche pas d'autres
+  // visiteurs de demander (et potentiellement obtenir) le même créneau.
+  reservations.filter(r => r.date === date && r.paiement?.statut === "paye").forEach(r => {
     const debut = parseFloat(r.heureDebut), fin = parseFloat(r.heureFin);
     // Tampon de 30 min avant et après la réservation
     for (let h = debut - TAMPON; h < fin + TAMPON; h += PAS) blocked.add(h);
@@ -127,7 +129,7 @@ function statutHeures(disponibilites, reservations, date) {
   const result = {};
   ALL_SLOTS.forEach(h => {
     const dispo = plages.some(p => h >= p.debut && h < p.fin);
-    const res = reservations.find(r => r.date === date && r.statut !== "refusee" && r.statut !== "annulee" && parseFloat(r.heureDebut) <= h && parseFloat(r.heureFin) > h);
+    const res = reservations.find(r => r.date === date && r.paiement?.statut === "paye" && parseFloat(r.heureDebut) <= h && parseFloat(r.heureFin) > h);
     if (res) result[h] = "reserve";
     else if (blocked.has(h)) result[h] = "tampon";
     else if (dispo) result[h] = "libre";
@@ -1321,18 +1323,12 @@ export default function App() {
   const [confirmSuppression, setConfirmSuppression] = useState("");
   const [suppressionEnCours, setSuppressionEnCours] = useState(false);
   const [suppressionResultat, setSuppressionResultat] = useState(null); // "ok" | "erreur" | null
-  // Bannière de retour après paiement ou dépôt d'empreinte Stripe
-  const [retourPaiement, setRetourPaiement] = useState(null); // { type: "paiement"|"empreinte"|"empreinte_annulee", ref }
+  // Bannière de retour après paiement Stripe (lien envoyé à l'acceptation)
+  const [retourPaiement, setRetourPaiement] = useState(null); // { type: "paiement", ref }
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("paiement") === "succes") {
       setRetourPaiement({ type: "paiement", ref: params.get("ref") || "" });
-      window.history.replaceState({}, "", window.location.pathname);
-    } else if (params.get("empreinte") === "succes") {
-      setRetourPaiement({ type: "empreinte", ref: params.get("ref") || "" });
-      window.history.replaceState({}, "", window.location.pathname);
-    } else if (params.get("empreinte") === "annulee") {
-      setRetourPaiement({ type: "empreinte_annulee", ref: params.get("ref") || "" });
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
@@ -2068,7 +2064,12 @@ export default function App() {
     }
     const compteInfo = compteActif ? (comptes[compteActif] || {}) : {};
     const demandeISO = new Date().toISOString();
-    const r = { ...form, email: emailRes, heureDebut, heureFin, prix: prixFinal, remise, extrasChoisis, totalExtras, totalGeneral, modePaiement, acompte, resteARegler, ref, photosAvant: [], photosApres: [], adresse: form.adresse || compteInfo.adresse || "", codePostal: form.codePostal || compteInfo.codePostal || "", ville: form.ville || compteInfo.ville || "", statut: "en_attente", demandeISO, paiement: { statut: "empreinte_en_attente" } };
+    // Aucune interaction Stripe à ce stade : le lien de paiement n'est envoyé
+    // qu'après validation par le propriétaire (voir accepterReservation).
+    // Le créneau n'est bloqué pour les autres visiteurs qu'une fois payé
+    // (voir statutHeures/heuresBloquees) — plusieurs demandes concurrentes sur
+    // le même créneau sont possibles, le premier à payer l'obtient.
+    const r = { ...form, email: emailRes, heureDebut, heureFin, prix: prixFinal, remise, extrasChoisis, totalExtras, totalGeneral, modePaiement, acompte, resteARegler, ref, photosAvant: [], photosApres: [], adresse: form.adresse || compteInfo.adresse || "", codePostal: form.codePostal || compteInfo.codePostal || "", ville: form.ville || compteInfo.ville || "", statut: "en_attente", demandeISO, paiement: { statut: "non_paye" } };
     setReservations(prev => [...prev, r]);
     setReservation(r);
     await sauvegarderReservation(r);
@@ -2090,72 +2091,29 @@ export default function App() {
         return next;
       });
     }
-    // Dépôt de l'empreinte bancaire : redirection vers Stripe (capture différée,
-    // aucun débit tant que le propriétaire n'a pas accepté la demande)
-    try {
-      const rep = await fetch('/api/paiement', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'creer-session-empreinte', ref }),
-      });
-      if (rep.ok) {
-        const d = await rep.json();
-        if (d.url) { window.location.href = d.url; return; }
-      } else {
-        console.error('Création session empreinte échouée:', await rep.json().catch(() => ({})));
-      }
-    } catch (e) {
-      console.error('Erreur réseau session empreinte:', e);
-    }
-    // Plan B si Stripe est indisponible : la demande existe, un lien de paiement
-    // sera envoyé à l'acceptation
     setStep(5);
   }
 
   async function accepterReservation(ref) {
     const current = reservations.find(r => r.ref === ref);
     if (!current) return;
+    // Envoi systématique d'un lien de paiement — le créneau reste ouvert aux
+    // autres visiteurs tant que ce paiement n'est pas confirmé (voir statutHeures)
     let paiement = current.paiement || null;
-
-    // 1. Cas nominal : une empreinte bancaire est déposée → on capture (débit effectif)
-    if (paiement?.paymentIntentId && paiement.statut === "empreinte_ok") {
-      try {
-        const rep = await fetch('/api/paiement', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'capturer-paiement', ref }),
-        });
-        const d = await rep.json().catch(() => ({}));
-        if (rep.ok) {
-          paiement = { ...paiement, statut: "paye", datePaiement: new Date().toISOString(), montantPaye: d.montantPaye ?? paiement.montant };
-        } else {
-          console.error('Capture impossible (empreinte expirée ?):', d);
-          paiement = { ...paiement, statut: "capture_echouee" };
-        }
-      } catch (e) {
-        console.error('Erreur réseau capture:', e);
-        paiement = { ...paiement, statut: "capture_echouee" };
+    try {
+      const rep = await fetch('/api/paiement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'creer-lien-paiement', ref }),
+      });
+      if (rep.ok) {
+        const d = await rep.json();
+        paiement = { statut: "en_attente", url: d.url, montant: d.montant, lienId: d.lienId, creeLe: new Date().toISOString() };
+      } else {
+        console.error('Création lien paiement échouée:', await rep.json().catch(() => ({})));
       }
-    }
-
-    // 2. Plan B : pas d'empreinte exploitable (jamais déposée, expirée, annulée)
-    //    → on génère un lien de paiement classique envoyé par email
-    if (!paiement || (paiement.statut !== "paye" && !paiement.url)) {
-      try {
-        const rep = await fetch('/api/paiement', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'creer-lien-paiement', ref }),
-        });
-        if (rep.ok) {
-          const d = await rep.json();
-          paiement = { ...(paiement || {}), statut: "en_attente", url: d.url, montant: d.montant, lienId: d.lienId, creeLe: new Date().toISOString() };
-        } else {
-          console.error('Création lien paiement échouée:', await rep.json().catch(() => ({})));
-        }
-      } catch (e) {
-        console.error('Erreur réseau création lien paiement:', e);
-      }
+    } catch (e) {
+      console.error('Erreur réseau création lien paiement:', e);
     }
 
     const updated = { ...current, statut: "acceptee", ...(paiement ? { paiement } : {}) };
@@ -2168,45 +2126,9 @@ export default function App() {
     setReservations(prev => {
       const next = prev.map(r => r.ref === ref ? { ...r, statut: "refusee", motifRefus: motif || "" } : r);
       const updated = next.find(r => r.ref === ref);
-      if (updated) { sauvegarderReservation(updated); envoyerEmailRefus(updated); libererEmpreinte(updated); }
+      if (updated) { sauvegarderReservation(updated); envoyerEmailRefus(updated); }
       return next;
     });
-    // Note : si un paiement a déjà été capturé (cas rare), le remboursement se fait depuis le tableau de bord Stripe
-  }
-
-  // Relance le dépôt d'empreinte bancaire (nouvelle session Stripe) si le locataire
-  // avait abandonné le paiement en cours de route
-  async function reprendreEmpreinte(ref) {
-    try {
-      const rep = await fetch('/api/paiement', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'creer-session-empreinte', ref }),
-      });
-      if (rep.ok) {
-        const d = await rep.json();
-        if (d.url) { window.location.href = d.url; return; }
-      }
-      alert("Impossible de démarrer le paiement pour le moment. Réessayez dans quelques instants.");
-    } catch (e) {
-      console.error('Erreur reprise empreinte:', e);
-      alert("Impossible de démarrer le paiement pour le moment. Réessayez dans quelques instants.");
-    }
-  }
-
-  // Libère l'empreinte bancaire (aucun débit) si elle existe et n'a pas été capturée
-  async function libererEmpreinte(r) {
-    if (!r?.paiement?.paymentIntentId || r.paiement.statut === "paye") return;
-    try {
-      await fetch('/api/paiement', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'annuler-empreinte', ref: r.ref }),
-      });
-      setReservations(prev => prev.map(x => x.ref === r.ref ? { ...x, paiement: { ...x.paiement, statut: "empreinte_annulee" } } : x));
-    } catch (e) {
-      console.error('Erreur libération empreinte:', e);
-    }
   }
 
   // Annulation d'une réservation déjà acceptée (initiative propriétaire ou demande locataire relayée)
@@ -2214,10 +2136,10 @@ export default function App() {
     setReservations(prev => {
       const next = prev.map(r => r.ref === ref ? { ...r, statut: "annulee", motifAnnulation: motif || "", annulationParLocataire: !!origineLocataire } : r);
       const updated = next.find(r => r.ref === ref);
-      if (updated) { sauvegarderReservation(updated); envoyerEmailAnnulation(updated); libererEmpreinte(updated); }
+      if (updated) { sauvegarderReservation(updated); envoyerEmailAnnulation(updated); }
       return next;
     });
-    // Note : si un paiement a déjà été capturé, le remboursement (total ou partiel selon
+    // Note : si un paiement a déjà été réglé, le remboursement (total ou partiel selon
     // les pénalités) se fait depuis le tableau de bord Stripe pour l'instant
   }
 
@@ -2716,17 +2638,9 @@ export default function App() {
       <Header showSteps={false} />
       <div style={{ padding: "16px 16px 32px" }}>
         {retourPaiement && (
-          <div style={{ background: retourPaiement.type === "empreinte_annulee" ? "#fff6e0" : "#e6faf8", border: `2px solid ${retourPaiement.type === "empreinte_annulee" ? "#f0c040" : "#4ECDC4"}`, borderRadius: 12, padding: "14px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-            <div style={{ fontSize: 14, color: retourPaiement.type === "empreinte_annulee" ? "#a06000" : "#0B6E8A", lineHeight: 1.5 }}>
-              {retourPaiement.type === "paiement" && (
-                <>✅ <strong>Paiement bien reçu !</strong> Votre réservation{retourPaiement.ref ? ` ${retourPaiement.ref}` : ""} est définitivement confirmée. Un récapitulatif est disponible dans « Mon compte ».</>
-              )}
-              {retourPaiement.type === "empreinte" && (
-                <>✅ <strong>Demande envoyée et carte enregistrée !</strong> Votre carte ne sera débitée <strong>que si le propriétaire accepte</strong> votre demande{retourPaiement.ref ? ` ${retourPaiement.ref}` : ""}. Vous recevrez un email dès qu'elle sera traitée.</>
-              )}
-              {retourPaiement.type === "empreinte_annulee" && (
-                <>⚠️ <strong>Demande transmise, mais carte non enregistrée.</strong> Rendez-vous dans « Mon compte » → « Mes réservations » pour finaliser l'enregistrement de votre carte.</>
-              )}
+          <div style={{ background: "#e6faf8", border: "2px solid #4ECDC4", borderRadius: 12, padding: "14px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+            <div style={{ fontSize: 14, color: "#0B6E8A", lineHeight: 1.5 }}>
+              ✅ <strong>Paiement bien reçu !</strong> Votre réservation{retourPaiement.ref ? ` ${retourPaiement.ref}` : ""} est définitivement confirmée. Un récapitulatif est disponible dans « Mon compte ».
             </div>
             <button onClick={() => setRetourPaiement(null)} style={{ background: "transparent", border: "none", color: "#0B6E8A", fontSize: 18, cursor: "pointer", fontWeight: 700, flexShrink: 0 }}>✕</button>
           </div>
@@ -3015,22 +2929,6 @@ export default function App() {
                       🕐 Votre demande est en attente de validation par le propriétaire. Vous recevrez un email dès qu'elle sera traitée.
                     </div>
                   )}
-                  {/* Empreinte bancaire déposée, en attente de validation */}
-                  {r.statut === "en_attente" && r.paiement?.statut === "empreinte_ok" && (
-                    <div style={{ marginTop:6, background:"#e6faf8", border:"1px solid #4ECDC4", borderRadius:8, padding:"9px 12px", fontSize:12, color:"#0B6E8A", lineHeight:1.5 }}>
-                      💳 Empreinte bancaire de <strong>{formatEur(r.paiement.montant)}</strong> enregistrée. Votre carte ne sera débitée <strong>que si le propriétaire accepte</strong> votre demande.
-                    </div>
-                  )}
-                  {/* Empreinte jamais déposée (paiement abandonné) */}
-                  {r.statut === "en_attente" && r.paiement?.statut === "empreinte_en_attente" && (
-                    <div style={{ marginTop:6, background:"#fff6e0", border:"1.5px solid #f0c040", borderRadius:8, padding:"12px", fontSize:12, color:"#a06000", lineHeight:1.5 }}>
-                      ⚠️ <strong>Empreinte bancaire manquante.</strong> Votre demande a bien été transmise, mais l'enregistrement de votre carte n'a pas été finalisé.
-                      <button onClick={() => reprendreEmpreinte(r.ref)}
-                        style={{ display:"block", width:"100%", textAlign:"center", background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:13, padding:"10px 0", borderRadius:8, marginTop:8, cursor:"pointer" }}>
-                        Enregistrer ma carte maintenant
-                      </button>
-                    </div>
-                  )}
                   {/* Paiement en attente après acceptation */}
                   {r.statut === "acceptee" && r.paiement && r.paiement.statut !== "paye" && r.paiement.url && (
                     <div style={{ marginTop:10, background:"#f0fafc", border:"1.5px solid #4ECDC4", borderRadius:8, padding:"12px", fontSize:12, color:"#0B6E8A", lineHeight:1.5 }}>
@@ -3044,6 +2942,9 @@ export default function App() {
                         style={{ display:"block", textAlign:"center", background:"#0B6E8A", color:"#fff", textDecoration:"none", fontWeight:700, fontSize:13, padding:"10px 0", borderRadius:8, marginTop:8 }}>
                         Payer {formatEur(r.paiement.montant)} en ligne
                       </a>
+                      <div style={{ marginTop:8, background:"#fff8e1", borderRadius:6, padding:"8px 10px", color:"#a06000", fontSize:11 }}>
+                        ⏱️ Créneau non garanti tant que le paiement n'est pas reçu — le premier qui règle l'obtient.
+                      </div>
                     </div>
                   )}
                   {/* Paiement effectué */}
@@ -3747,7 +3648,9 @@ export default function App() {
               </div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:14 }}>
                 {ALL_SLOTS.map(h => {
-                  const res = reservations.find(r => r.date === propriDate && r.statut !== "refusee" && r.statut !== "annulee" && parseFloat(r.heureDebut) <= h && parseFloat(r.heureFin) > h);
+                  const res = reservations.find(r => r.date === propriDate && r.paiement?.statut === "paye" && parseFloat(r.heureDebut) <= h && parseFloat(r.heureFin) > h);
+                  // Informatif uniquement (n'empêche pas d'ouvrir/fermer) : une demande acceptée mais pas encore payée sur ce créneau
+                  const enAttentePaiement = !res && reservations.find(r => r.date === propriDate && r.statut === "acceptee" && r.paiement?.statut !== "paye" && parseFloat(r.heureDebut) <= h && parseFloat(r.heureFin) > h);
                   const blocked = blockedH.has(h) && !res;
                   const dispo = estOuvert(propriDate, h);
                   const isSoir = h >= 20;
@@ -3758,10 +3661,11 @@ export default function App() {
                   else { bg="#f5f5f5"; color="#bbb"; border="2px dashed #ddd"; labelH="—"; cliquable=true; }
                   return (
                     <div key={h} onClick={() => cliquable && toggleCreneauProprio(h)}
-                      style={{ borderRadius:10, padding:"8px 4px", fontSize:11, fontWeight:700, background:bg, color, border, cursor:cliquable?"pointer":"not-allowed", minWidth:48, textAlign:"center", transition:"all .15s" }}>
+                      style={{ borderRadius:10, padding:"8px 4px", fontSize:11, fontWeight:700, background:bg, color, border, cursor:cliquable?"pointer":"not-allowed", minWidth:48, textAlign:"center", transition:"all .15s", position:"relative" }}>
                       {padH(h)}<br/>
                       <span style={{ fontSize:9, fontWeight:400 }}>{labelH}</span>
                       {isSoir && !res && <div style={{ fontSize:8, opacity:.8, marginTop:1 }}>+1€/h</div>}
+                      {enAttentePaiement && <div title="Accepté, en attente de paiement" style={{ position:"absolute", top:-4, right:-4, fontSize:11 }}>⏳</div>}
                     </div>
                   );
                 })}
@@ -4002,14 +3906,10 @@ export default function App() {
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
                       <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 13 }}>{r.ref}</div>
                       <div style={{ display:"flex", gap:4, flexWrap:"wrap", justifyContent:"flex-end" }}>
-                        {/* Badge paiement / empreinte */}
+                        {/* Badge paiement */}
                         {r.paiement && (
                           r.paiement.statut === "paye"
                             ? <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#e6faf8", color:"#0B6E8A", border:"1px solid #4ECDC4" }}>💳 Payée</span>
-                          : r.paiement.statut === "empreinte_ok"
-                            ? <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#e6faf8", color:"#0B6E8A", border:"1px solid #4ECDC4" }}>💳 Empreinte OK</span>
-                          : r.paiement.statut === "empreinte_en_attente" && statut === "en_attente"
-                            ? <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#fff0f0", color:"#c0302a", border:"1px solid #FF6B6B" }}>⚠️ Sans empreinte</span>
                           : (r.paiement.url && statut === "acceptee")
                             ? <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#fff8e1", color:"#a06000", border:"1px solid #f0c040" }}>💳 Lien envoyé, non payée</span>
                           : null
@@ -4513,8 +4413,8 @@ export default function App() {
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0B6E8A", marginBottom: 10 }}>💳 Mode de paiement</div>
             <div style={{ display: "flex", gap: 10 }}>
               {[
-                { val: "cb", emoji: "💳", label: "Carte bancaire", desc: "Empreinte bancaire, débit à l'acceptation" },
-                { val: "especes", emoji: "💵", label: "Espèces", desc: "Empreinte de l'acompte (20%), solde le jour J" },
+                { val: "cb", emoji: "💳", label: "Carte bancaire", desc: "Paiement en ligne à l'acceptation" },
+                { val: "especes", emoji: "💵", label: "Espèces", desc: "Acompte 20% en ligne, solde le jour J" },
               ].map(({ val, emoji, label, desc }) => (
                 <div key={val} onClick={() => setModePaiement(val)}
                   style={{ flex: 1, padding: "12px 10px", borderRadius: 12, cursor: "pointer", textAlign: "center", border: modePaiement === val ? "2px solid #0B6E8A" : "2px solid #e0e0e0", background: modePaiement === val ? "#f0fafc" : "#fff", transition: "all .15s" }}>
@@ -4531,7 +4431,7 @@ export default function App() {
             <div style={{ background: "#fff8e1", borderRadius: 10, padding: "12px 14px", border: "2px solid #f0c040", marginBottom: 12 }}>
               <div style={{ fontWeight: 700, color: "#a06000", fontSize: 13, marginBottom: 6 }}>💵 Détail paiement espèces</div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                <span style={{ color: "#5a8a96" }}>Empreinte bancaire (acompte 20%)</span>
+                <span style={{ color: "#5a8a96" }}>Acompte à régler en ligne (20%)</span>
                 <span style={{ fontWeight: 700, color: "#a06000" }}>{formatEur(acompte)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
@@ -4539,23 +4439,23 @@ export default function App() {
                 <span style={{ fontWeight: 700, color: "#2C3E50" }}>{formatEur(resteARegler)}</span>
               </div>
               <div style={{ fontSize: 11, color: "#a06000", marginTop: 8, lineHeight: 1.4 }}>
-                Votre carte sera autorisée pour {formatEur(acompte)} sans être débitée. Le débit n'aura lieu que si le propriétaire accepte votre demande.
+                Aucun débit maintenant. Si le propriétaire accepte votre demande, vous recevrez un lien de paiement sécurisé par email pour régler l'acompte.
               </div>
             </div>
           )}
           {modePaiement === "cb" && (
             <div style={{ background: "#e6faf8", borderRadius: 10, padding: "10px 14px", marginBottom: 12, border: "1px solid #4ECDC4" }}>
-              <div style={{ fontSize: 13, color: "#0B6E8A" }}>✓ Votre carte sera autorisée pour <strong>{formatEur(totalGeneral)}</strong> sans être débitée.</div>
+              <div style={{ fontSize: 13, color: "#0B6E8A" }}>✓ Aucun débit maintenant.</div>
               <div style={{ fontSize: 11, color: "#5a8a96", marginTop: 6, lineHeight: 1.4 }}>
-                Le débit n'aura lieu que si le propriétaire accepte votre demande. En cas de refus, aucune somme n'est prélevée.
+                Si le propriétaire accepte votre demande, vous recevrez un lien de paiement sécurisé par email pour régler {formatEur(totalGeneral)}. Le créneau n'est garanti qu'une fois ce paiement effectué.
               </div>
             </div>
           )}
 
           <div style={{ border: "2px dashed #b0d8e3", borderRadius: 10, padding: "12px", textAlign: "center", marginBottom: 16 }}>
-            <div style={{ fontSize: 20, marginBottom: 3 }}>🔒</div>
-            <div style={{ fontWeight: 600, color: "#0B6E8A", marginBottom: 2 }}>Empreinte bancaire sécurisée par Stripe</div>
-            <div style={{ fontSize: 12, color: "#5a8a96" }}>Vous allez être redirigé(e) vers une page de paiement Stripe pour saisir votre carte. Aucune donnée bancaire ne transite par notre site.</div>
+            <div style={{ fontSize: 20, marginBottom: 3 }}>📩</div>
+            <div style={{ fontWeight: 600, color: "#0B6E8A", marginBottom: 2 }}>Paiement uniquement après acceptation</div>
+            <div style={{ fontSize: 12, color: "#5a8a96" }}>Aucune donnée bancaire n'est demandée à cette étape. Vous recevrez un lien de paiement sécurisé (Stripe) par email si le propriétaire accepte votre demande.</div>
           </div>
 
           {/* ── Vérification email OTP ── */}
@@ -4618,9 +4518,12 @@ export default function App() {
           <button
             style={{ ...btnP, opacity: (modePaiement && otpVerifie) ? 1 : 0.4 }}
             onClick={() => modePaiement && otpVerifie && confirmerReservation()}>
-            {modePaiement === "especes" ? `✓ Payer l'acompte ${formatEur(acompte)}` : `✓ Payer ${formatEur(totalGeneral)}`}
+            ✓ Envoyer ma demande de réservation
           </button>
           <button style={btnS} onClick={() => setStep(3)}>← Retour</button>
+        </div>
+        <div style={{ textAlign:"center", fontSize:12, color:"#5a8a96", marginTop:8 }}>
+          Aucun paiement maintenant — vous serez recontacté(e) après validation par le propriétaire.
         </div>
       </div>
     </div>

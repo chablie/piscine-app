@@ -1,29 +1,16 @@
 // Fonction serverless Vercel : POST /api/paiement
-// Regroupe toutes les actions de paiement (hors webhook, qui reste séparé)
-// en UN SEUL point d'entrée, pour rester sous la limite de 12 fonctions
-// serverless du forfait Vercel Hobby.
-// Le champ "action" du corps de la requête détermine l'opération :
-//   - creer-session-empreinte : dépôt d'empreinte bancaire (capture différée)
-//   - capturer-paiement       : débit effectif de l'empreinte (à l'acceptation)
-//   - annuler-empreinte       : libération de l'empreinte (refus/annulation)
-//   - creer-lien-paiement     : lien de paiement classique (plan B de secours)
-//
-// Utilise la clé service_role (via lib/supabaseAdmin) pour lire ET écrire les
-// réservations : depuis la sécurisation RLS, la clé publique ne peut plus
-// modifier la table reservations (lecture seule + création de nouvelles
-// demandes). Ces opérations serveur de confiance doivent donc contourner le RLS.
+// Un seul point d'entrée pour la création du lien de paiement Stripe, envoyé
+// au locataire après validation de sa demande par le propriétaire. Le
+// créneau n'est garanti qu'une fois ce paiement confirmé (voir statutHeures
+// côté client et la résolution de conflit dans api/stripe-webhook.js).
 
-import { selectUn, upsert } from '../lib/supabaseAdmin.js';
+import { selectUn } from '../lib/supabaseAdmin.js';
 
 const SITE_URL = "https://mypiscineprivee.com";
 
 async function lireReservation(ref) {
   const row = await selectUn('reservations', 'ref', ref, 'data');
   return row ? row.data : null;
-}
-
-async function patchReservation(ref, data) {
-  await upsert('reservations', { ref, data, updated_at: new Date().toISOString() });
 }
 
 function montantAregler(r) {
@@ -45,58 +32,7 @@ export default async function handler(req, res) {
     const r = await lireReservation(ref);
     if (!r) return res.status(404).json({ error: 'Réservation introuvable' });
 
-    // ── creer-session-empreinte : capture différée (hold bancaire) ──
-    if (action === 'creer-session-empreinte') {
-      const montant = montantAregler(r);
-      if (!montant || montant <= 0) return res.status(400).json({ error: 'Montant invalide' });
-      const centimes = Math.round(montant * 100);
-      const libelle = r.modePaiement === 'especes' ? `Acompte réservation piscine ${ref} (solde sur place)` : `Réservation piscine ${ref}`;
-      const body = new URLSearchParams({
-        mode: 'payment',
-        'payment_intent_data[capture_method]': 'manual',
-        'payment_intent_data[metadata][ref]': ref,
-        'line_items[0][price_data][currency]': 'eur',
-        'line_items[0][price_data][unit_amount]': String(centimes),
-        'line_items[0][price_data][product_data][name]': libelle,
-        'line_items[0][quantity]': '1',
-        'metadata[ref]': ref,
-        success_url: `${SITE_URL}/?empreinte=succes&ref=${encodeURIComponent(ref)}`,
-        cancel_url: `${SITE_URL}/?empreinte=annulee&ref=${encodeURIComponent(ref)}`,
-      });
-      if (r.email) body.set('customer_email', r.email);
-      const sessRep = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: stripeHeaders, body });
-      const sess = await sessRep.json();
-      if (!sessRep.ok) { console.error('Erreur Stripe (session):', sess); return res.status(502).json({ error: sess.error?.message || 'Erreur Stripe (session)' }); }
-      return res.status(200).json({ url: sess.url, montant, sessionId: sess.id });
-    }
-
-    // ── capturer-paiement : débit effectif de l'empreinte ──
-    if (action === 'capturer-paiement') {
-      const pi = r.paiement?.paymentIntentId;
-      if (!pi) return res.status(400).json({ error: 'Aucune empreinte bancaire sur cette réservation', code: 'pas_empreinte' });
-      if (r.paiement?.statut === 'paye') return res.status(200).json({ statut: 'paye', deja: true });
-      const capRep = await fetch(`https://api.stripe.com/v1/payment_intents/${pi}/capture`, { method: 'POST', headers: stripeHeaders, body: new URLSearchParams({}) });
-      const cap = await capRep.json();
-      if (!capRep.ok) { console.error('Échec capture:', cap); return res.status(409).json({ error: cap.error?.message || 'Capture impossible', code: 'capture_impossible' }); }
-      const data = { ...r, paiement: { ...(r.paiement || {}), statut: 'paye', datePaiement: new Date().toISOString(), montantPaye: (cap.amount_received || cap.amount || 0) / 100 } };
-      await patchReservation(ref, data);
-      return res.status(200).json({ statut: 'paye', montantPaye: data.paiement.montantPaye });
-    }
-
-    // ── annuler-empreinte : libère l'autorisation, aucun débit ──
-    if (action === 'annuler-empreinte') {
-      const pi = r.paiement?.paymentIntentId;
-      if (!pi) return res.status(200).json({ statut: 'rien_a_faire' });
-      if (r.paiement?.statut === 'paye') return res.status(409).json({ error: 'Paiement déjà capturé — remboursement requis', code: 'deja_paye' });
-      const canRep = await fetch(`https://api.stripe.com/v1/payment_intents/${pi}/cancel`, { method: 'POST', headers: stripeHeaders, body: new URLSearchParams({ cancellation_reason: 'requested_by_customer' }) });
-      const can = await canRep.json();
-      if (!canRep.ok && can.error?.code !== 'payment_intent_unexpected_state') console.error('Échec annulation empreinte:', can);
-      const data = { ...r, paiement: { ...(r.paiement || {}), statut: 'empreinte_annulee', dateAnnulation: new Date().toISOString() } };
-      await patchReservation(ref, data);
-      return res.status(200).json({ statut: 'empreinte_annulee' });
-    }
-
-    // ── creer-lien-paiement : plan B (lien classique par email) ──
+    // ── creer-lien-paiement : lien de paiement envoyé après acceptation ──
     if (action === 'creer-lien-paiement') {
       const montant = montantAregler(r);
       if (!montant || montant <= 0) return res.status(400).json({ error: 'Montant invalide' });
@@ -119,6 +55,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Action inconnue' });
   } catch (e) {
     console.error(`Erreur paiement/${action}:`, e);
-    return res.status(500).json({ error: 'Erreur serveur' });
+    return res.status(500).json({ error: e.message || 'Erreur serveur' });
   }
 }
