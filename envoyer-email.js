@@ -1,139 +1,143 @@
-// Fonction serverless Vercel : POST /api/stripe-webhook
-// Reçoit les événements Stripe. Sur "checkout.session.completed" :
-//   1. vérifie la signature (STRIPE_WEBHOOK_SECRET)
-//   2. marque la réservation comme payée dans Supabase
-//   3. désactive le lien de paiement pour éviter un double règlement
-// L'app se met à jour toute seule grâce à l'abonnement temps réel Supabase.
+// Fonction serverless Vercel : POST /api/auth
+// Regroupe toutes les actions d'authentification en UN SEUL point d'entrée,
+// pour rester sous la limite de 12 fonctions serverless du forfait Vercel Hobby.
+// Le champ "action" du corps de la requête détermine l'opération effectuée :
+//   - connexion-admin, connexion-proprio, connexion-locataire
+//   - creer-compte, reinitialiser-mdp-locataire
+//   - sauvegarder-compte, supprimer-mon-compte
+//   - deconnexion
 
-import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
+import { signerSession, cookieSession, cookieEffacer, sessionDepuisRequete } from '../lib/session.js';
+import { selectUn, upsert, supprimerUn } from '../lib/supabaseAdmin.js';
 
-const SUPABASE_URL = "https://tfklwizeioivhpnmhryp.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_X1QS7GKVf1TVcYd6xa9VaA__Et6kJ_1";
-
-// Lecture du corps brut (indispensable pour vérifier la signature Stripe)
-async function lireCorpsBrut(req) {
-  const chunks = [];
-  for await (const chunk of req) chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-  return Buffer.concat(chunks);
-}
-
-// Vérification de la signature Stripe (header "stripe-signature": t=...,v1=...)
-function signatureValide(rawBody, header, secret) {
-  if (!header) return false;
-  const parts = Object.fromEntries(header.split(',').map(p => p.split('=')));
-  const t = parts.t, v1 = parts.v1;
-  if (!t || !v1) return false;
-  // Tolérance de 5 minutes contre le rejeu
-  if (Math.abs(Date.now() / 1000 - Number(t)) > 300) return false;
-  const attendu = crypto.createHmac('sha256', secret)
-    .update(`${t}.${rawBody.toString('utf8')}`)
-    .digest('hex');
-  try {
-    return crypto.timingSafeEqual(Buffer.from(attendu, 'hex'), Buffer.from(v1, 'hex'));
-  } catch { return false; }
-}
+const ADMIN_EMAIL = "aurelie.briand@yahoo.fr";
+const PROPRIO_EMAIL = "aurelie.briand@yahoo.fr";
+const SESSION_COURTE = 60 * 60 * 8;       // 8h (admin/proprio)
+const SESSION_LONGUE = 60 * 60 * 24 * 30; // 30 jours (locataire)
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Méthode non autorisée' });
 
-  const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
-  const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-  if (!STRIPE_WEBHOOK_SECRET) {
-    return res.status(500).json({ error: 'Configuration serveur manquante (secret webhook)' });
-  }
+  const SESSION_SECRET = process.env.SESSION_SECRET;
+  if (!SESSION_SECRET) return res.status(500).json({ error: 'Configuration serveur manquante' });
 
-  let rawBody;
-  try { rawBody = await lireCorpsBrut(req); }
-  catch { return res.status(400).json({ error: 'Corps illisible' }); }
-
-  if (!signatureValide(rawBody, req.headers['stripe-signature'], STRIPE_WEBHOOK_SECRET)) {
-    return res.status(400).json({ error: 'Signature invalide' });
-  }
-
-  let event;
-  try { event = JSON.parse(rawBody.toString('utf8')); }
-  catch { return res.status(400).json({ error: 'JSON invalide' }); }
-
-  // On ne traite que la finalisation d'un paiement
-  if (event.type !== 'checkout.session.completed') {
-    return res.status(200).json({ received: true });
-  }
-
-  const session = event.data?.object || {};
-  const ref = session.metadata?.ref;
-  if (!ref) {
-    console.error('Webhook sans ref dans metadata', session.id);
-    return res.status(200).json({ received: true });
-  }
-
-  const supaHeaders = {
-    apikey: SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    'Content-Type': 'application/json',
-  };
+  const { action } = req.body || {};
 
   try {
-    // 1. Lire la réservation
-    const lire = await fetch(
-      `${SUPABASE_URL}/rest/v1/reservations?ref=eq.${encodeURIComponent(ref)}&select=data`,
-      { headers: supaHeaders }
-    );
-    const rows = await lire.json();
-    if (!Array.isArray(rows) || rows.length === 0) {
-      console.error('Réservation introuvable pour le webhook:', ref);
-      return res.status(200).json({ received: true });
-    }
-    const data = rows[0].data;
-
-    // 2. Deux cas selon le type de session :
-    //    - payment_status "unpaid"  → empreinte déposée (capture manuelle), débit à l'acceptation
-    //    - payment_status "paid"    → paiement effectif (lien de paiement de secours)
-    if (session.payment_status === 'paid') {
-      data.paiement = {
-        ...(data.paiement || {}),
-        statut: 'paye',
-        datePaiement: new Date().toISOString(),
-        montantPaye: (session.amount_total || 0) / 100,
-        sessionId: session.id,
-        ...(session.payment_intent ? { paymentIntentId: session.payment_intent } : {}),
-      };
-    } else {
-      data.paiement = {
-        ...(data.paiement || {}),
-        statut: 'empreinte_ok',
-        dateEmpreinte: new Date().toISOString(),
-        montant: (session.amount_total || 0) / 100,
-        sessionId: session.id,
-        paymentIntentId: session.payment_intent || null,
-      };
+    // ── connexion-admin ──
+    if (action === 'connexion-admin') {
+      const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+      if (!ADMIN_PASSWORD) return res.status(500).json({ error: 'Configuration serveur manquante' });
+      const { email, motdepasse } = req.body;
+      const ok = email === ADMIN_EMAIL && typeof motdepasse === 'string' && motdepasse.length === ADMIN_PASSWORD.length && motdepasse === ADMIN_PASSWORD;
+      if (!ok) { await new Promise(r => setTimeout(r, 400)); return res.status(401).json({ error: 'Email ou mot de passe incorrect' }); }
+      const token = signerSession({ role: 'admin', exp: Date.now() + SESSION_COURTE * 1000 }, SESSION_SECRET);
+      res.setHeader('Set-Cookie', cookieSession('sp_admin', token, SESSION_COURTE));
+      return res.status(200).json({ ok: true });
     }
 
-    const patch = await fetch(
-      `${SUPABASE_URL}/rest/v1/reservations?ref=eq.${encodeURIComponent(ref)}`,
-      {
-        method: 'PATCH',
-        headers: { ...supaHeaders, Prefer: 'return=minimal' },
-        body: JSON.stringify({ data, updated_at: new Date().toISOString() }),
+    // ── connexion-proprio ──
+    if (action === 'connexion-proprio') {
+      const PROPRIO_PASSWORD = process.env.PROPRIO_PASSWORD;
+      if (!PROPRIO_PASSWORD) return res.status(500).json({ error: 'Configuration serveur manquante' });
+      const { email, motdepasse } = req.body;
+      const ok = email === PROPRIO_EMAIL && typeof motdepasse === 'string' && motdepasse.length === PROPRIO_PASSWORD.length && motdepasse === PROPRIO_PASSWORD;
+      if (!ok) { await new Promise(r => setTimeout(r, 400)); return res.status(401).json({ error: 'Email ou mot de passe incorrect' }); }
+      const token = signerSession({ role: 'proprio', exp: Date.now() + SESSION_COURTE * 1000 }, SESSION_SECRET);
+      res.setHeader('Set-Cookie', cookieSession('sp_proprio', token, SESSION_COURTE));
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── creer-compte ──
+    if (action === 'creer-compte') {
+      const { prenom, nom, email, telephone, adresse, codePostal, ville, motdepasse } = req.body;
+      const emailNorm = (email || '').trim().toLowerCase();
+      if (!prenom || !nom || !emailNorm.includes('@') || !telephone || !motdepasse) return res.status(400).json({ error: 'Champs requis manquants' });
+      if (motdepasse.length < 8) return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caractères' });
+      const existant = await selectUn('comptes', 'email', emailNorm, 'email');
+      if (existant) return res.status(409).json({ error: 'Un compte existe déjà avec cet email' });
+      const motdepasseHache = bcrypt.hashSync(motdepasse, 10);
+      const compteData = { prenom, nom, telephone, adresse: adresse || '', codePostal: codePostal || '', ville: ville || '', reservations: [] };
+      await upsert('comptes', { email: emailNorm, data: compteData });
+      await upsert('comptes_auth', { email: emailNorm, motdepasse_hache: motdepasseHache, updated_at: new Date().toISOString() });
+      const token = signerSession({ role: 'locataire', email: emailNorm, exp: Date.now() + SESSION_LONGUE * 1000 }, SESSION_SECRET);
+      res.setHeader('Set-Cookie', cookieSession('sp_locataire', token, SESSION_LONGUE));
+      return res.status(200).json({ ok: true, email: emailNorm, compte: compteData });
+    }
+
+    // ── connexion-locataire ──
+    if (action === 'connexion-locataire') {
+      const { email, motdepasse } = req.body;
+      const emailNorm = (email || '').trim().toLowerCase();
+      if (!emailNorm || !motdepasse) return res.status(400).json({ error: 'Email et mot de passe requis' });
+      const auth = await selectUn('comptes_auth', 'email', emailNorm, 'motdepasse_hache');
+      if (!auth || !bcrypt.compareSync(motdepasse, auth.motdepasse_hache)) {
+        await new Promise(r => setTimeout(r, 300));
+        return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
       }
-    );
-    if (!patch.ok) console.error('Échec PATCH Supabase:', await patch.text());
-
-    // 3. Désactiver le lien de paiement (évite un double paiement)
-    if (session.payment_link && STRIPE_SECRET_KEY) {
-      await fetch(`https://api.stripe.com/v1/payment_links/${session.payment_link}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({ active: 'false' }),
-      }).catch(e => console.error('Désactivation lien échouée:', e));
+      const profil = await selectUn('comptes', 'email', emailNorm, 'data');
+      const token = signerSession({ role: 'locataire', email: emailNorm, exp: Date.now() + SESSION_LONGUE * 1000 }, SESSION_SECRET);
+      res.setHeader('Set-Cookie', cookieSession('sp_locataire', token, SESSION_LONGUE));
+      return res.status(200).json({ ok: true, email: emailNorm, compte: profil?.data || {} });
     }
 
-    return res.status(200).json({ received: true });
+    // ── reinitialiser-mdp-locataire (après validation OTP côté client) ──
+    if (action === 'reinitialiser-mdp-locataire') {
+      const { email, nouveauMotdepasse } = req.body;
+      const emailNorm = (email || '').trim().toLowerCase();
+      if (!emailNorm || !nouveauMotdepasse) return res.status(400).json({ error: 'Champs requis manquants' });
+      if (nouveauMotdepasse.length < 8) return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caractères' });
+      const motdepasseHache = bcrypt.hashSync(nouveauMotdepasse, 10);
+      await upsert('comptes_auth', { email: emailNorm, motdepasse_hache: motdepasseHache, updated_at: new Date().toISOString() });
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── sauvegarder-compte (profil uniquement, jamais le mot de passe) ──
+    if (action === 'sauvegarder-compte') {
+      const { email, data } = req.body;
+      const emailNorm = (email || '').trim().toLowerCase();
+      if (!emailNorm || !data) return res.status(400).json({ error: 'Champs requis manquants' });
+      const session = sessionDepuisRequete(req, ['locataire', 'proprio', 'admin'], SESSION_SECRET);
+      if (!session) return res.status(401).json({ error: 'Non authentifié' });
+      if (session.role === 'locataire' && session.email !== emailNorm) return res.status(403).json({ error: 'Vous ne pouvez modifier que votre propre profil' });
+      const { prenom, nom, telephone, adresse, codePostal, ville, reservations } = data;
+      await upsert('comptes', { email: emailNorm, data: { prenom, nom, telephone, adresse, codePostal, ville, reservations } });
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── supprimer-mon-compte (RGPD) ──
+    if (action === 'supprimer-mon-compte') {
+      const session = sessionDepuisRequete(req, ['locataire'], SESSION_SECRET);
+      if (!session) return res.status(401).json({ error: 'Non authentifié' });
+      await supprimerUn('comptes', 'email', session.email);
+      await supprimerUn('comptes_auth', 'email', session.email);
+      res.setHeader('Set-Cookie', cookieEffacer('sp_locataire'));
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── deconnexion ──
+    if (action === 'deconnexion') {
+      const { roles } = req.body;
+      const liste = Array.isArray(roles) && roles.length ? roles : ['admin', 'proprio', 'locataire'];
+      res.setHeader('Set-Cookie', liste.map(r => cookieEffacer(`sp_${r}`)));
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── verifier-session (restaure l'état de connexion au chargement de l'app) ──
+    if (action === 'verifier-session') {
+      const session = sessionDepuisRequete(req, ['admin', 'proprio', 'locataire'], SESSION_SECRET);
+      if (!session) return res.status(200).json({ role: null });
+      if (session.role === 'locataire') {
+        const profil = await selectUn('comptes', 'email', session.email, 'data');
+        return res.status(200).json({ role: 'locataire', email: session.email, compte: profil?.data || {} });
+      }
+      return res.status(200).json({ role: session.role });
+    }
+
+    return res.status(400).json({ error: 'Action inconnue' });
   } catch (e) {
-    console.error('Erreur webhook:', e);
-    // 500 → Stripe réessaiera automatiquement
-    return res.status(500).json({ error: 'Erreur serveur' });
+    console.error(`Erreur auth/${action}:`, e);
+    return res.status(500).json({ error: e.message || 'Erreur serveur' });
   }
 }
