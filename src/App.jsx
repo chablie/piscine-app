@@ -1569,6 +1569,7 @@ export default function App() {
   function deconnecterAdmin() {
     fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ action: 'deconnexion', roles: ['admin'] }) }).catch(() => {});
     setAdminConnecte(false);
+    setOngletPropri("dispo"); // évite qu'un onglet admin-only reste affiché après la déconnexion
     setMode("accueil");
   }
 
@@ -3533,7 +3534,7 @@ export default function App() {
 
           {ongletPropri === "annonce" && <GestionAnnonce annonce={annonce} setAnnonce={setAnnonce} onVoir={() => setMode("annonce")} />}
 
-                    {ongletPropri === "maintenance" && (
+          {ongletPropri === "maintenance" && adminConnecte && (
             <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"20px 16px", marginBottom:14 }}>
               <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", marginBottom:6, fontWeight:700 }}>🔧 Gestion de la maintenance</div>
               <div style={{ fontSize:13, color:"#5a8a96", marginBottom:18, lineHeight:1.5 }}>
