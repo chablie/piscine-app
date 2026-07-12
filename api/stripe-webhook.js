@@ -117,7 +117,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ received: true });
   } catch (e) {
     console.error('Erreur webhook:', e);
-    // 500 → Stripe réessaiera automatiquement
-    return res.status(500).json({ error: 'Erreur serveur' });
+    // 500 → Stripe réessaiera automatiquement. On inclut le détail pour le
+    // diagnostic (visible dans Stripe Dashboard → Webhooks → événement → réponse).
+    return res.status(500).json({ error: e.message || 'Erreur serveur' });
   }
 }
