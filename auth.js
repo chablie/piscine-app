@@ -4,11 +4,13 @@
 //   2. marque la réservation comme payée dans Supabase
 //   3. désactive le lien de paiement pour éviter un double règlement
 // L'app se met à jour toute seule grâce à l'abonnement temps réel Supabase.
+//
+// Utilise la clé service_role (via lib/supabaseAdmin) : depuis la sécurisation
+// RLS, la clé publique ne peut plus modifier reservations. Ce webhook, appelé
+// uniquement par Stripe après vérification de signature, doit contourner le RLS.
 
 import crypto from 'crypto';
-
-const SUPABASE_URL = "https://tfklwizeioivhpnmhryp.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_X1QS7GKVf1TVcYd6xa9VaA__Et6kJ_1";
+import { selectUn, upsert } from '../lib/supabaseAdmin.js';
 
 // Lecture du corps brut (indispensable pour vérifier la signature Stripe)
 async function lireCorpsBrut(req) {
@@ -66,24 +68,14 @@ export default async function handler(req, res) {
     return res.status(200).json({ received: true });
   }
 
-  const supaHeaders = {
-    apikey: SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    'Content-Type': 'application/json',
-  };
-
   try {
-    // 1. Lire la réservation
-    const lire = await fetch(
-      `${SUPABASE_URL}/rest/v1/reservations?ref=eq.${encodeURIComponent(ref)}&select=data`,
-      { headers: supaHeaders }
-    );
-    const rows = await lire.json();
-    if (!Array.isArray(rows) || rows.length === 0) {
+    // 1. Lire la réservation (service_role : bypass RLS)
+    const row = await selectUn('reservations', 'ref', ref, 'data');
+    if (!row) {
       console.error('Réservation introuvable pour le webhook:', ref);
       return res.status(200).json({ received: true });
     }
-    const data = rows[0].data;
+    const data = row.data;
 
     // 2. Deux cas selon le type de session :
     //    - payment_status "unpaid"  → empreinte déposée (capture manuelle), débit à l'acceptation
@@ -108,15 +100,7 @@ export default async function handler(req, res) {
       };
     }
 
-    const patch = await fetch(
-      `${SUPABASE_URL}/rest/v1/reservations?ref=eq.${encodeURIComponent(ref)}`,
-      {
-        method: 'PATCH',
-        headers: { ...supaHeaders, Prefer: 'return=minimal' },
-        body: JSON.stringify({ data, updated_at: new Date().toISOString() }),
-      }
-    );
-    if (!patch.ok) console.error('Échec PATCH Supabase:', await patch.text());
+    await upsert('reservations', { ref, data, updated_at: new Date().toISOString() });
 
     // 3. Désactiver le lien de paiement (évite un double paiement)
     if (session.payment_link && STRIPE_SECRET_KEY) {

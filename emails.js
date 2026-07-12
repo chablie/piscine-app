@@ -3129,7 +3129,6 @@ export default function App() {
                         </div>
                       )}
                     </div>
-                  )}
                   {r.note && <div style={{ fontSize: 12, color: "#f0a500", marginTop: 4 }}>Votre avis : {"⭐".repeat(r.note)}</div>}
                   {noteP && (
                     <div style={{ fontSize: 12, marginTop: 4, color: noteP.note >= 4 ? "#0B6E8A" : "#888" }}>
@@ -3379,7 +3378,18 @@ export default function App() {
                 <div style={{ fontSize:48, marginBottom:12 }}>✅</div>
                 <div style={{ fontFamily:"'Playfair Display',serif", fontSize:20, color:"#0B6E8A", fontWeight:700, marginBottom:8 }}>Mot de passe modifié !</div>
                 <div style={{ fontSize:14, color:"#5a8a96", marginBottom:20 }}>Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.</div>
-                <button onClick={()=>{ setMode(resetMode === "locataire" ? "compte" : resetMode === "proprio" ? "loginProprio" : "loginAdmin"); }}
+                <button onClick={()=>{
+                    if (resetMode === "locataire") {
+                      setAuthForm(f => ({ ...f, email: resetEmail, motdepasse: "" }));
+                      setAuthMode("login");
+                      setAuthErreur("");
+                      setMode("auth");
+                    } else if (resetMode === "proprio") {
+                      setMode("loginProprio");
+                    } else {
+                      setMode("loginAdmin");
+                    }
+                  }}
                   style={{ width:"100%", padding:"13px", borderRadius:10, background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer" }}>
                   → Se connecter
                 </button>

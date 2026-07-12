@@ -7,30 +7,23 @@
 //   - capturer-paiement       : débit effectif de l'empreinte (à l'acceptation)
 //   - annuler-empreinte       : libération de l'empreinte (refus/annulation)
 //   - creer-lien-paiement     : lien de paiement classique (plan B de secours)
+//
+// Utilise la clé service_role (via lib/supabaseAdmin) pour lire ET écrire les
+// réservations : depuis la sécurisation RLS, la clé publique ne peut plus
+// modifier la table reservations (lecture seule + création de nouvelles
+// demandes). Ces opérations serveur de confiance doivent donc contourner le RLS.
 
-const SUPABASE_URL = "https://tfklwizeioivhpnmhryp.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_X1QS7GKVf1TVcYd6xa9VaA__Et6kJ_1";
+import { selectUn, upsert } from '../lib/supabaseAdmin.js';
+
 const SITE_URL = "https://mypiscineprivee.com";
 
 async function lireReservation(ref) {
-  const rep = await fetch(
-    `${SUPABASE_URL}/rest/v1/reservations?ref=eq.${encodeURIComponent(ref)}&select=data`,
-    { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
-  );
-  const rows = await rep.json();
-  return Array.isArray(rows) && rows[0] ? rows[0].data : null;
+  const row = await selectUn('reservations', 'ref', ref, 'data');
+  return row ? row.data : null;
 }
 
 async function patchReservation(ref, data) {
-  const rep = await fetch(`${SUPABASE_URL}/rest/v1/reservations?ref=eq.${encodeURIComponent(ref)}`, {
-    method: 'PATCH',
-    headers: {
-      apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json', Prefer: 'return=minimal',
-    },
-    body: JSON.stringify({ data, updated_at: new Date().toISOString() }),
-  });
-  if (!rep.ok) console.error('Échec PATCH Supabase:', await rep.text());
+  await upsert('reservations', { ref, data, updated_at: new Date().toISOString() });
 }
 
 function montantAregler(r) {
