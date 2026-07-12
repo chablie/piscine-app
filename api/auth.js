@@ -124,6 +124,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    // ── verifier-session (restaure l'état de connexion au chargement de l'app) ──
+    if (action === 'verifier-session') {
+      const session = sessionDepuisRequete(req, ['admin', 'proprio', 'locataire'], SESSION_SECRET);
+      if (!session) return res.status(200).json({ role: null });
+      if (session.role === 'locataire') {
+        const profil = await selectUn('comptes', 'email', session.email, 'data');
+        return res.status(200).json({ role: 'locataire', email: session.email, compte: profil?.data || {} });
+      }
+      return res.status(200).json({ role: session.role });
+    }
+
     return res.status(400).json({ error: 'Action inconnue' });
   } catch (e) {
     console.error(`Erreur auth/${action}:`, e);

@@ -1387,6 +1387,23 @@ export default function App() {
       } finally {
         if (!annule) setChargementInitial(false);
       }
+      // Restaure la connexion admin/proprio/locataire si une session valide existe déjà
+      // (cookie httpOnly posé lors d'une connexion précédente, encore valable)
+      try {
+        const repSession = await fetch('/api/auth', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+          body: JSON.stringify({ action: 'verifier-session' }),
+        });
+        if (repSession.ok && !annule) {
+          const s = await repSession.json();
+          if (s.role === 'admin') setAdminConnecte(true);
+          else if (s.role === 'proprio') setProprioConnecte(true);
+          else if (s.role === 'locataire' && s.email) {
+            setComptes(prev => ({ ...prev, [s.email]: s.compte }));
+            setCompteConnecte(s.email);
+          }
+        }
+      } catch (e) { console.error('Erreur vérification session:', e); }
     }
     chargerTout();
     return () => { annule = true; };
