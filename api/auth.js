@@ -16,6 +16,40 @@ const PROPRIO_EMAIL = "aurelie.briand@yahoo.fr";
 const SESSION_COURTE = 60 * 60 * 8;       // 8h (admin/proprio)
 const SESSION_LONGUE = 60 * 60 * 24 * 30; // 30 jours (locataire)
 
+// ─── Anti-bruteforce côté serveur ──────────────────────────────────────────
+// Persisté en base (table tentatives_connexion) : contrairement à un compteur
+// React, ceci ne peut pas être contourné par un F5 ou un appel direct à l'API.
+const MAX_TENTATIVES = 5;
+const DUREE_BLOCAGE_MS = 30 * 60 * 1000; // 30 minutes
+
+// Vérifie si l'identifiant est actuellement bloqué. Renvoie le nombre de
+// minutes restantes si bloqué, ou null si l'accès est autorisé.
+async function verifierBlocage(id) {
+  const row = await selectUn('tentatives_connexion', 'id', id, 'compteur,bloque_jusqua');
+  if (!row || !row.bloque_jusqua) return null;
+  const finBlocage = new Date(row.bloque_jusqua).getTime();
+  if (finBlocage <= Date.now()) return null; // le blocage a expiré
+  return Math.ceil((finBlocage - Date.now()) / 60000);
+}
+
+// Enregistre une tentative échouée ; bloque l'identifiant après MAX_TENTATIVES
+async function enregistrerEchec(id) {
+  const row = await selectUn('tentatives_connexion', 'id', id, 'compteur').catch(() => null);
+  const compteur = (row?.compteur || 0) + 1;
+  const bloque = compteur >= MAX_TENTATIVES;
+  await upsert('tentatives_connexion', {
+    id, compteur,
+    bloque_jusqua: bloque ? new Date(Date.now() + DUREE_BLOCAGE_MS).toISOString() : null,
+    updated_at: new Date().toISOString(),
+  });
+  return { compteur, bloque };
+}
+
+// Réinitialise le compteur après une connexion réussie
+async function reinitialiserTentatives(id) {
+  await supprimerUn('tentatives_connexion', 'id', id).catch(() => {});
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Méthode non autorisée' });
 
@@ -30,8 +64,16 @@ export default async function handler(req, res) {
       const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
       if (!ADMIN_PASSWORD) return res.status(500).json({ error: 'Configuration serveur manquante' });
       const { email, motdepasse } = req.body;
+      const idTentative = `admin:${email || ''}`;
+      const minutesRestantes = await verifierBlocage(idTentative);
+      if (minutesRestantes) return res.status(429).json({ error: `Trop de tentatives. Réessayez dans ${minutesRestantes} min.` });
       const ok = email === ADMIN_EMAIL && typeof motdepasse === 'string' && motdepasse.length === ADMIN_PASSWORD.length && motdepasse === ADMIN_PASSWORD;
-      if (!ok) { await new Promise(r => setTimeout(r, 400)); return res.status(401).json({ error: 'Email ou mot de passe incorrect' }); }
+      if (!ok) {
+        await new Promise(r => setTimeout(r, 400));
+        const { bloque } = await enregistrerEchec(idTentative);
+        return res.status(401).json({ error: bloque ? 'Trop de tentatives. Compte bloqué 30 minutes.' : 'Email ou mot de passe incorrect' });
+      }
+      await reinitialiserTentatives(idTentative);
       const token = signerSession({ role: 'admin', exp: Date.now() + SESSION_COURTE * 1000 }, SESSION_SECRET);
       res.setHeader('Set-Cookie', cookieSession('sp_admin', token, SESSION_COURTE));
       return res.status(200).json({ ok: true });
@@ -42,8 +84,16 @@ export default async function handler(req, res) {
       const PROPRIO_PASSWORD = process.env.PROPRIO_PASSWORD;
       if (!PROPRIO_PASSWORD) return res.status(500).json({ error: 'Configuration serveur manquante' });
       const { email, motdepasse } = req.body;
+      const idTentative = `proprio:${email || ''}`;
+      const minutesRestantes = await verifierBlocage(idTentative);
+      if (minutesRestantes) return res.status(429).json({ error: `Trop de tentatives. Réessayez dans ${minutesRestantes} min.` });
       const ok = email === PROPRIO_EMAIL && typeof motdepasse === 'string' && motdepasse.length === PROPRIO_PASSWORD.length && motdepasse === PROPRIO_PASSWORD;
-      if (!ok) { await new Promise(r => setTimeout(r, 400)); return res.status(401).json({ error: 'Email ou mot de passe incorrect' }); }
+      if (!ok) {
+        await new Promise(r => setTimeout(r, 400));
+        const { bloque } = await enregistrerEchec(idTentative);
+        return res.status(401).json({ error: bloque ? 'Trop de tentatives. Compte bloqué 30 minutes.' : 'Email ou mot de passe incorrect' });
+      }
+      await reinitialiserTentatives(idTentative);
       const token = signerSession({ role: 'proprio', exp: Date.now() + SESSION_COURTE * 1000 }, SESSION_SECRET);
       res.setHeader('Set-Cookie', cookieSession('sp_proprio', token, SESSION_COURTE));
       return res.status(200).json({ ok: true });
@@ -71,11 +121,16 @@ export default async function handler(req, res) {
       const { email, motdepasse } = req.body;
       const emailNorm = (email || '').trim().toLowerCase();
       if (!emailNorm || !motdepasse) return res.status(400).json({ error: 'Email et mot de passe requis' });
+      const idTentative = `locataire:${emailNorm}`;
+      const minutesRestantes = await verifierBlocage(idTentative);
+      if (minutesRestantes) return res.status(429).json({ error: `Trop de tentatives. Réessayez dans ${minutesRestantes} min, ou utilisez « Mot de passe oublié ».` });
       const auth = await selectUn('comptes_auth', 'email', emailNorm, 'motdepasse_hache');
       if (!auth || !bcrypt.compareSync(motdepasse, auth.motdepasse_hache)) {
         await new Promise(r => setTimeout(r, 300));
-        return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+        const { bloque } = await enregistrerEchec(idTentative);
+        return res.status(401).json({ error: bloque ? 'Trop de tentatives. Compte bloqué 30 minutes. Utilisez « Mot de passe oublié ».' : 'Email ou mot de passe incorrect' });
       }
+      await reinitialiserTentatives(idTentative);
       const profil = await selectUn('comptes', 'email', emailNorm, 'data');
       const token = signerSession({ role: 'locataire', email: emailNorm, exp: Date.now() + SESSION_LONGUE * 1000 }, SESSION_SECRET);
       res.setHeader('Set-Cookie', cookieSession('sp_locataire', token, SESSION_LONGUE));
@@ -90,6 +145,7 @@ export default async function handler(req, res) {
       if (nouveauMotdepasse.length < 8) return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caractères' });
       const motdepasseHache = bcrypt.hashSync(nouveauMotdepasse, 10);
       await upsert('comptes_auth', { email: emailNorm, motdepasse_hache: motdepasseHache, updated_at: new Date().toISOString() });
+      await reinitialiserTentatives(`locataire:${emailNorm}`);
       return res.status(200).json({ ok: true });
     }
 

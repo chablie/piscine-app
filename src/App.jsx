@@ -632,7 +632,7 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
               <br />
               <span style={{ fontSize: 9, fontWeight: 400, opacity: .85 }}>
                 {sel ? (isMin && isMax ? "✓ 30 min" : isMin ? "← début" : isMax ? "fin →" : "✓") : 
-                 st === "reserve" ? "Réservé" : st === "tampon" ? "Tampon" : st === "ferme" ? "Fermé" : "Libre"}
+                 st === "reserve" ? "Réservé" : st === "tampon" ? "Indisponible" : st === "ferme" ? "Fermé" : "Libre"}
               </span>
               {h >= 20 && st === "libre" && !sel && <div style={{ fontSize: 8, color: "#f0a500", marginTop: 1 }}>+1€/h 🌙</div>}
             </div>
@@ -655,7 +655,7 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
       )}
       {/* Légende */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-        {[["#0B6E8A","#fff","Sélectionné"],["#e6faf8","#0B6E8A","Libre"],["#ffd6d6","#c0302a","Réservé"],["#ffe8b0","#a06000","Tampon"],["#f0f0f0","#bbb","Fermé"]].map(([bg,col,label])=>(
+        {[["#0B6E8A","#fff","Sélectionné"],["#e6faf8","#0B6E8A","Libre"],["#ffd6d6","#c0302a","Réservé"],["#ffe8b0","#a06000","Indisponible"],["#f0f0f0","#bbb","Fermé"]].map(([bg,col,label])=>(
           <div key={label} style={{display:"flex",alignItems:"center",gap:3,fontSize:11}}>
             <div style={{width:12,height:12,borderRadius:3,background:bg,border:`1px solid ${col}`}}/>
             <span style={{color:"#5a8a96"}}>{label}</span>
@@ -1716,14 +1716,14 @@ export default function App() {
         setMode("proprio");
         return;
       }
-    } catch (e) { console.error('Erreur connexion admin:', e); }
-    const nouvellesTentatives = tentativesAdmin + 1;
-    setTentativesAdmin(nouvellesTentatives);
-    if (nouvellesTentatives >= 5) {
-      setBloqueJusquA(prev => ({ ...prev, admin: Date.now() + 30 * 60 * 1000 }));
-      setErreurAdmin("Compte bloqué 30 minutes après 5 tentatives échouées.");
-    } else {
-      setErreurAdmin(`Email ou mot de passe incorrect. (${nouvellesTentatives}/5 tentatives)`);
+      // Le serveur fait foi (anti-bruteforce persisté) : on affiche son message tel quel
+      const d = await rep.json().catch(() => ({}));
+      setErreurAdmin(d.error || "Email ou mot de passe incorrect.");
+      if (rep.status === 429) setBloqueJusquA(prev => ({ ...prev, admin: Date.now() + 30 * 60 * 1000 }));
+      return;
+    } catch (e) {
+      console.error('Erreur connexion admin:', e);
+      setErreurAdmin("Erreur réseau. Réessayez.");
     }
   }
 
@@ -1750,14 +1750,13 @@ export default function App() {
         setMode("proprio");
         return;
       }
-    } catch (e) { console.error('Erreur connexion proprio:', e); }
-    const nouvellesTentatives = tentativesProprio + 1;
-    setTentativesProprio(nouvellesTentatives);
-    if (nouvellesTentatives >= 5) {
-      setBloqueJusquA(prev => ({ ...prev, proprio: Date.now() + 30 * 60 * 1000 }));
-      setErreurProprio("Compte bloqué 30 minutes après 5 tentatives échouées.");
-    } else {
-      setErreurProprio(`Email ou mot de passe incorrect. (${nouvellesTentatives}/5 tentatives)`);
+      const d = await rep.json().catch(() => ({}));
+      setErreurProprio(d.error || "Email ou mot de passe incorrect.");
+      if (rep.status === 429) setBloqueJusquA(prev => ({ ...prev, proprio: Date.now() + 30 * 60 * 1000 }));
+      return;
+    } catch (e) {
+      console.error('Erreur connexion proprio:', e);
+      setErreurProprio("Erreur réseau. Réessayez.");
     }
   }
 
@@ -2001,14 +2000,13 @@ export default function App() {
         setMode("accueil");
         return;
       }
-    } catch (e) { console.error('Erreur connexion locataire:', e); }
-    const nouvellesTentatives = tentativesLocataire + 1;
-    setTentativesLocataire(nouvellesTentatives);
-    if (nouvellesTentatives >= 5) {
-      setBloqueJusquA(prev => ({ ...prev, locataire: Date.now() + 30 * 60 * 1000 }));
-      setAuthErreur("Compte bloqué 30 minutes après 5 tentatives échouées. Utilisez « Mot de passe oublié ».");
-    } else {
-      setAuthErreur(`Email ou mot de passe incorrect. (${nouvellesTentatives}/5 tentatives)`);
+      const d = await rep.json().catch(() => ({}));
+      setAuthErreur(d.error || "Email ou mot de passe incorrect.");
+      if (rep.status === 429) setBloqueJusquA(prev => ({ ...prev, locataire: Date.now() + 30 * 60 * 1000 }));
+      return;
+    } catch (e) {
+      console.error('Erreur connexion locataire:', e);
+      setAuthErreur("Erreur réseau. Réessayez.");
     }
   }
 
@@ -3863,7 +3861,7 @@ export default function App() {
                   const isSoir = h >= 20;
                   let bg, color, border, labelH, cliquable = false;
                   if (res) { bg="#0B6E8A"; color="#fff"; border="2px solid #0B6E8A"; labelH="📅"; }
-                  else if (blocked) { bg="#ffe8b0"; color="#a06000"; border="2px solid #f0c040"; labelH="🔒"; }
+                  else if (blocked) { bg="#ffe8b0"; color="#a06000"; border="2px solid #f0c040"; labelH="🔒 Tampon"; }
                   else if (dispo) { bg=isSoir?"#0d5c75":"#4ECDC4"; color="#fff"; border=`2px solid ${isSoir?"#0d5c75":"#4ECDC4"}`; labelH=isSoir?"✓🌙":"✓"; cliquable=true; }
                   else { bg="#f5f5f5"; color="#bbb"; border="2px dashed #ddd"; labelH="—"; cliquable=true; }
                   return (
