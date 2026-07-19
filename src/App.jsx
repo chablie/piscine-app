@@ -2028,29 +2028,65 @@ export default function App() {
     return { taux: 0, retenu: 0, rembourse: r.totalGeneral||r.prix, label: "Annulation > 48h : remboursement intégral" };
   }
 
-  function annulerParLocataire(ref) {
+  async function annulerParLocataire(ref) {
     const r = reservations.find(x => x.ref === ref);
     if (!r) return;
     const penalite = calculerPenalite(r);
     if (penalite.impossible) return;
-    const updated = { ...r, statut: "annulee", motifAnnulation: annulLocMotif || "Annulation à la demande du locataire", annulationParLocataire: true, penaliteTaux: penalite.taux, montantRetenu: penalite.retenu, montantRembourse: penalite.rembourse };
+    let updated = { ...r, statut: "annulee", motifAnnulation: annulLocMotif || "Annulation à la demande du locataire", annulationParLocataire: true, penaliteTaux: penalite.taux, montantRetenu: penalite.retenu, montantRembourse: penalite.rembourse };
     setReservations(prev => prev.map(x => x.ref === ref ? updated : x));
     sauvegarderReservation(updated);
+    // Remboursement automatique Stripe (montant net après pénalité éventuelle)
+    if (r.paiement?.statut === "paye" && penalite.rembourse > 0) {
+      try {
+        const rep = await fetch('/api/paiement', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+          body: JSON.stringify({ action: 'rembourser', ref, montant: penalite.rembourse }),
+        });
+        if (rep.ok) {
+          const d = await rep.json();
+          updated = { ...updated, paiement: { ...updated.paiement, rembourse: true, montantRembourseStripe: d.montantRembourse } };
+          setReservations(prev => prev.map(x => x.ref === ref ? updated : x));
+        } else {
+          console.error('Remboursement automatique échoué:', await rep.json().catch(() => ({})));
+        }
+      } catch (e) { console.error('Erreur réseau remboursement:', e); }
+    }
     envoyerEmailAnnulation(updated);
     setAnnulLocRef(null); setAnnulLocMotif(""); setAnnulLocConfirm(false);
   }
 
   // ── Remboursement commercial (geste proprio après location) ──
-  function appliquerRemboursement(ref) {
+  async function appliquerRemboursement(ref) {
     const montant = parseFloat(rembMontant);
     if (!montant || montant <= 0) return;
     const fraisGestion = montant * 0.25;
     const netRembourse = montant - fraisGestion;
     const r = reservations.find(x => x.ref === ref);
     if (!r) return;
-    const updated = { ...r, remboursementCommercial: { montantDemande: montant, fraisGestion, netRembourse, date: new Date().toISOString() } };
+    let updated = { ...r, remboursementCommercial: { montantDemande: montant, fraisGestion, netRembourse, date: new Date().toISOString() } };
     setReservations(prev => prev.map(x => x.ref === ref ? updated : x));
     sauvegarderReservation(updated);
+    if (r.paiement?.statut === "paye") {
+      try {
+        const rep = await fetch('/api/paiement', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+          body: JSON.stringify({ action: 'rembourser', ref, montant: netRembourse }),
+        });
+        if (rep.ok) {
+          const d = await rep.json();
+          updated = { ...updated, paiement: { ...updated.paiement, rembourse: true, montantRembourseStripe: d.montantRembourse } };
+          setReservations(prev => prev.map(x => x.ref === ref ? updated : x));
+        } else {
+          const err = await rep.json().catch(() => ({}));
+          console.error('Remboursement commercial échoué:', err);
+          alert(`Le remboursement automatique a échoué (${err.error || "erreur inconnue"}). À faire manuellement depuis Stripe.`);
+        }
+      } catch (e) {
+        console.error('Erreur réseau remboursement:', e);
+        alert("Erreur réseau lors du remboursement. À faire manuellement depuis Stripe si besoin.");
+      }
+    }
     setRembRef(null); setRembMontant("");
   }
 
@@ -2326,15 +2362,30 @@ export default function App() {
   }
 
   // Annulation d'une réservation déjà acceptée (initiative propriétaire ou demande locataire relayée)
-  function annulerReservation(ref, motif, origineLocataire) {
-    setReservations(prev => {
-      const next = prev.map(r => r.ref === ref ? { ...r, statut: "annulee", motifAnnulation: motif || "", annulationParLocataire: !!origineLocataire } : r);
-      const updated = next.find(r => r.ref === ref);
-      if (updated) { sauvegarderReservation(updated); envoyerEmailAnnulation(updated); }
-      return next;
-    });
-    // Note : si un paiement a déjà été réglé, le remboursement (total ou partiel selon
-    // les pénalités) se fait depuis le tableau de bord Stripe pour l'instant
+  async function annulerReservation(ref, motif, origineLocataire) {
+    const r = reservations.find(x => x.ref === ref);
+    if (!r) return;
+    let updated = { ...r, statut: "annulee", motifAnnulation: motif || "", annulationParLocataire: !!origineLocataire };
+    setReservations(prev => prev.map(x => x.ref === ref ? updated : x));
+    sauvegarderReservation(updated);
+    // Remboursement automatique intégral si la réservation était déjà payée
+    // (annulation à l'initiative du propriétaire = pas de pénalité pour le client)
+    if (r.paiement?.statut === "paye") {
+      try {
+        const rep = await fetch('/api/paiement', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+          body: JSON.stringify({ action: 'rembourser', ref }), // pas de "montant" → remboursement intégral
+        });
+        if (rep.ok) {
+          const d = await rep.json();
+          updated = { ...updated, paiement: { ...updated.paiement, rembourse: true, montantRembourseStripe: d.montantRembourse } };
+          setReservations(prev => prev.map(x => x.ref === ref ? updated : x));
+        } else {
+          console.error('Remboursement automatique échoué:', await rep.json().catch(() => ({})));
+        }
+      } catch (e) { console.error('Erreur réseau remboursement:', e); }
+    }
+    envoyerEmailAnnulation(updated);
   }
 
   function cloturerSession() {
@@ -4241,6 +4292,11 @@ export default function App() {
                       <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 13 }}>{r.ref}</div>
                       <div style={{ display:"flex", gap:4, flexWrap:"wrap", justifyContent:"flex-end" }}>
                         {/* Badge paiement */}
+                        {r.paiement?.rembourse && (
+                          <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#f0e6ff", color:"#6b3fa0", border:"1px solid #b088e0" }} title={r.paiement.dateRemboursement ? new Date(r.paiement.dateRemboursement).toLocaleDateString("fr-FR") : ""}>
+                            ↩️ Remboursée {formatEur(r.paiement.montantRembourseStripe)}
+                          </span>
+                        )}
                         {r.paiement && (
                           r.paiement.statut === "paye"
                             ? <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#e6faf8", color:"#0B6E8A", border:"1px solid #4ECDC4" }}>💳 Payée</span>
@@ -4312,11 +4368,33 @@ export default function App() {
                             style={{ ...inp, height:60, resize:"vertical", fontSize:12, marginBottom:8 }}/>
                           <div style={{ display:"flex", gap:8 }}>
                             <button style={{ flex:1, padding:"9px", borderRadius:8, background:"#FF6B6B", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}
-                              onClick={() => {
+                              onClick={async () => {
                                 const montantRemb = annulationParLocataireVal && !pen.impossible ? pen.rembourse : (r.totalGeneral||r.prix);
                                 const montantRet = annulationParLocataireVal && !pen.impossible ? pen.retenu : 0;
-                                const updated = { ...r, statut:"annulee", motifAnnulation: motifAnnulVal||"", annulationParLocataire: annulationParLocataireVal, montantRetenu: montantRet, montantRembourse: montantRemb, penaliteTaux: annulationParLocataireVal && !pen.impossible ? pen.taux : 0 };
-                                setReservations(prev => { const next = prev.map(x => x.ref===r.ref?updated:x); sauvegarderReservation(updated); return next; });
+                                let updated = { ...r, statut:"annulee", motifAnnulation: motifAnnulVal||"", annulationParLocataire: annulationParLocataireVal, montantRetenu: montantRet, montantRembourse: montantRemb, penaliteTaux: annulationParLocataireVal && !pen.impossible ? pen.taux : 0 };
+                                setReservations(prev => prev.map(x => x.ref===r.ref?updated:x));
+                                sauvegarderReservation(updated);
+                                // Remboursement automatique Stripe si déjà payée
+                                if (r.paiement?.statut === "paye" && montantRemb > 0) {
+                                  try {
+                                    const rep = await fetch('/api/paiement', {
+                                      method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+                                      body: JSON.stringify({ action: 'rembourser', ref: r.ref, montant: montantRemb }),
+                                    });
+                                    if (rep.ok) {
+                                      const d = await rep.json();
+                                      updated = { ...updated, paiement: { ...updated.paiement, rembourse: true, montantRembourseStripe: d.montantRembourse } };
+                                      setReservations(prev => prev.map(x => x.ref===r.ref?updated:x));
+                                    } else {
+                                      const err = await rep.json().catch(()=>({}));
+                                      console.error('Remboursement automatique échoué:', err);
+                                      alert(`Le remboursement automatique a échoué (${err.error || "erreur inconnue"}). À faire manuellement depuis Stripe.`);
+                                    }
+                                  } catch (e) {
+                                    console.error('Erreur réseau remboursement:', e);
+                                    alert("Erreur réseau lors du remboursement. À faire manuellement depuis Stripe si besoin.");
+                                  }
+                                }
                                 envoyerEmailAnnulation(updated);
                                 setAnnulEnCoursRef(null); setMotifAnnulVal(""); setAnnulationParLocataireVal(false);
                               }}>

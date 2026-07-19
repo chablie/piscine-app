@@ -139,6 +139,16 @@ export async function envoyerEmailRefus(reservation) {
 
 // ─── Email : réservation annulée après acceptation (au locataire) ───────────
 export async function envoyerEmailAnnulation(reservation) {
+  const montantRembourse = reservation.paiement?.rembourse ? reservation.paiement.montantRembourseStripe : (reservation.montantRembourse ?? null);
+  const dejaPayeMaisPasRembourse = reservation.paiement?.statut === "paye" && !reservation.paiement?.rembourse;
+  let texteRemboursement;
+  if (montantRembourse != null && reservation.paiement?.rembourse) {
+    texteRemboursement = `Vous avez été remboursé(e) de <strong>${formatEurEmail(montantRembourse)}</strong> sur votre moyen de paiement d'origine (délai habituel de quelques jours selon votre banque).`;
+  } else if (dejaPayeMaisPasRembourse) {
+    texteRemboursement = "Votre remboursement est en cours de traitement, vous recevrez une confirmation séparée.";
+  } else {
+    texteRemboursement = "Aucune somme n'avait été prélevée, vous n'avez rien à faire.";
+  }
   const html = enveloppe(`
     <h2 style="color: #FF6B6B; margin-top: 0;">🚫 Réservation annulée</h2>
     <p style="color: #2C3E50; font-size: 14px;">Bonjour ${reservation.prenom}, votre réservation pourtant confirmée a dû être annulée :</p>
@@ -148,7 +158,7 @@ export async function envoyerEmailAnnulation(reservation) {
       ${ligneInfo('Créneau', `${formatHeureEmail(reservation.heureDebut)} → ${formatHeureEmail(reservation.heureFin)}`)}
     </table>
     ${reservation.motifAnnulation ? `<p style="color: #2C3E50; font-size: 14px; font-style: italic;">"${reservation.motifAnnulation}"</p>` : ''}
-    <p style="color: #2C3E50; font-size: 14px;">Vous serez remboursé(e) intégralement. Nous sommes désolés pour la gêne occasionnée.</p>
+    <p style="color: #2C3E50; font-size: 14px;">${texteRemboursement} Nous sommes désolés pour la gêne occasionnée.</p>
   `);
   return envoyerEmail(reservation.email, `Réservation annulée — ${reservation.ref}`, html);
 }

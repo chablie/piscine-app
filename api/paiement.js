@@ -1,16 +1,26 @@
 // Fonction serverless Vercel : POST /api/paiement
-// Un seul point d'entrée pour la création du lien de paiement Stripe, envoyé
-// au locataire après validation de sa demande par le propriétaire. Le
-// créneau n'est garanti qu'une fois ce paiement confirmé (voir statutHeures
-// côté client et la résolution de conflit dans api/stripe-webhook.js).
+// Deux points d'entrée :
+//   - creer-lien-paiement : lien de paiement Stripe envoyé après acceptation.
+//   - rembourser : remboursement (total ou partiel) d'une réservation déjà
+//     payée, déclenché automatiquement lors d'une annulation. Protégé par
+//     session (propriétaire/admin uniquement) car c'est un mouvement d'argent réel.
 
-import { selectUn } from '../lib/supabaseAdmin.js';
+import { selectUn, upsert } from '../lib/supabaseAdmin.js';
+import { sessionDepuisRequete } from '../lib/session.js';
 
 const SITE_URL = "https://mypiscineprivee.com";
 
 async function lireReservation(ref) {
   const row = await selectUn('reservations', 'ref', ref, 'data');
   return row ? row.data : null;
+}
+
+async function ecrireReservation(ref, data) {
+  await upsert('reservations', {
+    ref, data,
+    date: data.date, email: data.email, statut: data.statut || 'en_attente',
+    updated_at: new Date().toISOString(),
+  });
 }
 
 function montantAregler(r) {
@@ -50,6 +60,44 @@ export default async function handler(req, res) {
       const lien = await lienRep.json();
       if (!lienRep.ok) { console.error('Erreur Stripe (payment_link):', lien); return res.status(502).json({ error: lien.error?.message || 'Erreur Stripe (lien)' }); }
       return res.status(200).json({ url: lien.url, montant, lienId: lien.id });
+    }
+
+    // ── rembourser : remboursement total ou partiel d'une réservation payée ──
+    if (action === 'rembourser') {
+      const SESSION_SECRET = process.env.SESSION_SECRET;
+      if (!SESSION_SECRET) return res.status(500).json({ error: 'Configuration serveur manquante' });
+      const session = sessionDepuisRequete(req, ['proprio', 'admin'], SESSION_SECRET);
+      if (!session) return res.status(401).json({ error: 'Non authentifié' });
+
+      if (r.paiement?.statut !== 'paye') return res.status(400).json({ error: "Cette réservation n'a pas été payée, rien à rembourser." });
+      const paymentIntentId = r.paiement?.paymentIntentId;
+      if (!paymentIntentId) return res.status(400).json({ error: "Identifiant de paiement introuvable — remboursement à faire manuellement depuis Stripe." });
+      if (r.paiement?.rembourse) return res.status(409).json({ error: 'Cette réservation a déjà été remboursée.' });
+
+      const montantPaye = Number(r.paiement.montantPaye ?? r.paiement.montant ?? 0);
+      const montantDemande = req.body.montant != null ? Number(req.body.montant) : montantPaye;
+      if (!montantDemande || montantDemande <= 0 || montantDemande > montantPaye + 0.01) {
+        return res.status(400).json({ error: `Montant de remboursement invalide (entre 0,01 € et ${montantPaye} €).` });
+      }
+      const centimes = Math.round(montantDemande * 100);
+
+      const remboursBody = new URLSearchParams({ payment_intent: paymentIntentId, amount: String(centimes) });
+      const remboursRep = await fetch('https://api.stripe.com/v1/refunds', { method: 'POST', headers: stripeHeaders, body: remboursBody });
+      const rembours = await remboursRep.json();
+      if (!remboursRep.ok) { console.error('Erreur Stripe (refund):', rembours); return res.status(502).json({ error: rembours.error?.message || 'Erreur Stripe (remboursement)' }); }
+
+      const data = {
+        ...r,
+        paiement: {
+          ...r.paiement,
+          rembourse: true,
+          montantRembourseStripe: montantDemande,
+          dateRemboursement: new Date().toISOString(),
+          refundId: rembours.id,
+        },
+      };
+      await ecrireReservation(ref, data);
+      return res.status(200).json({ ok: true, montantRembourse: montantDemande, refundId: rembours.id });
     }
 
     return res.status(400).json({ error: 'Action inconnue' });
