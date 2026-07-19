@@ -1441,6 +1441,7 @@ export default function App() {
           } else if (s.role === 'locataire' && s.email) {
             setComptes(prev => ({ ...prev, [s.email]: s.compte }));
             setCompteConnecte(s.email);
+            setForm(f => ({ ...f, prenom: s.compte.prenom || "", nom: s.compte.nom || "", email: s.email, telephone: s.compte.telephone || "" }));
             if (modeSauve === 'compte') setMode('compte');
           }
         }
