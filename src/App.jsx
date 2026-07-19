@@ -4767,7 +4767,7 @@ export default function App() {
             )}
           </div>
           {/* Récap extras */}
-          {totalExtras > 0 && (
+          {Object.values(extrasChoisis).some(q => q > 0) && (
             <div style={{ background: "#f0fafc", borderRadius: 10, padding: "12px 14px", marginBottom: 12, border: "1px solid #b0d8e3" }}>
               <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 13, marginBottom: 8 }}>🎁 Extras sélectionnés</div>
               {extras.filter(e => extrasChoisis[e.id] > 0).map(e => {
