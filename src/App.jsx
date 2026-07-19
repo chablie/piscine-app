@@ -7,6 +7,7 @@ import {
   chargerInventaire, sauvegarderInventaireItem, supprimerInventaireItem,
   chargerElementsEdl, sauvegarderElementsEdl,
   chargerExtras, sauvegarderExtras,
+  chargerBanqueImages, sauvegarderImageBanque, supprimerImageBanque,
   chargerCodesPromo, sauvegarderCodePromo,
   chargerNotesLocataires, sauvegarderNoteLocataire,
   chargerConfig, sauvegarderConfig,
@@ -42,6 +43,21 @@ const FORMULES_GROUPE = {
   groupe10: { label: "Formule Groupe — 10 personnes max", maxPersonnes: 10, dureeSlots: 6, prix: 150 },
   groupe5: { label: "Formule Groupe — 5 adultes max", maxAdultes: 5, dureeSlots: 6, prix: 75 },
 };
+
+// Liste historique des extras proposés sur Swimmy (ancienne annonce), à
+// rajouter en complément des extras déjà en place dans l'app.
+const EXTRAS_SWIMMY = [
+  { id:"e1", nom:"Option Zéro Vis à Vis", description:"Jardin + terrasse privatisés pour votre session. Aucun regard extérieur.", tarif:15, type:"forfait", emoji:"🌿", actif:true },
+  { id:"swk_serviettes", nom:"Serviettes", description:"Serviette de piscine fournie par personne.", tarif:5, type:"personne", emoji:"🏖️", actif:true },
+  { id:"swk_molkky", nom:"Molkky", description:"Jeu de quilles finlandais à disposition pour toute la session.", tarif:2, type:"forfait", emoji:"🎯", actif:true },
+  { id:"swk_bouee_adultes", nom:"Bouée adultes", description:"Bouée gonflable format adulte.", tarif:2, type:"personne", emoji:"🔵", actif:true },
+  { id:"swk_bouee_enfant", nom:"Bouée enfant", description:"Bouée gonflable format enfant.", tarif:2, type:"personne", emoji:"🟠", actif:true },
+  { id:"swk_brassard_enfants", nom:"Brassard enfants", description:"Paire de brassards de sécurité enfant.", tarif:2, type:"personne", emoji:"🦺", actif:true },
+  { id:"swk_brassard_adulte", nom:"Brassard adulte", description:"Paire de brassards de sécurité adulte.", tarif:2, type:"personne", emoji:"🦺", actif:true },
+  { id:"swk_velo", nom:"Vélo enfants, adultes", description:"Vélo à disposition, tailles enfant et adulte.", tarif:2, type:"personne", emoji:"🚲", actif:true },
+  { id:"swk_hautparleur", nom:"Haut parleur Perf Roseland", description:"Enceinte bluetooth mise à disposition pour la session.", tarif:5, type:"forfait", emoji:"🔊", actif:true },
+  { id:"swk_transat", nom:"Transat flottant", description:"Transat gonflable flottant pour se relaxer sur l'eau.", tarif:2, type:"personne", emoji:"🛶", actif:true },
+];
 
 const EXTRAS_DEFAUT = [
   { id:"e1", nom:"Zéro vis-à-vis", description:"Jardin + terrasse privatisés pour votre session. Aucun regard extérieur.", tarif:15, type:"forfait", emoji:"🌿", actif:true },
@@ -1438,6 +1454,9 @@ export default function App() {
   }, []);
   // Extras configurables
   const [extras, setExtras] = useState(EXTRAS_DEFAUT);
+  const [banqueImages, setBanqueImages] = useState([]);
+  const [nouvelleImageBanque, setNouvelleImageBanque] = useState(null); // { url, nom } en attente de confirmation
+  const [choixImageExtraId, setChoixImageExtraId] = useState(null); // id de l'extra en cours de sélection d'image (mode ajout ou édition)
 
   // ── Chargement initial depuis Supabase ──
   useEffect(() => {
@@ -1446,13 +1465,15 @@ export default function App() {
       try {
         const [
           annonceData, dispoData, resaData, comptesData,
-          inventaireData, elementsData, extrasData, codesData, notesData, configData
+          inventaireData, elementsData, extrasData, codesData, notesData, configData, banqueImagesData
         ] = await Promise.all([
           chargerAnnonce(), chargerDisponibilites(), chargerReservations(), chargerComptes(),
           chargerInventaire(), chargerElementsEdl(), chargerExtras(), chargerCodesPromo(),
-          chargerNotesLocataires(), chargerConfig(),
+          chargerNotesLocataires(), chargerConfig(), chargerBanqueImages(),
         ]);
         if (annule) return;
+
+        setBanqueImages(banqueImagesData || []);
 
         if (annonceData) setAnnonce(annonceData);
         else { await sauvegarderAnnonce(ANNONCE_DEFAUT); } // première initialisation
@@ -1632,7 +1653,7 @@ export default function App() {
   const [motifAnnulVal, setMotifAnnulVal] = useState("");
   const [annulationParLocataireVal, setAnnulationParLocataireVal] = useState(false);
   const [motifRefusVal, setMotifRefusVal] = useState("");
-  const [nouvelExtra, setNouvelExtra] = useState({ nom:"", description:"", tarif:0, type:"forfait", emoji:"✨", actif:true });
+  const [nouvelExtra, setNouvelExtra] = useState({ nom:"", description:"", tarif:0, type:"forfait", emoji:"✨", image:null, actif:true });
   const [ajoutExtraMode, setAjoutExtraMode] = useState(false);
   const [extraEnEdition, setExtraEnEdition] = useState(null);
   const [periodeDebut, setPeriodeDebut] = useState("");
@@ -3865,6 +3886,53 @@ export default function App() {
 
           {ongletPropri === "extras" && (
             <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"20px 16px", marginBottom:14 }}>
+              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", marginBottom:4, fontWeight:700 }}>🖼️ Banque d'images</div>
+              <div style={{ fontSize:12, color:"#5a8a96", marginBottom:12, lineHeight:1.5 }}>
+                Ajoute des photos une fois, réutilise-les ensuite sur n'importe quel extra.
+              </div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:10, marginBottom:12 }}>
+                {banqueImages.map(img => (
+                  <div key={img.id} style={{ position:"relative", width:72 }}>
+                    <img src={img.url} alt={img.nom} style={{ width:72, height:72, borderRadius:10, objectFit:"cover", border:"1.5px solid #b0d8e3" }} />
+                    <div style={{ fontSize:9, color:"#5a8a96", textAlign:"center", marginTop:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{img.nom}</div>
+                    <button onClick={()=>{ if (window.confirm(`Supprimer l'image "${img.nom}" de la banque ? Les extras qui l'utilisent garderont leur photo actuelle, mais tu ne pourras plus la choisir pour de nouveaux extras.`)) { supprimerImageBanque(img.id); setBanqueImages(prev=>prev.filter(i=>i.id!==img.id)); } }}
+                      style={{ position:"absolute", top:-6, right:-6, width:20, height:20, borderRadius:"50%", background:"#fff", border:"1.5px solid #FF6B6B", color:"#FF6B6B", fontSize:11, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", padding:0 }}>✕</button>
+                  </div>
+                ))}
+                {banqueImages.length === 0 && <div style={{ fontSize:12, color:"#bbb" }}>Aucune image pour l'instant.</div>}
+              </div>
+              <label style={{ display:"inline-block", padding:"9px 16px", borderRadius:9, background:"#0B6E8A", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                📤 Ajouter une image
+                <input type="file" accept="image/*" style={{ display:"none" }} onChange={e => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  const r = new FileReader();
+                  r.onload = () => setNouvelleImageBanque({ url: r.result, nom: file.name.replace(/\.[^.]+$/, "") });
+                  r.readAsDataURL(file);
+                  e.target.value = "";
+                }} />
+              </label>
+              {nouvelleImageBanque && (
+                <div style={{ marginTop:10, background:"#f0fafc", borderRadius:10, padding:12, border:"1px solid #b0d8e3" }}>
+                  <img src={nouvelleImageBanque.url} alt="" style={{ width:80, height:80, borderRadius:8, objectFit:"cover", marginBottom:8 }} />
+                  <input value={nouvelleImageBanque.nom} onChange={e=>setNouvelleImageBanque(prev=>({...prev, nom:e.target.value}))}
+                    placeholder="Nom de l'image" style={{ width:"100%", padding:"8px 10px", borderRadius:7, border:"1.5px solid #b0d8e3", fontSize:13, boxSizing:"border-box", marginBottom:8 }} />
+                  <div style={{ display:"flex", gap:8 }}>
+                    <button onClick={()=>{
+                        const id = "img_"+Date.now();
+                        sauvegarderImageBanque(id, nouvelleImageBanque.nom || "Sans nom", nouvelleImageBanque.url);
+                        setBanqueImages(prev=>[{ id, nom: nouvelleImageBanque.nom || "Sans nom", url: nouvelleImageBanque.url }, ...prev]);
+                        setNouvelleImageBanque(null);
+                      }} style={{ flex:1, padding:"8px", borderRadius:7, background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>✓ Enregistrer</button>
+                    <button onClick={()=>setNouvelleImageBanque(null)} style={{ padding:"8px 14px", borderRadius:7, background:"transparent", color:"#5a8a96", border:"1.5px solid #ddd", fontWeight:600, fontSize:13, cursor:"pointer" }}>Annuler</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {ongletPropri === "extras" && (
+            <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"20px 16px", marginBottom:14 }}>
               <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>🎁 Gérer les extras</div>
 
               {extras.map((e, i) => (
@@ -3889,6 +3957,33 @@ export default function App() {
                         <textarea style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:12, border:"1.5px solid #b0d8e3", boxSizing:"border-box", height:60, resize:"vertical" }} value={e.description}
                           onChange={ev=>setExtras(prev=>prev.map((x,j)=>j===i?{...x,description:ev.target.value}:x))}/>
                       </div>
+                      <div style={{ marginBottom:8 }}>
+                        <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Image (optionnel, remplace l'emoji)</label>
+                        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                          {e.image ? (
+                            <img src={e.image} alt="" style={{ width:44, height:44, borderRadius:8, objectFit:"cover" }} />
+                          ) : (
+                            <div style={{ width:44, height:44, borderRadius:8, background:"#fff", border:"1.5px dashed #b0d8e3", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>{e.emoji}</div>
+                          )}
+                          <button onClick={()=>setChoixImageExtraId(choixImageExtraId===e.id?null:e.id)} style={{ padding:"7px 12px", borderRadius:7, background:"#e6faf8", color:"#0B6E8A", border:"1.5px solid #4ECDC4", fontWeight:600, fontSize:12, cursor:"pointer" }}>
+                            🖼️ Choisir dans la banque
+                          </button>
+                          {e.image && (
+                            <button onClick={()=>setExtras(prev=>prev.map((x,j)=>j===i?{...x,image:null}:x))} style={{ padding:"7px 12px", borderRadius:7, background:"transparent", color:"#FF6B6B", border:"1.5px solid #FF6B6B", fontWeight:600, fontSize:12, cursor:"pointer" }}>
+                            Retirer
+                          </button>
+                          )}
+                        </div>
+                        {choixImageExtraId === e.id && (
+                          <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginTop:10, background:"#fff", borderRadius:8, padding:10, border:"1px solid #e0e0e0" }}>
+                            {banqueImages.length === 0 && <div style={{ fontSize:12, color:"#bbb" }}>Banque vide — ajoute des images dans la carte ci-dessus.</div>}
+                            {banqueImages.map(img => (
+                              <img key={img.id} src={img.url} alt={img.nom} title={img.nom} onClick={()=>{ setExtras(prev=>prev.map((x,j)=>j===i?{...x,image:img.url}:x)); setChoixImageExtraId(null); }}
+                                style={{ width:52, height:52, borderRadius:7, objectFit:"cover", cursor:"pointer", border: e.image===img.url ? "2px solid #0B6E8A" : "1.5px solid #ddd" }} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
                         <div>
                           <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Tarif (€)</label>
@@ -3912,7 +4007,7 @@ export default function App() {
                   ) : (
                     /* Mode affichage */
                     <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                      <div style={{ fontSize:26, flexShrink:0 }}>{e.emoji}</div>
+                      {e.image ? <img src={e.image} alt="" style={{ width:36, height:36, borderRadius:8, objectFit:"cover", flexShrink:0 }} /> : <div style={{ fontSize:26, flexShrink:0 }}>{e.emoji}</div>}
                       <div style={{ flex:1 }}>
                         <div style={{ fontWeight:700, fontSize:14, color:"#2C3E50" }}>{e.nom}</div>
                         <div style={{ fontSize:11, color:"#5a8a96", marginTop:1 }}>
@@ -3960,6 +4055,31 @@ export default function App() {
                     <textarea style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:12, border:"1.5px solid #b0d8e3", boxSizing:"border-box", height:55, resize:"vertical" }} value={nouvelExtra.description}
                       placeholder="Ce qui est inclus..." onChange={e=>setNouvelExtra(p=>({...p,description:e.target.value}))}/>
                   </div>
+                  <div style={{ marginBottom:8 }}>
+                    <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Image (optionnel, remplace l'emoji)</label>
+                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                      {nouvelExtra.image ? (
+                        <img src={nouvelExtra.image} alt="" style={{ width:44, height:44, borderRadius:8, objectFit:"cover" }} />
+                      ) : (
+                        <div style={{ width:44, height:44, borderRadius:8, background:"#f9f9f9", border:"1.5px dashed #b0d8e3", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>{nouvelExtra.emoji}</div>
+                      )}
+                      <button onClick={()=>setChoixImageExtraId(choixImageExtraId==="__nouveau__"?null:"__nouveau__")} style={{ padding:"7px 12px", borderRadius:7, background:"#e6faf8", color:"#0B6E8A", border:"1.5px solid #4ECDC4", fontWeight:600, fontSize:12, cursor:"pointer" }}>
+                        🖼️ Choisir dans la banque
+                      </button>
+                      {nouvelExtra.image && (
+                        <button onClick={()=>setNouvelExtra(p=>({...p,image:null}))} style={{ padding:"7px 12px", borderRadius:7, background:"transparent", color:"#FF6B6B", border:"1.5px solid #FF6B6B", fontWeight:600, fontSize:12, cursor:"pointer" }}>Retirer</button>
+                      )}
+                    </div>
+                    {choixImageExtraId === "__nouveau__" && (
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginTop:10, background:"#f9f9f9", borderRadius:8, padding:10, border:"1px solid #e0e0e0" }}>
+                        {banqueImages.length === 0 && <div style={{ fontSize:12, color:"#bbb" }}>Banque vide — ajoute des images dans la carte ci-dessus.</div>}
+                        {banqueImages.map(img => (
+                          <img key={img.id} src={img.url} alt={img.nom} title={img.nom} onClick={()=>{ setNouvelExtra(p=>({...p,image:img.url})); setChoixImageExtraId(null); }}
+                            style={{ width:52, height:52, borderRadius:7, objectFit:"cover", cursor:"pointer", border: nouvelExtra.image===img.url ? "2px solid #0B6E8A" : "1.5px solid #ddd" }} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
                     <div>
                       <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Tarif (€)</label>
@@ -3979,7 +4099,7 @@ export default function App() {
                     <button style={{ flex:1, padding:"9px", borderRadius:9, background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:14, cursor:"pointer" }} onClick={()=>{
                       if(!nouvelExtra.nom) return;
                       setExtras(prev=>[...prev,{...nouvelExtra,id:"e"+Date.now()}]);
-                      setNouvelExtra({nom:"",description:"",tarif:0,type:"forfait",emoji:"✨",actif:true});
+                      setNouvelExtra({nom:"",description:"",tarif:0,type:"forfait",emoji:"✨",image:null,actif:true});
                       setAjoutExtraMode(false);
                     }}>Ajouter</button>
                     <button style={{ padding:"9px 16px", borderRadius:9, background:"transparent", color:"#0B6E8A", border:"2px solid #0B6E8A", fontWeight:700, fontSize:14, cursor:"pointer" }} onClick={()=>setAjoutExtraMode(false)}>Annuler</button>
@@ -3999,6 +4119,17 @@ export default function App() {
                     }
                   }}>
                   ♻️ Restaurer les extras d'origine manquants ({EXTRAS_DEFAUT.filter(def => !extras.some(e => e.id === def.id)).length})
+                </button>
+              )}
+              {EXTRAS_SWIMMY.some(sw => !extras.some(e => e.id === sw.id)) && (
+                <button style={{ width:"100%", padding:"10px", borderRadius:9, background:"#e6faf8", color:"#0B6E8A", border:"1.5px solid #4ECDC4", fontWeight:700, fontSize:13, cursor:"pointer", marginTop:8 }}
+                  onClick={()=>{
+                    const aAjouter = EXTRAS_SWIMMY.filter(sw => !extras.some(e => e.id === sw.id));
+                    if (window.confirm(`Ajouter ${aAjouter.length} extra(s) issus de ton ancienne annonce Swimmy : ${aAjouter.map(m=>m.nom).join(", ")} ?\n\nTes extras actuels (Barbecue, Hamac flottant...) seront conservés tels quels.`)) {
+                      setExtras(prev => [...prev, ...aAjouter]);
+                    }
+                  }}>
+                  📥 Ajouter les extras de mon ancienne annonce Swimmy ({EXTRAS_SWIMMY.filter(sw => !extras.some(e => e.id === sw.id)).length})
                 </button>
               )}
             </div>
@@ -4487,7 +4618,7 @@ export default function App() {
               <div key={e.id} style={{ borderRadius:13, marginBottom:12, border: offert ? "2px solid #4ECDC4" : sel ? "2px solid #0B6E8A" : "2px solid #e0e0e0", background: offert ? "#f0fffb" : sel ? "#f0fafc" : "#fff", overflow:"hidden" }}>
                 {/* En-tête */}
                 <div style={{ display:"flex", alignItems:"flex-start", gap:12, padding:"14px 14px 10px" }}>
-                  <div style={{ fontSize:28, flexShrink:0 }}>{e.emoji}</div>
+                  {e.image ? <img src={e.image} alt="" style={{ width:38, height:38, borderRadius:8, objectFit:"cover", flexShrink:0 }} /> : <div style={{ fontSize:28, flexShrink:0 }}>{e.emoji}</div>}
                   <div style={{ flex:1 }}>
                     <div style={{ fontWeight:700, fontSize:14, color:"#2C3E50", display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
                       {e.nom}

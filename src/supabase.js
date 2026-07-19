@@ -230,6 +230,24 @@ export async function supprimerTousCodesPromo() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+// BANQUE D'IMAGES (réutilisable pour illustrer les extras)
+// ═══════════════════════════════════════════════════════════════════════
+export async function chargerBanqueImages() {
+  const { data, error } = await supabase.from('banque_images').select('id, nom, url').order('updated_at', { ascending: false });
+  if (error) { console.error('chargerBanqueImages', error); return []; }
+  return data || [];
+}
+
+export async function sauvegarderImageBanque(id, nom, url) {
+  return proprioAction('banque_images', 'upsert', { ligne: { id, nom, url, updated_at: new Date().toISOString() } });
+}
+
+export async function supprimerImageBanque(id) {
+  return proprioAction('banque_images', 'delete', { cle: 'id', cleValeur: id });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // TEMPS RÉEL : s'abonner aux changements sur une table
 // ═══════════════════════════════════════════════════════════════════════
 export function ecouterReservations(callback) {

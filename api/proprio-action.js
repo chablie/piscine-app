@@ -19,6 +19,7 @@ const TABLES = {
   notes_locataires: 'reservation_ref',
   config: 'id',
   reservations: 'ref',
+  banque_images: 'id',
 };
 
 export default async function handler(req, res) {
