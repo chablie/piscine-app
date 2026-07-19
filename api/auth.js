@@ -24,25 +24,38 @@ const DUREE_BLOCAGE_MS = 30 * 60 * 1000; // 30 minutes
 
 // Vérifie si l'identifiant est actuellement bloqué. Renvoie le nombre de
 // minutes restantes si bloqué, ou null si l'accès est autorisé.
+// Fail-open : si la table est absente ou en erreur, on n'empêche jamais une
+// connexion légitime — l'anti-bruteforce est une protection additionnelle,
+// pas un point de défaillance pour l'authentification elle-même.
 async function verifierBlocage(id) {
-  const row = await selectUn('tentatives_connexion', 'id', id, 'compteur,bloque_jusqua');
-  if (!row || !row.bloque_jusqua) return null;
-  const finBlocage = new Date(row.bloque_jusqua).getTime();
-  if (finBlocage <= Date.now()) return null; // le blocage a expiré
-  return Math.ceil((finBlocage - Date.now()) / 60000);
+  try {
+    const row = await selectUn('tentatives_connexion', 'id', id, 'compteur,bloque_jusqua');
+    if (!row || !row.bloque_jusqua) return null;
+    const finBlocage = new Date(row.bloque_jusqua).getTime();
+    if (finBlocage <= Date.now()) return null; // le blocage a expiré
+    return Math.ceil((finBlocage - Date.now()) / 60000);
+  } catch (e) {
+    console.error('verifierBlocage (ignoré, fail-open):', e.message);
+    return null;
+  }
 }
 
 // Enregistre une tentative échouée ; bloque l'identifiant après MAX_TENTATIVES
 async function enregistrerEchec(id) {
-  const row = await selectUn('tentatives_connexion', 'id', id, 'compteur').catch(() => null);
-  const compteur = (row?.compteur || 0) + 1;
-  const bloque = compteur >= MAX_TENTATIVES;
-  await upsert('tentatives_connexion', {
-    id, compteur,
-    bloque_jusqua: bloque ? new Date(Date.now() + DUREE_BLOCAGE_MS).toISOString() : null,
-    updated_at: new Date().toISOString(),
-  });
-  return { compteur, bloque };
+  try {
+    const row = await selectUn('tentatives_connexion', 'id', id, 'compteur').catch(() => null);
+    const compteur = (row?.compteur || 0) + 1;
+    const bloque = compteur >= MAX_TENTATIVES;
+    await upsert('tentatives_connexion', {
+      id, compteur,
+      bloque_jusqua: bloque ? new Date(Date.now() + DUREE_BLOCAGE_MS).toISOString() : null,
+      updated_at: new Date().toISOString(),
+    });
+    return { compteur, bloque };
+  } catch (e) {
+    console.error('enregistrerEchec (ignoré, fail-open):', e.message);
+    return { compteur: 0, bloque: false };
+  }
 }
 
 // Réinitialise le compteur après une connexion réussie
