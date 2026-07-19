@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   chargerAnnonce, sauvegarderAnnonce,
   chargerDisponibilites, sauvegarderDisponibilites, supprimerDateDisponibilite,
@@ -1244,8 +1244,13 @@ export default function App() {
   const [mode, setMode] = useState("accueil"); // accueil | locataire | proprio | auth | compte
   // Persiste la page affichée pour la retrouver après un F5 (uniquement les
   // pages "sûres" à restaurer sans données transitoires — pas le tunnel de
-  // réservation ni l'état des lieux, qui repartent proprement de l'accueil)
+  // réservation ni l'état des lieux, qui repartent proprement de l'accueil).
+  // On ignore le tout premier rendu (mode="accueil" par défaut, avant même
+  // que la vérification de session ait pu lire et restaurer la valeur
+  // sauvegardée) pour ne pas l'effacer prématurément.
+  const premierRenduMode = useRef(true);
   useEffect(() => {
+    if (premierRenduMode.current) { premierRenduMode.current = false; return; }
     if (mode === "compte" || mode === "proprio") sessionStorage.setItem('sp_mode', mode);
     else sessionStorage.removeItem('sp_mode');
   }, [mode]);
