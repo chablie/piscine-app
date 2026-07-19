@@ -35,6 +35,14 @@ const REGLEMENT = `RÈGLEMENT INTÉRIEUR – PISCINE PRIVÉE
 
 const MOBILIER = ["Transat 1","Transat 2","Transat 3","Transat 4","Table basse","Parasol","Douche extérieure","Portail d'accès","Local technique","Escalier piscine"];
 
+// Tarifs de groupe spéciaux : forfait fixe (3h), équivalent à 5€/pers/h.
+// Sélectionner une formule désactive la remise fidélité par tranche, mais
+// l'extra "Zéro vis-à-vis" reste offert (le forfait dépasse toujours 30€).
+const FORMULES_GROUPE = {
+  groupe10: { label: "Formule Groupe — 10 personnes max", maxPersonnes: 10, dureeSlots: 6, prix: 150 },
+  groupe5: { label: "Formule Groupe — 5 adultes max", maxAdultes: 5, dureeSlots: 6, prix: 75 },
+};
+
 const EXTRAS_DEFAUT = [
   { id:"e1", nom:"Zéro vis-à-vis", description:"Jardin + terrasse privatisés pour votre session. Aucun regard extérieur.", tarif:15, type:"forfait", emoji:"🌿", actif:true },
   { id:"e2", nom:"Barbecue", description:"Barbecue à charbon mis à disposition avec allumage. Charbon inclus.", tarif:5, type:"personne", emoji:"🍖", actif:true },
@@ -555,7 +563,7 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
   return (
     <div>
       <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 10, lineHeight: 1.5 }}>
-        Tapez sur les créneaux de <strong style={{color:"#0B6E8A"}}>30 minutes</strong> libres pour les sélectionner. Les créneaux doivent être consécutifs, avec un minimum d'<strong style={{color:"#0B6E8A"}}>1 heure</strong> de réservation.
+        Chaque bouton représente un bloc de <strong style={{color:"#0B6E8A"}}>30 minutes</strong> (ex. « 07:00→07:30 »). Sélectionnez-en plusieurs à la suite pour allonger votre session — minimum <strong style={{color:"#0B6E8A"}}>1 heure</strong> (2 blocs).
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {ALL_SLOTS.map(h => {
@@ -575,14 +583,14 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
           return (
             <div key={h} onClick={() => toggleHeure(h)}
               style={{
-                borderRadius: 10, padding: "8px 4px", fontSize: 11, fontWeight: 700,
+                borderRadius: 10, padding: "8px 3px", fontSize: 10, fontWeight: 700,
                 background: bg, color, border,
                 cursor: cliquable ? "pointer" : "not-allowed",
-                minWidth: 50, textAlign: "center",
+                minWidth: 62, textAlign: "center",
                 transition: "all .15s",
                 position: "relative",
               }}>
-              {padH(h)}
+              {padH(h)}<span style={{ fontWeight: 400, opacity: .75 }}>→{padH(h + PAS)}</span>
               <br />
               <span style={{ fontSize: 9, fontWeight: 400, opacity: .85 }}>
                 {sel ? (isMin && isMax ? "✓ 30 min" : isMin ? "← début" : isMax ? "fin →" : "✓") : 
@@ -1490,12 +1498,13 @@ export default function App() {
         if (repSession.ok && !annule) {
           const s = await repSession.json();
           const modeSauve = sessionStorage.getItem('sp_mode');
+          const ongletSauve = sessionStorage.getItem('sp_onglet_proprio');
           if (s.role === 'admin') {
             setAdminConnecte(true);
-            if (modeSauve === 'proprio') setMode('proprio');
+            if (modeSauve === 'proprio') { setMode('proprio'); if (ongletSauve) setOngletPropri(ongletSauve); }
           } else if (s.role === 'proprio') {
             setProprioConnecte(true);
-            if (modeSauve === 'proprio') setMode('proprio');
+            if (modeSauve === 'proprio') { setMode('proprio'); if (ongletSauve) setOngletPropri(ongletSauve); }
           } else if (s.role === 'locataire' && s.email) {
             setComptes(prev => ({ ...prev, [s.email]: s.compte }));
             setCompteConnecte(s.email);
@@ -1564,7 +1573,7 @@ export default function App() {
   const [edlResaRef, setEdlResaRef] = useState(null);
 
   // ── Formulaire réservation ──
-  const [form, setForm] = useState({ prenom: "", nom: "", email: "", telephone: "", adresse: "", codePostal: "", ville: "", date: "", creneaux: [], adultes: 1, enfants12: 0, moins3: 0, reglementAccepte: false });
+  const [form, setForm] = useState({ prenom: "", nom: "", email: "", telephone: "", adresse: "", codePostal: "", ville: "", date: "", creneaux: [], adultes: 1, enfants12: 0, moins3: 0, formuleGroupe: null, reglementAccepte: false });
   // Création de compte inline pendant la réservation
   const [formMdp, setFormMdp] = useState({ motdepasse: "", motdepasse2: "" });
   const [emailExistant, setEmailExistant] = useState(false); // true si l'email est déjà un compte
@@ -1609,6 +1618,14 @@ export default function App() {
   const [propriDebut, setPropriDebut] = useState(9);
   const [propriFin, setProprieFin] = useState(20);
   const [ongletPropri, setOngletPropri] = useState("dispo");
+  // Persiste l'onglet propriétaire actif pour le retrouver après un F5 (même
+  // logique que pour "mode" : on ignore le tout premier rendu pour laisser le
+  // temps à la restauration de session de lire la valeur sauvegardée)
+  const premierRenduOnglet = useRef(true);
+  useEffect(() => {
+    if (premierRenduOnglet.current) { premierRenduOnglet.current = false; return; }
+    sessionStorage.setItem('sp_onglet_proprio', ongletPropri);
+  }, [ongletPropri]);
   const [noteEnCoursRef, setNoteEnCoursRef] = useState(null);
   const [refusEnCoursRef, setRefusEnCoursRef] = useState(null);
   const [annulEnCoursRef, setAnnulEnCoursRef] = useState(null);
@@ -1864,11 +1881,17 @@ export default function App() {
   const duree = nbSlots * PAS; // durée en heures
   const heureDebut = nbSlots > 0 ? Math.min(...form.creneaux) : null;
   const heureFin = nbSlots > 0 ? Math.max(...form.creneaux) + PAS : null;
-  const prix = prixTotal(form.adultes, form.enfants12, form.creneaux);
+  const prix = form.formuleGroupe && FORMULES_GROUPE[form.formuleGroupe]
+    ? FORMULES_GROUPE[form.formuleGroupe].prix
+    : prixTotal(form.adultes, form.enfants12, form.creneaux);
   // Remise automatique : 5% par tranche de 40€ complète sur le prix de la session
   // (avant extras), cumulable avec un éventuel code promo. Ex : 95€ → 2 tranches → 10%.
   // Plafonnée à 40% pour ne pas éroder la marge sur les très grosses réservations.
-  const remiseTranches = Math.min(Math.floor(prix / 40) * 5, 40);
+  // Remise fidélité automatique : 5% dès 50€ de session (avant extras), puis
+  // +5% par tranche de 50€ supplémentaire. Plafonnée à 40%. Ex : 65€ → 5%,
+  // 100€ → 10%, 150€ → 15%... Non applicable aux tarifs de groupe spéciaux
+  // (voir formuleGroupe plus bas), qui ont leur propre règle de remise.
+  const remiseTranches = form.formuleGroupe ? 0 : Math.min(Math.floor(prix / 50) * 5, 40);
   const remiseTotalePct = remise + remiseTranches;
   const prixFinal = remiseTotalePct > 0 ? +(prix * (1 - remiseTotalePct / 100)).toFixed(2) : prix;
 
@@ -2012,6 +2035,16 @@ export default function App() {
     if (form.creneaux.length === 0) e.creneaux = "Sélectionnez au moins un créneau";
     else if (form.creneaux.length < MIN_SLOTS) e.creneaux = "La réservation doit durer au moins 1 heure";
     if (form.adultes < 1) e.adultes = "Minimum 1 adulte";
+    if (form.formuleGroupe && FORMULES_GROUPE[form.formuleGroupe]) {
+      const f = FORMULES_GROUPE[form.formuleGroupe];
+      if (form.creneaux.length > 0 && form.creneaux.length !== f.dureeSlots) {
+        e.formuleGroupe = "Cette formule nécessite une session de 3h pile.";
+      } else if (form.formuleGroupe === "groupe10" && (form.adultes + form.enfants12) > f.maxPersonnes) {
+        e.formuleGroupe = "10 personnes maximum (adultes + enfants) pour cette formule.";
+      } else if (form.formuleGroupe === "groupe5" && (form.adultes > f.maxAdultes || form.enfants12 > 0)) {
+        e.formuleGroupe = "5 adultes maximum et sans enfant pour cette formule.";
+      }
+    }
 
     // Si pas encore connecté, vérifier la partie compte
     if (!compteConnecte) {
@@ -3791,8 +3824,8 @@ export default function App() {
                   else { bg="#f5f5f5"; color="#bbb"; border="2px dashed #ddd"; labelH="—"; cliquable=true; }
                   return (
                     <div key={h} onClick={() => cliquable && toggleCreneauProprio(h)}
-                      style={{ borderRadius:10, padding:"8px 4px", fontSize:11, fontWeight:700, background:bg, color, border, cursor:cliquable?"pointer":"not-allowed", minWidth:48, textAlign:"center", transition:"all .15s", position:"relative" }}>
-                      {padH(h)}<br/>
+                      style={{ borderRadius:10, padding:"8px 3px", fontSize:10, fontWeight:700, background:bg, color, border, cursor:cliquable?"pointer":"not-allowed", minWidth:60, textAlign:"center", transition:"all .15s", position:"relative" }}>
+                      {padH(h)}<span style={{ fontWeight:400, opacity:.75 }}>→{padH(h + PAS)}</span><br/>
                       <span style={{ fontSize:9, fontWeight:400 }}>{labelH}</span>
                       {isSoir && !res && <div style={{ fontSize:8, opacity:.8, marginTop:1 }}>+1€/h</div>}
                       {enAttentePaiement && <div title="Accepté, en attente de paiement" style={{ position:"absolute", top:-4, right:-4, fontSize:11 }}>⏳</div>}
@@ -4349,13 +4382,47 @@ export default function App() {
           ))}
         </div>
 
-        {/* Récap prix */}
+        {/* Formules de groupe spéciales */}
+        <div style={card}>
+          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", marginBottom: 4, fontWeight: 700 }}>👨‍👩‍👧‍👦 Formule groupe (optionnel)</div>
+          <div style={{ fontSize: 12, color: "#5a8a96", marginBottom: 12, lineHeight: 1.5 }}>
+            Tarif forfaitaire pour une session de 3h. Non cumulable avec la remise fidélité par tranche, mais l'extra "Zéro vis-à-vis" reste offert.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div onClick={() => setF("formuleGroupe", form.formuleGroupe === "groupe10" ? null : "groupe10")}
+              style={{ padding: "12px 14px", borderRadius: 12, cursor: "pointer", border: form.formuleGroupe === "groupe10" ? "2px solid #0B6E8A" : "2px solid #e0e0e0", background: form.formuleGroupe === "groupe10" ? "#f0fafc" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "#2C3E50" }}>Groupe 10 personnes max</div>
+                <div style={{ fontSize: 11, color: "#5a8a96" }}>3h · soit 5€/pers/h</div>
+              </div>
+              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: "#0B6E8A" }}>150 €</div>
+            </div>
+            <div onClick={() => setF("formuleGroupe", form.formuleGroupe === "groupe5" ? null : "groupe5")}
+              style={{ padding: "12px 14px", borderRadius: 12, cursor: "pointer", border: form.formuleGroupe === "groupe5" ? "2px solid #0B6E8A" : "2px solid #e0e0e0", background: form.formuleGroupe === "groupe5" ? "#f0fafc" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "#2C3E50" }}>Groupe 5 adultes max</div>
+                <div style={{ fontSize: 11, color: "#5a8a96" }}>3h · soit 5€/pers/h</div>
+              </div>
+              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: "#0B6E8A" }}>75 €</div>
+            </div>
+          </div>
+          {form.formuleGroupe && (
+            <div style={{ marginTop: 10, background: "#fff8e1", borderRadius: 8, padding: "9px 12px", fontSize: 12, color: "#a06000", lineHeight: 1.5 }}>
+              ⏱ Cette formule nécessite une session de <strong>3h pile</strong> et {form.formuleGroupe === "groupe10" ? "10 personnes maximum (adultes + enfants)" : "5 adultes maximum, sans enfant"}.
+            </div>
+          )}
+          {erreurs.formuleGroupe && <div style={{ color: "#FF6B6B", fontSize: 12, marginTop: 8, padding: "6px 10px", background: "#fff0f0", borderRadius: 8 }}>{erreurs.formuleGroupe}</div>}
+        </div>
         {form.creneaux.length > 0 && (
           <div style={{ background: "linear-gradient(135deg,#0B6E8A,#4ECDC4)", borderRadius: 13, padding: "13px 16px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <div style={{ color: "#b8e8f0", fontSize: 12 }}>{padH(heureDebut)} → {padH(heureFin)} ({formatDuree(nbSlots)})</div>
-              <div style={{ color: "#e0f4f8", fontSize: 11 }}>{form.adultes} adulte{form.adultes > 1 ? "s" : ""}{form.enfants12 > 0 ? ` + ${form.enfants12} enfant` : ""}</div>
-              {form.creneaux.some(h => h >= 20) && <div style={{ color: "#ffe082", fontSize: 11 }}>🌙 Majoration soirée incluse (+1€/pers/h après 20h)</div>}
+              {form.formuleGroupe ? (
+                <div style={{ color: "#e0f4f8", fontSize: 11 }}>🎉 {FORMULES_GROUPE[form.formuleGroupe].label}</div>
+              ) : (
+                <div style={{ color: "#e0f4f8", fontSize: 11 }}>{form.adultes} adulte{form.adultes > 1 ? "s" : ""}{form.enfants12 > 0 ? ` + ${form.enfants12} enfant` : ""}</div>
+              )}
+              {!form.formuleGroupe && form.creneaux.some(h => h >= 20) && <div style={{ color: "#ffe082", fontSize: 11 }}>🌙 Majoration soirée incluse (+1€/pers/h après 20h)</div>}
               {remiseTranches > 0 && <div style={{ color: "#ffe082", fontSize: 11, fontWeight: 700 }}>🎁 Remise fidélité -{remiseTranches}% offerte !</div>}
               {remise > 0 && <div style={{ color: "#ffe082", fontSize: 11, fontWeight: 700 }}>Code promo -{remise}% ✓</div>}
             </div>
