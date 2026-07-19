@@ -1248,12 +1248,15 @@ const WHATSAPP_MESSAGE = "Bonjour, j'ai une question concernant Ma Piscine Priv�
 function BoutonWhatsApp() {
   const [visible, setVisible] = useState(true);
   const [pos, setPos] = useState(null); // { x, y } en pixels depuis le coin haut-gauche ; null = position par défaut (bas-droite)
-  const glisse = useRef({ actif: false, decalX: 0, decalY: 0 });
+  const glisse = useRef({ actif: false, decalX: 0, decalY: 0, depart: { x: 0, y: 0 }, bouge: false });
 
   function demarrerGlisse(e) {
     const point = e.touches ? e.touches[0] : e;
     const rect = e.currentTarget.getBoundingClientRect();
-    glisse.current = { actif: true, decalX: point.clientX - rect.left, decalY: point.clientY - rect.top, bouge: false };
+    glisse.current = {
+      actif: true, decalX: point.clientX - rect.left, decalY: point.clientY - rect.top,
+      depart: { x: point.clientX, y: point.clientY }, bouge: false,
+    };
     window.addEventListener("mousemove", surGlisse);
     window.addEventListener("mouseup", finGlisse);
     window.addEventListener("touchmove", surGlisse, { passive: false });
@@ -1262,14 +1265,23 @@ function BoutonWhatsApp() {
   function surGlisse(e) {
     if (!glisse.current.actif) return;
     if (e.cancelable) e.preventDefault();
-    glisse.current.bouge = true;
     const point = e.touches ? e.touches[0] : e;
+    // Glissement réel seulement au-delà d'un petit seuil (évite les faux positifs sur un simple clic)
+    const distance = Math.hypot(point.clientX - glisse.current.depart.x, point.clientY - glisse.current.depart.y);
+    if (distance > 5) glisse.current.bouge = true;
     const largeur = 56;
     const x = Math.min(Math.max(point.clientX - glisse.current.decalX, 4), window.innerWidth - largeur - 4);
     const y = Math.min(Math.max(point.clientY - glisse.current.decalY, 4), window.innerHeight - largeur - 4);
     setPos({ x, y });
   }
-  function finGlisse() {
+  function finGlisse(e) {
+    // Filet de sécurité : recalcule aussi la distance au relâchement, au cas où
+    // aucun mousemove n'aurait eu le temps de se déclencher pendant un geste rapide
+    const point = e.changedTouches ? e.changedTouches[0] : e;
+    if (typeof point?.clientX === "number") {
+      const distance = Math.hypot(point.clientX - glisse.current.depart.x, point.clientY - glisse.current.depart.y);
+      if (distance > 5) glisse.current.bouge = true;
+    }
     glisse.current.actif = false;
     window.removeEventListener("mousemove", surGlisse);
     window.removeEventListener("mouseup", finGlisse);
