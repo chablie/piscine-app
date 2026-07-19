@@ -1867,7 +1867,8 @@ export default function App() {
   const prix = prixTotal(form.adultes, form.enfants12, form.creneaux);
   // Remise automatique : 5% par tranche de 40€ complète sur le prix de la session
   // (avant extras), cumulable avec un éventuel code promo. Ex : 95€ → 2 tranches → 10%.
-  const remiseTranches = Math.floor(prix / 40) * 5;
+  // Plafonnée à 40% pour ne pas éroder la marge sur les très grosses réservations.
+  const remiseTranches = Math.min(Math.floor(prix / 40) * 5, 40);
   const remiseTotalePct = remise + remiseTranches;
   const prixFinal = remiseTotalePct > 0 ? +(prix * (1 - remiseTotalePct / 100)).toFixed(2) : prix;
 
