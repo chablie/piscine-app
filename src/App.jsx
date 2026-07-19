@@ -2525,7 +2525,7 @@ export default function App() {
         )}
       </div>
       {/* Bouton flottant WhatsApp — uniquement côté client, pas sur le tableau de bord propriétaire/admin */}
-      {!adminConnecte && !proprioConnecte && <BoutonWhatsApp />}
+      {mode !== "proprio" && <BoutonWhatsApp />}
       </>
     );
   }
@@ -4718,7 +4718,7 @@ export default function App() {
             <div style={{ background: "#fff8e1", borderRadius: 10, padding: "11px 13px", border: "2px solid #f0c040", marginBottom: 12, textAlign: "left" }}>
               <div style={{ fontWeight: 700, color: "#a06000", marginBottom: 4 }}>ℹ️ Que se passe-t-il maintenant ?</div>
               <div style={{ fontSize: 13, color: "#2C3E50", lineHeight: 1.6 }}>
-                Le propriétaire va examiner votre demande. Si elle est acceptée, votre créneau sera confirmé. Si elle est refusée, vous serez remboursé(e).
+                Le propriétaire va examiner votre demande. Si elle est acceptée, vous recevrez un lien de paiement par email pour confirmer définitivement votre créneau. Si elle est refusée, aucune somme ne vous sera demandée.
               </div>
             </div>
             <button style={btnP} onClick={() => { resetSession(); setMode(compteConnecte?"compte":"accueil"); }}>
