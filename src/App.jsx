@@ -1246,22 +1246,68 @@ const WHATSAPP_NUMERO = "33679419114"; // 06 79 41 91 14, format international s
 const WHATSAPP_MESSAGE = "Bonjour, j'ai une question concernant Ma Piscine Privée 🏊";
 
 function BoutonWhatsApp() {
+  const [visible, setVisible] = useState(true);
+  const [pos, setPos] = useState(null); // { x, y } en pixels depuis le coin haut-gauche ; null = position par défaut (bas-droite)
+  const glisse = useRef({ actif: false, decalX: 0, decalY: 0 });
+
+  function demarrerGlisse(e) {
+    const point = e.touches ? e.touches[0] : e;
+    const rect = e.currentTarget.getBoundingClientRect();
+    glisse.current = { actif: true, decalX: point.clientX - rect.left, decalY: point.clientY - rect.top, bouge: false };
+    window.addEventListener("mousemove", surGlisse);
+    window.addEventListener("mouseup", finGlisse);
+    window.addEventListener("touchmove", surGlisse, { passive: false });
+    window.addEventListener("touchend", finGlisse);
+  }
+  function surGlisse(e) {
+    if (!glisse.current.actif) return;
+    if (e.cancelable) e.preventDefault();
+    glisse.current.bouge = true;
+    const point = e.touches ? e.touches[0] : e;
+    const largeur = 56;
+    const x = Math.min(Math.max(point.clientX - glisse.current.decalX, 4), window.innerWidth - largeur - 4);
+    const y = Math.min(Math.max(point.clientY - glisse.current.decalY, 4), window.innerHeight - largeur - 4);
+    setPos({ x, y });
+  }
+  function finGlisse() {
+    glisse.current.actif = false;
+    window.removeEventListener("mousemove", surGlisse);
+    window.removeEventListener("mouseup", finGlisse);
+    window.removeEventListener("touchmove", surGlisse);
+    window.removeEventListener("touchend", finGlisse);
+  }
+
+  if (!visible) return null;
   const lien = `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
+  const styleParPosition = pos
+    ? { left: pos.x, top: pos.y }
+    : { bottom: 20, right: 20 };
+
   return (
-    <a href={lien} target="_blank" rel="noopener noreferrer" aria-label="Contacter sur WhatsApp"
-      style={{
-        position: "fixed", bottom: 20, right: 20, zIndex: 999,
-        width: 56, height: 56, borderRadius: "50%",
-        background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: "0 4px 14px rgba(0,0,0,.25)", textDecoration: "none",
-        transition: "transform .15s",
-      }}
-      onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
-      onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
-      <svg viewBox="0 0 32 32" width="30" height="30" fill="#fff" aria-hidden="true">
-        <path d="M16.004 3C9.06 3 3.4 8.65 3.4 15.6c0 2.42.66 4.68 1.8 6.63L3 29l7-1.83a12.5 12.5 0 0 0 6 1.53h.005c6.943 0 12.6-5.65 12.6-12.6C28.605 8.65 22.947 3 16.004 3zm0 22.9h-.004a10.4 10.4 0 0 1-5.3-1.45l-.38-.226-3.93 1.03 1.05-3.83-.25-.394a10.28 10.28 0 0 1-1.58-5.43c0-5.72 4.66-10.38 10.4-10.38 2.78 0 5.39 1.08 7.35 3.05a10.32 10.32 0 0 1 3.04 7.35c0 5.72-4.66 10.38-10.4 10.38zm5.7-7.78c-.31-.156-1.84-.91-2.13-1.014-.286-.104-.494-.156-.702.156-.208.31-.806 1.013-.988 1.222-.182.208-.364.234-.676.078-.31-.156-1.312-.484-2.5-1.55-.924-.826-1.548-1.846-1.73-2.156-.182-.31-.02-.478.137-.632.14-.14.31-.364.468-.546.156-.182.208-.312.312-.52.104-.208.052-.39-.026-.546-.078-.156-.702-1.694-.964-2.318-.254-.61-.512-.526-.702-.536l-.598-.01c-.208 0-.546.078-.832.39-.286.31-1.09 1.066-1.09 2.6s1.116 3.016 1.272 3.226c.156.208 2.196 3.354 5.322 4.702.744.322 1.324.514 1.776.658.746.238 1.424.204 1.96.124.598-.09 1.84-.752 2.1-1.478.26-.728.26-1.352.182-1.478-.078-.128-.286-.208-.598-.364z"/>
-      </svg>
-    </a>
+    <div style={{ position: "fixed", zIndex: 999, ...styleParPosition }}>
+      <a href={lien} target="_blank" rel="noopener noreferrer" aria-label="Contacter sur WhatsApp"
+        onMouseDown={demarrerGlisse} onTouchStart={demarrerGlisse}
+        onClick={e => { if (glisse.current.bouge) e.preventDefault(); }}
+        style={{
+          width: 56, height: 56, borderRadius: "50%", cursor: "grab",
+          background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 14px rgba(0,0,0,.25)", textDecoration: "none",
+          transition: "transform .15s", userSelect: "none", touchAction: "none",
+        }}>
+        <svg viewBox="0 0 32 32" width="30" height="30" fill="#fff" aria-hidden="true">
+          <path d="M16.004 3C9.06 3 3.4 8.65 3.4 15.6c0 2.42.66 4.68 1.8 6.63L3 29l7-1.83a12.5 12.5 0 0 0 6 1.53h.005c6.943 0 12.6-5.65 12.6-12.6C28.605 8.65 22.947 3 16.004 3zm0 22.9h-.004a10.4 10.4 0 0 1-5.3-1.45l-.38-.226-3.93 1.03 1.05-3.83-.25-.394a10.28 10.28 0 0 1-1.58-5.43c0-5.72 4.66-10.38 10.4-10.38 2.78 0 5.39 1.08 7.35 3.05a10.32 10.32 0 0 1 3.04 7.35c0 5.72-4.66 10.38-10.4 10.38zm5.7-7.78c-.31-.156-1.84-.91-2.13-1.014-.286-.104-.494-.156-.702.156-.208.31-.806 1.013-.988 1.222-.182.208-.364.234-.676.078-.31-.156-1.312-.484-2.5-1.55-.924-.826-1.548-1.846-1.73-2.156-.182-.31-.02-.478.137-.632.14-.14.31-.364.468-.546.156-.182.208-.312.312-.52.104-.208.052-.39-.026-.546-.078-.156-.702-1.694-.964-2.318-.254-.61-.512-.526-.702-.536l-.598-.01c-.208 0-.546.078-.832.39-.286.31-1.09 1.066-1.09 2.6s1.116 3.016 1.272 3.226c.156.208 2.196 3.354 5.322 4.702.744.322 1.324.514 1.776.658.746.238 1.424.204 1.96.124.598-.09 1.84-.752 2.1-1.478.26-.728.26-1.352.182-1.478-.078-.128-.286-.208-.598-.364z"/>
+        </svg>
+      </a>
+      <button onClick={() => setVisible(false)} aria-label="Masquer le bouton WhatsApp"
+        style={{
+          position: "absolute", top: -6, right: -6, width: 22, height: 22, borderRadius: "50%",
+          background: "#fff", border: "1.5px solid #ddd", color: "#888", fontSize: 13, fontWeight: 700,
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 0, boxShadow: "0 1px 4px rgba(0,0,0,.2)", lineHeight: 1,
+        }}>
+        ✕
+      </button>
+    </div>
   );
 }
 
