@@ -1865,14 +1865,23 @@ export default function App() {
   const heureDebut = nbSlots > 0 ? Math.min(...form.creneaux) : null;
   const heureFin = nbSlots > 0 ? Math.max(...form.creneaux) + PAS : null;
   const prix = prixTotal(form.adultes, form.enfants12, form.creneaux);
-  const prixFinal = remise > 0 ? +(prix * (1 - remise / 100)).toFixed(2) : prix;
+  // Remise automatique : 5% par tranche de 40€ complète sur le prix de la session
+  // (avant extras), cumulable avec un éventuel code promo. Ex : 95€ → 2 tranches → 10%.
+  const remiseTranches = Math.floor(prix / 40) * 5;
+  const remiseTotalePct = remise + remiseTranches;
+  const prixFinal = remiseTotalePct > 0 ? +(prix * (1 - remiseTotalePct / 100)).toFixed(2) : prix;
 
-  // Calcul extras
+  // Calcul extras — l'extra "Zéro vis-à-vis" est offert dès 30€ de session (avant extras)
+  const zeroVisAVisOffert = prix >= 30;
   const totalExtras = extras.filter(e => e.actif && extrasChoisis[e.id] > 0).reduce((sum, e) => {
     const qte = extrasChoisis[e.id] || 0;
     const nb = e.type === "personne" ? qte : 1;
-    return sum + e.tarif * nb;
+    const gratuit = e.id === "e1" && zeroVisAVisOffert;
+    return sum + (gratuit ? 0 : e.tarif * nb);
   }, 0);
+  const montantZeroVisAVisOffert = (zeroVisAVisOffert && extrasChoisis["e1"] > 0)
+    ? (extras.find(e => e.id === "e1")?.tarif || 0)
+    : 0;
   const totalGeneral = +(prixFinal + totalExtras).toFixed(2);
   const acompte = modePaiement === "especes" ? +(totalGeneral * 0.20).toFixed(2) : totalGeneral;
   const resteARegler = modePaiement === "especes" ? +(totalGeneral * 0.80).toFixed(2) : 0;
@@ -2178,7 +2187,7 @@ export default function App() {
     // Le créneau n'est bloqué pour les autres visiteurs qu'une fois payé
     // (voir statutHeures/heuresBloquees) — plusieurs demandes concurrentes sur
     // le même créneau sont possibles, le premier à payer l'obtient.
-    const r = { ...form, email: emailRes, heureDebut, heureFin, prix: prixFinal, remise, extrasChoisis, totalExtras, totalGeneral, modePaiement, acompte, resteARegler, ref, photosAvant: [], photosApres: [], adresse: form.adresse || compteInfo.adresse || "", codePostal: form.codePostal || compteInfo.codePostal || "", ville: form.ville || compteInfo.ville || "", statut: "en_attente", demandeISO, paiement: { statut: "non_paye" } };
+    const r = { ...form, email: emailRes, heureDebut, heureFin, prix: prixFinal, prixBrut: prix, remise, remiseFidelite: remiseTranches, extrasChoisis, totalExtras, totalGeneral, modePaiement, acompte, resteARegler, ref, photosAvant: [], photosApres: [], adresse: form.adresse || compteInfo.adresse || "", codePostal: form.codePostal || compteInfo.codePostal || "", ville: form.ville || compteInfo.ville || "", statut: "en_attente", demandeISO, paiement: { statut: "non_paye" } };
     setReservations(prev => [...prev, r]);
     setReservation(r);
     await sauvegarderReservation(r);
@@ -3192,16 +3201,23 @@ export default function App() {
                         {extrasRes.map(e => {
                           const qte = r.extrasChoisis?.[e.id] || 0;
                           const nb = e.type==="personne" ? qte : 1;
+                          const offert = e.id === "e1" && (r.prixBrut ?? r.prix) >= 30;
                           return (
                             <div key={e.id} style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
                               <div>
                                 <div style={{ fontWeight:600 }}>{e.emoji} {e.nom}</div>
                                 <div style={{ fontSize:10, color:"#5a8a96" }}>{e.type==="personne"?`${e.tarif}€ × ${nb}`:"Forfait"}</div>
                               </div>
-                              <span style={{ fontWeight:600 }}>{formatEur(e.tarif*nb)}</span>
+                              <span style={{ fontWeight:600, color: offert ? "#4ECDC4" : "inherit" }}>{offert ? "Gratuit 🎁" : formatEur(e.tarif*nb)}</span>
                             </div>
                           );
                         })}
+                        {r.remiseFidelite > 0 && (
+                          <div style={{ display:"flex", justifyContent:"space-between", color:"#0B6E8A", fontWeight:700, marginBottom:4 }}>
+                            <span>🎁 Remise fidélité -{r.remiseFidelite}%</span>
+                            <span>offerte</span>
+                          </div>
+                        )}
                         {r.remise > 0 && (
                           <div style={{ display:"flex", justifyContent:"space-between", color:"#4ECDC4", marginBottom:4 }}>
                             <span>Code promo -{r.remise}%</span>
@@ -4339,6 +4355,7 @@ export default function App() {
               <div style={{ color: "#b8e8f0", fontSize: 12 }}>{padH(heureDebut)} → {padH(heureFin)} ({formatDuree(nbSlots)})</div>
               <div style={{ color: "#e0f4f8", fontSize: 11 }}>{form.adultes} adulte{form.adultes > 1 ? "s" : ""}{form.enfants12 > 0 ? ` + ${form.enfants12} enfant` : ""}</div>
               {form.creneaux.some(h => h >= 20) && <div style={{ color: "#ffe082", fontSize: 11 }}>🌙 Majoration soirée incluse (+1€/pers/h après 20h)</div>}
+              {remiseTranches > 0 && <div style={{ color: "#ffe082", fontSize: 11, fontWeight: 700 }}>🎁 Remise fidélité -{remiseTranches}% offerte !</div>}
               {remise > 0 && <div style={{ color: "#ffe082", fontSize: 11, fontWeight: 700 }}>Code promo -{remise}% ✓</div>}
             </div>
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: "#fff" }}>{formatEur(prixFinal)}</div>
@@ -4382,20 +4399,26 @@ export default function App() {
 
           {extras.filter(e => e.actif).map(e => {
             const qte = extrasChoisis[e.id] || 0;
-            const montant = e.type === "personne"
+            const offert = e.id === "e1" && zeroVisAVisOffert;
+            const montant = offert ? 0 : (e.type === "personne"
               ? e.tarif * qte
-              : e.tarif * (qte > 0 ? 1 : 0);
+              : e.tarif * (qte > 0 ? 1 : 0));
             const sel = qte > 0;
             return (
-              <div key={e.id} style={{ borderRadius:13, marginBottom:12, border: sel ? "2px solid #0B6E8A" : "2px solid #e0e0e0", background: sel ? "#f0fafc" : "#fff", overflow:"hidden" }}>
+              <div key={e.id} style={{ borderRadius:13, marginBottom:12, border: offert ? "2px solid #4ECDC4" : sel ? "2px solid #0B6E8A" : "2px solid #e0e0e0", background: offert ? "#f0fffb" : sel ? "#f0fafc" : "#fff", overflow:"hidden" }}>
                 {/* En-tête */}
                 <div style={{ display:"flex", alignItems:"flex-start", gap:12, padding:"14px 14px 10px" }}>
                   <div style={{ fontSize:28, flexShrink:0 }}>{e.emoji}</div>
                   <div style={{ flex:1 }}>
-                    <div style={{ fontWeight:700, fontSize:14, color:"#2C3E50" }}>{e.nom}</div>
+                    <div style={{ fontWeight:700, fontSize:14, color:"#2C3E50", display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+                      {e.nom}
+                      {offert && <span style={{ background:"#4ECDC4", color:"#fff", fontSize:10, fontWeight:700, borderRadius:20, padding:"2px 8px" }}>🎁 OFFERT</span>}
+                    </div>
                     <div style={{ fontSize:12, color:"#5a8a96", marginTop:2, lineHeight:1.4 }}>{e.description}</div>
                     <div style={{ fontSize:12, color:"#4ECDC4", fontWeight:600, marginTop:4 }}>
-                      {e.type === "personne" ? `${e.tarif} € / personne` : `${e.tarif} € forfait`}
+                      {offert
+                        ? <><span style={{ textDecoration:"line-through", color:"#bbb" }}>{e.tarif} €</span> Offert dès 30 € de réservation !</>
+                        : (e.type === "personne" ? `${e.tarif} € / personne` : `${e.tarif} € forfait`)}
                     </div>
                   </div>
                 </div>
@@ -4424,7 +4447,9 @@ export default function App() {
                   {/* Coût calculé */}
                   <div style={{ textAlign:"right" }}>
                     {sel ? (
-                      <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700, color:"#0B6E8A" }}>{formatEur(montant)}</div>
+                      offert
+                        ? <div style={{ fontFamily:"'Playfair Display',serif", fontSize:16, fontWeight:700, color:"#4ECDC4" }}>Gratuit 🎁</div>
+                        : <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700, color:"#0B6E8A" }}>{formatEur(montant)}</div>
                     ) : (
                       <div style={{ fontSize:13, color:"#bbb" }}>0,00 €</div>
                     )}
@@ -4438,6 +4463,11 @@ export default function App() {
             <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"16px 0" }}>Aucun extra disponible.</div>
           )}
 
+          {montantZeroVisAVisOffert > 0 && (
+            <div style={{ background:"#e6faf8", border:"1.5px solid #4ECDC4", borderRadius:10, padding:"10px 14px", marginTop:8, textAlign:"center", fontSize:13, color:"#0B6E8A", fontWeight:700 }}>
+              🎁 Vous économisez {formatEur(montantZeroVisAVisOffert)} grâce à l'offre "Zéro vis-à-vis" !
+            </div>
+          )}
           {totalExtras > 0 && (
             <div style={{ background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", borderRadius:10, padding:"12px 16px", marginTop:8, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <span style={{ fontSize:14, fontWeight:700, color:"#fff" }}>Total extras</span>
@@ -4465,11 +4495,12 @@ export default function App() {
               </div>
             ))}
             <div style={{ height: 1, background: "#b0d8e3", margin: "8px 0" }} />
-            {remise > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#4ECDC4", fontSize: 13, fontWeight: 600 }}>Code promo -{remise}%</span><span style={{ color: "#4ECDC4", fontSize: 13, fontWeight: 600 }}>-{formatEur(prix - prixFinal)}</span></div>}
+            {remiseTranches > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#0B6E8A", fontSize: 13, fontWeight: 700 }}>🎁 Remise fidélité -{remiseTranches}%</span><span style={{ color: "#0B6E8A", fontSize: 13, fontWeight: 700 }}>offerte</span></div>}
+            {remise > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#4ECDC4", fontSize: 13, fontWeight: 600 }}>Code promo -{remise}%</span><span style={{ color: "#4ECDC4", fontSize: 13, fontWeight: 600 }}>-{formatEur((prix * remise) / 100)}</span></div>}
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontWeight: 700, fontSize: 15, color: "#0B6E8A" }}>Total</span>
               <div style={{ textAlign: "right" }}>
-                {remise > 0 && <div style={{ fontSize: 12, color: "#aaa", textDecoration: "line-through" }}>{formatEur(prix)}</div>}
+                {remiseTotalePct > 0 && <div style={{ fontSize: 12, color: "#aaa", textDecoration: "line-through" }}>{formatEur(prix)}</div>}
                 <span style={{ fontWeight: 700, fontSize: 19, color: "#0B6E8A" }}>{formatEur(prixFinal)}</span>
               </div>
             </div>
@@ -4501,10 +4532,11 @@ export default function App() {
               {extras.filter(e => extrasChoisis[e.id] > 0).map(e => {
                 const qte = extrasChoisis[e.id] || 0;
                 const nb = e.type === "personne" ? qte : 1;
+                const offert = e.id === "e1" && zeroVisAVisOffert;
                 return (
                   <div key={e.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
                     <span style={{ color: "#2C3E50" }}>{e.emoji} {e.nom}{e.type === "personne" ? ` ×${qte} pers.` : " (forfait)"}</span>
-                    <span style={{ fontWeight: 600, color: "#0B6E8A" }}>{formatEur(e.tarif * nb)}</span>
+                    <span style={{ fontWeight: 600, color: offert ? "#4ECDC4" : "#0B6E8A" }}>{offert ? "Gratuit 🎁" : formatEur(e.tarif * nb)}</span>
                   </div>
                 );
               })}
