@@ -59,6 +59,28 @@ const EXTRAS_SWIMMY = [
   { id:"swk_transat", nom:"Transat flottant", description:"Transat gonflable flottant pour se relaxer sur l'eau.", tarif:2, type:"personne", emoji:"🛶", actif:true },
 ];
 
+// Emoji suggérés pour illustrer un extra rapidement, sans avoir à les taper
+const EMOJI_SUGGESTIONS = [
+  "🏊","🛟","🔵","🟠","🦺","🩱","🏖️","🌂","🕶️","💦",
+  "🍖","🍹","🧊","🥤","🍉","🎉","🎈","🎊","🎁","🎯",
+  "🎵","🔊","📸","🎮","🪁","🎪","🎨","🧺","🚲","⚽",
+  "🏐","🎾","🥏","🌿","🌸","🌙","☀️","🔥","❄️","✨",
+  "🚿","🧴","📦","🚗","🅿️","🧖","🛶","🏝️","⭐","💧",
+];
+
+function SelecteurEmoji({ onChoisir }) {
+  return (
+    <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:10, background:"#f9f9f9", borderRadius:8, padding:10, border:"1px solid #e0e0e0", maxHeight:160, overflowY:"auto" }}>
+      {EMOJI_SUGGESTIONS.map(em => (
+        <button key={em} onClick={()=>onChoisir(em)} type="button"
+          style={{ width:34, height:34, borderRadius:7, border:"1.5px solid #e0e0e0", background:"#fff", fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+          {em}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 const EXTRAS_DEFAUT = [
   { id:"e1", nom:"Zéro vis-à-vis", description:"Jardin + terrasse privatisés pour votre session. Aucun regard extérieur.", tarif:15, type:"forfait", emoji:"🌿", actif:true },
   { id:"e2", nom:"Barbecue", description:"Barbecue à charbon mis à disposition avec allumage. Charbon inclus.", tarif:5, type:"personne", emoji:"🍖", actif:true },
@@ -1457,6 +1479,7 @@ export default function App() {
   const [banqueImages, setBanqueImages] = useState([]);
   const [nouvelleImageBanque, setNouvelleImageBanque] = useState(null); // { url, nom } en attente de confirmation
   const [choixImageExtraId, setChoixImageExtraId] = useState(null); // id de l'extra en cours de sélection d'image (mode ajout ou édition)
+  const [choixEmojiExtraId, setChoixEmojiExtraId] = useState(null); // id de l'extra en cours de sélection d'emoji
 
   // ── Chargement initial depuis Supabase ──
   useEffect(() => {
@@ -3943,8 +3966,12 @@ export default function App() {
                       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8 }}>
                         <div>
                           <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Emoji</label>
-                          <input style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:18, border:"1.5px solid #b0d8e3", textAlign:"center", boxSizing:"border-box" }} value={e.emoji}
-                            onChange={ev=>setExtras(prev=>prev.map((x,j)=>j===i?{...x,emoji:ev.target.value}:x))} maxLength={2}/>
+                          <div style={{ display:"flex", gap:6 }}>
+                            <input style={{ flex:1, padding:"8px", borderRadius:7, fontSize:18, border:"1.5px solid #b0d8e3", textAlign:"center", boxSizing:"border-box" }} value={e.emoji}
+                              onChange={ev=>setExtras(prev=>prev.map((x,j)=>j===i?{...x,emoji:ev.target.value}:x))} maxLength={2}/>
+                            <button type="button" onClick={()=>setChoixEmojiExtraId(choixEmojiExtraId===e.id?null:e.id)} style={{ padding:"0 10px", borderRadius:7, border:"1.5px solid #b0d8e3", background:"#f0fafc", cursor:"pointer", fontSize:14 }}>😀</button>
+                          </div>
+                          {choixEmojiExtraId === e.id && <SelecteurEmoji onChoisir={em=>{ setExtras(prev=>prev.map((x,j)=>j===i?{...x,emoji:em}:x)); setChoixEmojiExtraId(null); }} />}
                         </div>
                         <div>
                           <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Nom</label>
@@ -4041,8 +4068,12 @@ export default function App() {
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8 }}>
                     <div>
                       <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Emoji</label>
-                      <input style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:18, border:"1.5px solid #b0d8e3", textAlign:"center", boxSizing:"border-box" }} value={nouvelExtra.emoji}
-                        onChange={e=>setNouvelExtra(p=>({...p,emoji:e.target.value}))} maxLength={2}/>
+                      <div style={{ display:"flex", gap:6 }}>
+                        <input style={{ flex:1, padding:"8px", borderRadius:7, fontSize:18, border:"1.5px solid #b0d8e3", textAlign:"center", boxSizing:"border-box" }} value={nouvelExtra.emoji}
+                          onChange={e=>setNouvelExtra(p=>({...p,emoji:e.target.value}))} maxLength={2}/>
+                        <button type="button" onClick={()=>setChoixEmojiExtraId(choixEmojiExtraId==="__nouveau__"?null:"__nouveau__")} style={{ padding:"0 10px", borderRadius:7, border:"1.5px solid #b0d8e3", background:"#f0fafc", cursor:"pointer", fontSize:14 }}>😀</button>
+                      </div>
+                      {choixEmojiExtraId === "__nouveau__" && <SelecteurEmoji onChoisir={em=>{ setNouvelExtra(p=>({...p,emoji:em})); setChoixEmojiExtraId(null); }} />}
                     </div>
                     <div>
                       <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Nom</label>
