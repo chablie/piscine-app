@@ -1242,6 +1242,13 @@ function StatsAvancees({ reservations, comptes, extras }) {
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [mode, setMode] = useState("accueil"); // accueil | locataire | proprio | auth | compte
+  // Persiste la page affichée pour la retrouver après un F5 (uniquement les
+  // pages "sûres" à restaurer sans données transitoires — pas le tunnel de
+  // réservation ni l'état des lieux, qui repartent proprement de l'accueil)
+  useEffect(() => {
+    if (mode === "compte" || mode === "proprio") sessionStorage.setItem('sp_mode', mode);
+    else sessionStorage.removeItem('sp_mode');
+  }, [mode]);
   const [consentementCookies, setConsentementCookies] = useState(null); // null = pas encore répondu | true | false
   const [modeOrigineAvantLegal, setModeOrigineAvantLegal] = useState("accueil"); // pour revenir après consultation des pages légales
   const [confirmationSuppression, setConfirmationSuppression] = useState(false);
@@ -1393,11 +1400,17 @@ export default function App() {
         });
         if (repSession.ok && !annule) {
           const s = await repSession.json();
-          if (s.role === 'admin') setAdminConnecte(true);
-          else if (s.role === 'proprio') setProprioConnecte(true);
-          else if (s.role === 'locataire' && s.email) {
+          const modeSauve = sessionStorage.getItem('sp_mode');
+          if (s.role === 'admin') {
+            setAdminConnecte(true);
+            if (modeSauve === 'proprio') setMode('proprio');
+          } else if (s.role === 'proprio') {
+            setProprioConnecte(true);
+            if (modeSauve === 'proprio') setMode('proprio');
+          } else if (s.role === 'locataire' && s.email) {
             setComptes(prev => ({ ...prev, [s.email]: s.compte }));
             setCompteConnecte(s.email);
+            if (modeSauve === 'compte') setMode('compte');
           }
         }
       } catch (e) { console.error('Erreur vérification session:', e); }
