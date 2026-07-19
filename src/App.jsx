@@ -1608,8 +1608,10 @@ export default function App() {
     }
   }
 
-  function deconnecterAdmin() {
-    fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ action: 'deconnexion', roles: ['admin'] }) }).catch(() => {});
+  async function deconnecterAdmin() {
+    try {
+      await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ action: 'deconnexion', roles: ['admin'] }) });
+    } catch (e) { console.error('Erreur déconnexion admin:', e); }
     setAdminConnecte(false);
     setOngletPropri("dispo"); // évite qu'un onglet admin-only reste affiché après la déconnexion
     setMode("accueil");
@@ -1640,8 +1642,10 @@ export default function App() {
     }
   }
 
-  function deconnecterProprio() {
-    fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ action: 'deconnexion', roles: ['proprio'] }) }).catch(() => {});
+  async function deconnecterProprio() {
+    try {
+      await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ action: 'deconnexion', roles: ['proprio'] }) });
+    } catch (e) { console.error('Erreur déconnexion proprio:', e); }
     setProprioConnecte(false);
     setMode("accueil");
   }
@@ -1873,8 +1877,10 @@ export default function App() {
     }
   }
 
-  function deconnecter() {
-    fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ action: 'deconnexion', roles: ['locataire'] }) }).catch(() => {});
+  async function deconnecter() {
+    try {
+      await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ action: 'deconnexion', roles: ['locataire'] }) });
+    } catch (e) { console.error('Erreur déconnexion:', e); }
     setCompteConnecte(null); setMode("accueil");
   }
 
