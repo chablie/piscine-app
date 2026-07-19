@@ -3906,7 +3906,7 @@ export default function App() {
                       </div>
                       <div style={{ display:"flex", gap:8 }}>
                         <button onClick={()=>setExtraEnEdition(null)} style={{ flex:1, padding:"8px", borderRadius:8, background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>✓ Valider</button>
-                        <button onClick={()=>{ setExtras(prev=>prev.filter((_,j)=>j!==i)); setExtraEnEdition(null); }} style={{ padding:"8px 14px", borderRadius:8, background:"#fff0f0", color:"#FF6B6B", border:"1.5px solid #FF6B6B", fontWeight:700, fontSize:13, cursor:"pointer" }}>🗑 Supprimer</button>
+                        <button onClick={()=>{ if (window.confirm(`Supprimer définitivement l'extra "${e.nom}" ? Cette action est immédiate et irréversible.`)) { setExtras(prev=>prev.filter((_,j)=>j!==i)); setExtraEnEdition(null); } }} style={{ padding:"8px 14px", borderRadius:8, background:"#fff0f0", color:"#FF6B6B", border:"1.5px solid #FF6B6B", fontWeight:700, fontSize:13, cursor:"pointer" }}>🗑 Supprimer</button>
                       </div>
                     </div>
                   ) : (
@@ -3929,7 +3929,7 @@ export default function App() {
                         {/* Modifier */}
                         <button onClick={()=>setExtraEnEdition(e.id)} style={{ width:30, height:30, borderRadius:7, border:"1.5px solid #0B6E8A", background:"#e8f4f7", color:"#0B6E8A", cursor:"pointer", fontSize:14, fontWeight:700 }}>✏️</button>
                         {/* Supprimer direct */}
-                        <button onClick={()=>setExtras(prev=>prev.filter((_,j)=>j!==i))} style={{ width:30, height:30, borderRadius:7, border:"none", background:"#fff0f0", color:"#FF6B6B", cursor:"pointer", fontSize:14 }}>🗑</button>
+                        <button onClick={()=>{ if (window.confirm(`Supprimer définitivement l'extra "${e.nom}" ? Cette action est immédiate et irréversible. Pour le désactiver temporairement sans le perdre, utilise plutôt l'interrupteur à gauche.`)) setExtras(prev=>prev.filter((_,j)=>j!==i)); }} style={{ width:30, height:30, borderRadius:7, border:"none", background:"#fff0f0", color:"#FF6B6B", cursor:"pointer", fontSize:14 }}>🗑</button>
                       </div>
                     </div>
                   )}
@@ -3988,6 +3988,17 @@ export default function App() {
               ) : (
                 <button style={{ width:"100%", padding:"11px", borderRadius:9, background:"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:14, cursor:"pointer", marginTop:8 }} onClick={()=>setAjoutExtraMode(true)}>
                   ➕ Ajouter un extra
+                </button>
+              )}
+              {EXTRAS_DEFAUT.some(def => !extras.some(e => e.id === def.id)) && (
+                <button style={{ width:"100%", padding:"10px", borderRadius:9, background:"#fff8e1", color:"#a06000", border:"1.5px solid #f0c040", fontWeight:700, fontSize:13, cursor:"pointer", marginTop:8 }}
+                  onClick={()=>{
+                    const manquants = EXTRAS_DEFAUT.filter(def => !extras.some(e => e.id === def.id));
+                    if (window.confirm(`Restaurer ${manquants.length} extra(s) d'origine manquant(s) : ${manquants.map(m=>m.nom).join(", ")} ?`)) {
+                      setExtras(prev => [...prev, ...manquants]);
+                    }
+                  }}>
+                  ♻️ Restaurer les extras d'origine manquants ({EXTRAS_DEFAUT.filter(def => !extras.some(e => e.id === def.id)).length})
                 </button>
               )}
             </div>
@@ -4386,7 +4397,7 @@ export default function App() {
         <div style={card}>
           <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", marginBottom: 4, fontWeight: 700 }}>👨‍👩‍👧‍👦 Formule groupe (optionnel)</div>
           <div style={{ fontSize: 12, color: "#5a8a96", marginBottom: 12, lineHeight: 1.5 }}>
-            Tarif forfaitaire pour une session de 3h. Non cumulable avec la remise fidélité par tranche, mais l'extra "Zéro vis-à-vis" reste offert.
+            Tarif forfaitaire pour une session de 3h. Non cumulable avec les remises fidélité, mais l'extra "Zéro vis-à-vis" reste offert.
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div onClick={() => setF("formuleGroupe", form.formuleGroupe === "groupe10" ? null : "groupe10")}
