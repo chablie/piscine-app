@@ -44,7 +44,8 @@ async function envoyerSms(destinataire, message) {
 
 // ─── SMS : nouvelle demande de réservation (alerte instantanée propriétaire) ──
 export async function envoyerSmsNouvelleDemande(reservation) {
-  const message = `🔔 Ma Piscine Privée : nouvelle demande de ${reservation.prenom} ${reservation.nom} le ${reservation.date} de ${formatHeureEmail(reservation.heureDebut)} à ${formatHeureEmail(reservation.heureFin)}. Réf ${reservation.ref}.`;
+  const montant = reservation.totalGeneral ?? reservation.prix ?? 0;
+  const message = `🔔 My Piscine Privée : nouvelle demande de ${reservation.prenom} ${reservation.nom} le ${reservation.date} de ${formatHeureEmail(reservation.heureDebut)} à ${formatHeureEmail(reservation.heureFin)} — ${formatEurEmail(montant)}. Réf ${reservation.ref}.`;
   return envoyerSms(TELEPHONE_PROPRIO, message);
 }
 
@@ -54,7 +55,7 @@ function enveloppe(contenu) {
     <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #F7F0E6; padding: 24px;">
       <div style="text-align: center; margin-bottom: 20px;">
         <div style="font-size: 32px;">🏊</div>
-        <div style="font-size: 20px; font-weight: 700; color: #0B6E8A; margin-top: 4px;">Ma Piscine Privée</div>
+        <div style="font-size: 20px; font-weight: 700; color: #0B6E8A; margin-top: 4px;">My Piscine Privée</div>
         <div style="font-size: 13px; color: #5a8a96;">Écouflant • Maine-et-Loire</div>
       </div>
       <div style="background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(11,110,138,.08);">

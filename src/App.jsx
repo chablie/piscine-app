@@ -1288,9 +1288,9 @@ function StatsAvancees({ reservations, comptes, extras }) {
 
 // ─── Bouton flottant WhatsApp ───────────────────────────────────────────────
 // Contact direct pour les clients, en alternative à l'email. Le numéro et le
-// message pré-rempli sont ceux de la propriétaire (AB Kaizen / Ma Piscine Privée).
+// message pré-rempli sont ceux de la propriétaire (AB Kaizen / My Piscine Privée).
 const WHATSAPP_NUMERO = "33679419114"; // 06 79 41 91 14, format international sans le 0 initial
-const WHATSAPP_MESSAGE = "Bonjour, j'ai une question concernant Ma Piscine Privée 🏊";
+const WHATSAPP_MESSAGE = "Bonjour, j'ai une question concernant My Piscine Privée 🏊";
 
 function BoutonWhatsApp() {
   const [visible, setVisible] = useState(true);
@@ -1595,7 +1595,9 @@ export default function App() {
 
   useEffect(() => {
     if (chargementInitial) return;
-    sauvegarderExtras(extras);
+    sauvegarderExtras(extras).then(ok => {
+      if (!ok) alert("⚠️ Erreur lors de l'enregistrement des extras — probablement une session expirée. Reconnecte-toi (Se déconnecter, puis reconnexion) et réessaie, sinon tes changements ne seront pas conservés.");
+    });
   }, [extras, chargementInitial]);
 
   useEffect(() => {
@@ -1796,7 +1798,7 @@ export default function App() {
     setResetOtpExp(exp);
     setResetErreur("");
     const html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;background:#F7F0E6;padding:24px;">
-      <div style="text-align:center;margin-bottom:20px;"><div style="font-size:32px;">🏊</div><div style="font-size:20px;font-weight:700;color:#0B6E8A;">Ma Piscine Privée</div></div>
+      <div style="text-align:center;margin-bottom:20px;"><div style="font-size:32px;">🏊</div><div style="font-size:20px;font-weight:700;color:#0B6E8A;">My Piscine Privée</div></div>
       <div style="background:#fff;border-radius:12px;padding:24px;">
         <h2 style="color:#0B6E8A;margin-top:0;">🔐 Réinitialisation de mot de passe</h2>
         <p style="color:#2C3E50;font-size:14px;">Voici votre code de vérification pour réinitialiser votre mot de passe :</p>
@@ -2231,7 +2233,7 @@ export default function App() {
     setOtpExpiration(exp);
     setOtpErreur("");
     setOtpEnCours(true);
-    const message = `🏊 Ma Piscine Privée : votre code de vérification est ${code} (valable 10 minutes).`;
+    const message = `🏊 My Piscine Privée : votre code de vérification est ${code} (valable 10 minutes).`;
     try {
       const rep = await fetch('/api/envoyer-sms', {
         method: 'POST',
@@ -2577,7 +2579,7 @@ export default function App() {
       <div style={{ background: "linear-gradient(160deg,#0B6E8A 0%,#1a9fbd 100%)" }}>
         <div style={{ padding: "18px 16px 4px", textAlign: "center" }}>
           <div style={{ fontSize: 28 }}>🏊</div>
-          <div style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 21, fontWeight: 700, color: "#fff", marginTop: 3 }}>Ma Piscine Privée</div>
+          <div style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 21, fontWeight: 700, color: "#fff", marginTop: 3 }}>My Piscine Privée</div>
           <div style={{ color: "#b8e8f0", fontSize: 12, marginTop: 1 }}>Écouflant • Maine-et-Loire</div>
           {(adminConnecte || proprioConnecte) && (
             <div style={{ marginTop:5, display:"flex", alignItems:"center", justifyContent:"center", gap:6, flexWrap:"wrap" }}>
@@ -3305,7 +3307,7 @@ export default function App() {
                   {showFacture && (
                     <div style={{ marginTop:10, background:"#fff", borderRadius:10, padding:"16px", border:"2px solid #0B6E8A" }}>
                       <div style={{ textAlign:"center", marginBottom:12 }}>
-                        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700, color:"#0B6E8A" }}>🏊 Ma Piscine Privée</div>
+                        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700, color:"#0B6E8A" }}>🏊 My Piscine Privée</div>
                         <div style={{ fontSize:11, color:"#5a8a96" }}>Écouflant · Maine-et-Loire</div>
                         <div style={{ height:1, background:"#0B6E8A", margin:"8px 0" }}/>
                         <div style={{ fontSize:14, fontWeight:700, color:"#2C3E50", letterSpacing:.5 }}>FACTURE</div>
@@ -3379,7 +3381,7 @@ export default function App() {
                       <div style={{ height:1, background:"#e0e0e0", margin:"10px 0" }}/>
                       <div style={{ textAlign:"center", fontSize:10, color:"#aaa", lineHeight:1.7 }}>
                         Document non soumis à TVA · Prestataire individuel<br/>
-                        Merci de votre confiance — Ma Piscine Privée 🏊
+                        Merci de votre confiance — My Piscine Privée 🏊
                       </div>
                       <button onClick={() => window.print()} style={{ marginTop:10, width:"100%", padding:"8px", borderRadius:8, background:"#f0fafc", color:"#0B6E8A", border:"1.5px solid #0B6E8A", fontSize:13, fontWeight:700, cursor:"pointer" }}>
                         🖨️ Imprimer / Enregistrer en PDF

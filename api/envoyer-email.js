@@ -34,7 +34,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Ma Piscine Privée <contact@mypiscineprivee.com>',
+        from: 'My Piscine Privée <contact@mypiscineprivee.com>',
         to: [destinataire],
         subject: sujet,
         html: html,

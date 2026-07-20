@@ -38,7 +38,7 @@ async function envoyerEmailDirect(destinataire, sujet, html) {
     const rep = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: 'Ma Piscine Privée <contact@mypiscineprivee.com>', to: [destinataire], subject: sujet, html }),
+      body: JSON.stringify({ from: 'My Piscine Privée <contact@mypiscineprivee.com>', to: [destinataire], subject: sujet, html }),
     });
     if (!rep.ok) console.error('Erreur Resend (webhook):', await rep.text());
     return rep.ok;
@@ -60,7 +60,7 @@ function emailCreneauPerdu(r) {
     <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #F7F0E6; padding: 24px;">
       <div style="text-align: center; margin-bottom: 20px;">
         <div style="font-size: 32px;">🏊</div>
-        <div style="font-size: 20px; font-weight: 700; color: #0B6E8A; margin-top: 4px;">Ma Piscine Privée</div>
+        <div style="font-size: 20px; font-weight: 700; color: #0B6E8A; margin-top: 4px;">My Piscine Privée</div>
       </div>
       <div style="background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(11,110,138,.08);">
         <h2 style="color: #FF6B6B; margin-top: 0;">⏱️ Créneau attribué à un autre client</h2>
