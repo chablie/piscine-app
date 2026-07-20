@@ -157,16 +157,21 @@ export async function chargerExtras() {
 }
 
 export async function sauvegarderExtras(extrasArray) {
-  // On vide et on réinsère pour gérer suppressions/ajouts simplement
-  const { data: existants } = await supabase.from('extras').select('id');
+  // Uniquement des upserts — ne supprime JAMAIS automatiquement. Une
+  // suppression ne doit se produire que via un geste explicite de l'utilisateur
+  // (voir supprimerExtra ci-dessous), jamais par simple déduction d'un tableau
+  // local temporairement incomplet (c'est ce qui causait des pertes de données).
   let ok = true;
-  for (const row of existants || []) {
-    ok = (await proprioAction('extras', 'delete', { cle: 'id', cleValeur: row.id })) && ok;
-  }
   for (const e of extrasArray) {
     ok = (await proprioAction('extras', 'upsert', { ligne: { id: e.id, data: e, updated_at: new Date().toISOString() } })) && ok;
   }
   return ok;
+}
+
+// Suppression explicite et unitaire d'un extra — à appeler uniquement au
+// moment précis où l'utilisateur confirme vouloir le supprimer.
+export async function supprimerExtra(id) {
+  return proprioAction('extras', 'delete', { cle: 'id', cleValeur: id });
 }
 
 // ═══════════════════════════════════════════════════════════════════════

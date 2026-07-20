@@ -6,7 +6,7 @@ import {
   chargerComptes, sauvegarderCompte,
   chargerInventaire, sauvegarderInventaireItem, supprimerInventaireItem,
   chargerElementsEdl, sauvegarderElementsEdl,
-  chargerExtras, sauvegarderExtras,
+  chargerExtras, sauvegarderExtras, supprimerExtra,
   chargerBanqueImages, sauvegarderImageBanque, supprimerImageBanque,
   chargerCodesPromo, sauvegarderCodePromo,
   chargerNotesLocataires, sauvegarderNoteLocataire,
@@ -2215,6 +2215,15 @@ export default function App() {
   }
 
   // ── Vérification téléphone par OTP ──
+  // Convertit un numéro français saisi localement (ex: "06 12 34 56 78") au
+  // format international E.164 attendu par Twilio (ex: "+33612345678")
+  function normaliserTelephoneFR(tel) {
+    const chiffres = (tel || "").replace(/\D/g, "");
+    if (chiffres.startsWith("33") && chiffres.length === 11) return "+" + chiffres;
+    if (chiffres.startsWith("0") && chiffres.length === 10) return "+33" + chiffres.slice(1);
+    return "+" + chiffres; // repli : on suppose que l'indicatif est déjà inclus
+  }
+
   async function envoyerOTP() {
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const exp = Date.now() + 10 * 60 * 1000; // 10 minutes
@@ -2222,26 +2231,19 @@ export default function App() {
     setOtpExpiration(exp);
     setOtpErreur("");
     setOtpEnCours(true);
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #F7F0E6; padding: 24px;">
-        <div style="text-align:center; margin-bottom:20px;">
-          <div style="font-size:32px;">🏊</div>
-          <div style="font-size:20px; font-weight:700; color:#0B6E8A;">Ma Piscine Privée</div>
-        </div>
-        <div style="background:#fff; border-radius:12px; padding:24px;">
-          <h2 style="color:#0B6E8A; margin-top:0;">📱 Vérification de votre numéro</h2>
-          <p style="color:#2C3E50; font-size:14px;">Pour confirmer votre réservation, entrez ce code dans l'application :</p>
-          <div style="text-align:center; font-size:42px; font-weight:900; letter-spacing:10px; color:#0B6E8A; margin:24px 0; font-family:monospace;">${code}</div>
-          <p style="color:#888; font-size:12px; text-align:center;">Ce code est valable 10 minutes.</p>
-        </div>
-      </div>`;
+    const message = `🏊 Ma Piscine Privée : votre code de vérification est ${code} (valable 10 minutes).`;
     try {
-      await fetch('/api/envoyer-email', {
+      const rep = await fetch('/api/envoyer-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ destinataire: form.email, sujet: `🔐 Code de vérification : ${code}`, html }),
+        body: JSON.stringify({ destinataire: normaliserTelephoneFR(form.telephone), message }),
       });
-      setOtpEnvoye(true);
+      if (rep.ok) {
+        setOtpEnvoye(true);
+      } else {
+        const d = await rep.json().catch(() => ({}));
+        setOtpErreur(d.error || "Erreur lors de l'envoi du SMS. Vérifiez votre numéro.");
+      }
     } catch(e) {
       setOtpErreur("Erreur lors de l'envoi. Vérifiez votre connexion.");
     }
@@ -2255,7 +2257,7 @@ export default function App() {
       setOtpVerifie(true);
       setOtpErreur("");
     } else {
-      setOtpErreur("Code incorrect. Vérifiez votre email et réessayez.");
+      setOtpErreur("Code incorrect. Vérifiez votre SMS et réessayez.");
     }
   }
 
@@ -4079,7 +4081,7 @@ export default function App() {
                       </div>
                       <div style={{ display:"flex", gap:8 }}>
                         <button onClick={()=>setExtraEnEdition(null)} style={{ flex:1, padding:"8px", borderRadius:8, background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>✓ Valider</button>
-                        <button onClick={()=>{ if (window.confirm(`Supprimer définitivement l'extra "${e.nom}" ? Cette action est immédiate et irréversible.`)) { setExtras(prev=>prev.filter((_,j)=>j!==i)); setExtraEnEdition(null); } }} style={{ padding:"8px 14px", borderRadius:8, background:"#fff0f0", color:"#FF6B6B", border:"1.5px solid #FF6B6B", fontWeight:700, fontSize:13, cursor:"pointer" }}>🗑 Supprimer</button>
+                        <button onClick={()=>{ if (window.confirm(`Supprimer définitivement l'extra "${e.nom}" ? Cette action est immédiate et irréversible.`)) { supprimerExtra(e.id); setExtras(prev=>prev.filter((_,j)=>j!==i)); setExtraEnEdition(null); } }} style={{ padding:"8px 14px", borderRadius:8, background:"#fff0f0", color:"#FF6B6B", border:"1.5px solid #FF6B6B", fontWeight:700, fontSize:13, cursor:"pointer" }}>🗑 Supprimer</button>
                       </div>
                     </div>
                   ) : (
@@ -4102,7 +4104,7 @@ export default function App() {
                         {/* Modifier */}
                         <button onClick={()=>setExtraEnEdition(e.id)} style={{ width:30, height:30, borderRadius:7, border:"1.5px solid #0B6E8A", background:"#e8f4f7", color:"#0B6E8A", cursor:"pointer", fontSize:14, fontWeight:700 }}>✏️</button>
                         {/* Supprimer direct */}
-                        <button onClick={()=>{ if (window.confirm(`Supprimer définitivement l'extra "${e.nom}" ? Cette action est immédiate et irréversible. Pour le désactiver temporairement sans le perdre, utilise plutôt l'interrupteur à gauche.`)) setExtras(prev=>prev.filter((_,j)=>j!==i)); }} style={{ width:30, height:30, borderRadius:7, border:"none", background:"#fff0f0", color:"#FF6B6B", cursor:"pointer", fontSize:14 }}>🗑</button>
+                        <button onClick={()=>{ if (window.confirm(`Supprimer définitivement l'extra "${e.nom}" ? Cette action est immédiate et irréversible. Pour le désactiver temporairement sans le perdre, utilise plutôt l'interrupteur à gauche.`)) { supprimerExtra(e.id); setExtras(prev=>prev.filter((_,j)=>j!==i)); } }} style={{ width:30, height:30, borderRadius:7, border:"none", background:"#fff0f0", color:"#FF6B6B", cursor:"pointer", fontSize:14 }}>🗑</button>
                       </div>
                     </div>
                   )}
@@ -4922,34 +4924,34 @@ export default function App() {
             <div style={{ fontSize: 12, color: "#5a8a96" }}>Aucune donnée bancaire n'est demandée à cette étape. Vous recevrez un lien de paiement sécurisé (Stripe) par email si le propriétaire accepte votre demande.</div>
           </div>
 
-          {/* ── Vérification email OTP ── */}
+          {/* ── Vérification téléphone par SMS ── */}
           {modePaiement && (
             <div style={{ background: otpVerifie ? "#e6faf8" : "#f0fafc", border: `2px solid ${otpVerifie ? "#4ECDC4" : "#b0d8e3"}`, borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
               {otpVerifie ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ fontSize: 22 }}>✅</div>
                   <div>
-                    <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 14 }}>Email vérifié</div>
-                    <div style={{ fontSize: 12, color: "#5a8a96" }}>Votre adresse email a été confirmée. Vous pouvez finaliser votre réservation.</div>
+                    <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 14 }}>Téléphone vérifié</div>
+                    <div style={{ fontSize: 12, color: "#5a8a96" }}>Votre numéro a été confirmé. Vous pouvez finaliser votre réservation.</div>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 14, marginBottom: 6 }}>🔐 Vérification de votre email</div>
+                  <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 14, marginBottom: 6 }}>🔐 Vérification de votre téléphone</div>
                   <div style={{ fontSize: 12, color: "#5a8a96", marginBottom: 10 }}>
-                    Pour confirmer votre réservation, nous devons vérifier votre adresse email <strong>{form.email}</strong>.
+                    Pour confirmer votre réservation, nous devons vérifier votre numéro <strong>{form.telephone}</strong> par SMS.
                   </div>
                   {!otpEnvoye ? (
                     <button
                       onClick={envoyerOTP}
                       disabled={otpEnCours}
                       style={{ width: "100%", padding: "11px", borderRadius: 9, background: "#0B6E8A", color: "#fff", border: "none", fontWeight: 700, fontSize: 14, cursor: otpEnCours ? "not-allowed" : "pointer", opacity: otpEnCours ? 0.7 : 1 }}>
-                      {otpEnCours ? "Envoi en cours…" : "📨 Recevoir mon code de vérification"}
+                      {otpEnCours ? "Envoi en cours…" : "📲 Recevoir mon code par SMS"}
                     </button>
                   ) : (
                     <>
                       <div style={{ fontSize: 12, color: "#0B6E8A", background: "#e6faf8", borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
-                        📧 Un code à 6 chiffres a été envoyé à <strong>{form.email}</strong>. Valable 10 minutes.
+                        📲 Un code à 6 chiffres a été envoyé par SMS au <strong>{form.telephone}</strong>. Valable 10 minutes.
                       </div>
                       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                         <input
