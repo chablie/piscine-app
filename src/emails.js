@@ -1,6 +1,9 @@
 // Module d'envoi d'emails — appelle la fonction serverless /api/envoyer-email
 // qui elle-même contacte Resend de façon sécurisée.
 
+// Numéro de la propriétaire pour les alertes SMS instantanées (format E.164)
+const TELEPHONE_PROPRIO = "+33679419114";
+
 async function envoyerEmail(destinataire, sujet, html) {
   try {
     const reponse = await fetch('/api/envoyer-email', {
@@ -18,6 +21,31 @@ async function envoyerEmail(destinataire, sujet, html) {
     console.error('Erreur réseau envoi email:', e);
     return false;
   }
+}
+
+async function envoyerSms(destinataire, message) {
+  try {
+    const reponse = await fetch('/api/envoyer-sms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destinataire, message }),
+    });
+    if (!reponse.ok) {
+      const err = await reponse.json().catch(() => ({}));
+      console.error('Erreur envoi SMS:', err);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('Erreur réseau envoi SMS:', e);
+    return false;
+  }
+}
+
+// ─── SMS : nouvelle demande de réservation (alerte instantanée propriétaire) ──
+export async function envoyerSmsNouvelleDemande(reservation) {
+  const message = `🔔 Ma Piscine Privée : nouvelle demande de ${reservation.prenom} ${reservation.nom} le ${reservation.date} de ${formatHeureEmail(reservation.heureDebut)} à ${formatHeureEmail(reservation.heureFin)}. Réf ${reservation.ref}.`;
+  return envoyerSms(TELEPHONE_PROPRIO, message);
 }
 
 // ─── Templates ──────────────────────────────────────────────────────────────

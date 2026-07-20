@@ -17,6 +17,7 @@ import {
 import {
   envoyerEmailNouvelleDemande, envoyerEmailAcceptation,
   envoyerEmailRefus, envoyerEmailAnnulation,
+  envoyerSmsNouvelleDemande,
 } from "./emails.js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -2305,6 +2306,7 @@ export default function App() {
     await sauvegarderReservation(r);
     // L'état des lieux d'entrée et de sortie se font le jour J, depuis "Mon compte" ou via la bannière d'alerte
     envoyerEmailNouvelleDemande(r, PROPRIO_EMAIL);
+    envoyerSmsNouvelleDemande(r);
     if (codePromoStatut === "ok" && codePromoSaisi) {
       const code = codePromoSaisi.trim().toUpperCase();
       setRegistreCodes(prev => {
