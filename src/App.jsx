@@ -1606,8 +1606,8 @@ export default function App() {
   useEffect(() => {
     if (chargementInitial) return;
     if (!proprioConnecte && !adminConnecte) return; // un visiteur anonyme ne peut/doit jamais tenter cette écriture
-    sauvegarderExtras(extras).then(ok => {
-      if (!ok) alert("⚠️ Erreur lors de l'enregistrement des extras — probablement une session expirée. Reconnecte-toi (Se déconnecter, puis reconnexion) et réessaie, sinon tes changements ne seront pas conservés.");
+    sauvegarderExtras(extras).then(({ ok, error }) => {
+      if (!ok) alert(`⚠️ Erreur lors de l'enregistrement des extras : ${error || "cause inconnue"}. Reconnecte-toi si besoin (Se déconnecter, puis reconnexion).`);
     });
   }, [extras, chargementInitial, proprioConnecte, adminConnecte]);
 

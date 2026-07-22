@@ -57,6 +57,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Action inconnue' });
   } catch (e) {
     console.error('Erreur proprio-action:', e);
-    return res.status(500).json({ error: 'Erreur serveur' });
+    return res.status(500).json({ error: e.message || 'Erreur serveur' });
   }
 }

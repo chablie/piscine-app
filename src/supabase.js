@@ -162,10 +162,22 @@ export async function sauvegarderExtras(extrasArray) {
   // (voir supprimerExtra ci-dessous), jamais par simple déduction d'un tableau
   // local temporairement incomplet (c'est ce qui causait des pertes de données).
   let ok = true;
+  let derniereErreur = null;
   for (const e of extrasArray) {
-    ok = (await proprioAction('extras', 'upsert', { ligne: { id: e.id, data: e, updated_at: new Date().toISOString() } })) && ok;
+    const rep = await fetch('/api/proprio-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ table: 'extras', action: 'upsert', ligne: { id: e.id, data: e, updated_at: new Date().toISOString() } }),
+    });
+    if (!rep.ok) {
+      const err = await rep.json().catch(() => ({}));
+      derniereErreur = err.error || `Erreur ${rep.status}`;
+      console.error('sauvegarderExtras', e.id, derniereErreur);
+      ok = false;
+    }
   }
-  return ok;
+  return { ok, error: derniereErreur };
 }
 
 // Suppression explicite et unitaire d'un extra — à appeler uniquement au
