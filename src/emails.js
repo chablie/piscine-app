@@ -49,6 +49,38 @@ export async function envoyerSmsNouvelleDemande(reservation) {
   return envoyerSms(TELEPHONE_PROPRIO, message);
 }
 
+// ─── Email : code promo reçu suite à une bonne note ──────────────────────────
+export async function envoyerEmailCodePromo(reservation, note, promo) {
+  const html = enveloppe(`
+    <h2 style="color: #07a0f2; margin-top: 0;">🎁 Un code promo rien que pour vous !</h2>
+    <p style="color: #2C3E50; font-size: 14px;">Bonjour ${reservation.prenom}, suite à votre venue, la propriétaire vous a attribué la note de <strong>${"⭐".repeat(note)}</strong> — merci d'avoir été un(e) locataire exemplaire !</p>
+    <p style="color: #2C3E50; font-size: 14px;">Pour vous remercier, voici un code de réduction de <strong>-${promo.taux}%</strong> à utiliser sur votre prochaine réservation :</p>
+    <div style="text-align:center; margin: 22px 0;">
+      <div style="display:inline-block; background:#07a0f2; border-radius:12px; padding:14px 28px;">
+        <div style="font-size:26px; font-weight:900; letter-spacing:4px; color:#fff; font-family:monospace;">${promo.code}</div>
+      </div>
+    </div>
+    <p style="color: #888; font-size: 12px; text-align:center;">Valable jusqu'au <strong>${promo.expiration}</strong> · usage unique</p>
+    <p style="color: #2C3E50; font-size: 14px;">À très bientôt à la piscine ! 🏊</p>
+  `);
+  return envoyerEmail(reservation.email, `🎁 -${promo.taux}% sur votre prochaine réservation !`, html);
+}
+
+// ─── Email : remboursement commercial effectué ───────────────────────────────
+export async function envoyerEmailRemboursementCommercial(reservation, montantDemande, fraisGestion, netRembourse) {
+  const html = enveloppe(`
+    <h2 style="color: #07a0f2; margin-top: 0;">↩️ Remboursement effectué</h2>
+    <p style="color: #2C3E50; font-size: 14px;">Bonjour ${reservation.prenom}, un remboursement commercial vient d'être effectué sur votre réservation <strong>${reservation.ref}</strong> :</p>
+    <table style="width: 100%; margin: 16px 0;">
+      ${ligneInfo('Montant du geste commercial', formatEurEmail(montantDemande))}
+      ${ligneInfo('Frais de gestion (25%)', '− ' + formatEurEmail(fraisGestion))}
+      ${ligneInfo('Montant remboursé', formatEurEmail(netRembourse))}
+    </table>
+    <p style="color: #2C3E50; font-size: 14px;">La somme de <strong>${formatEurEmail(netRembourse)}</strong> sera recréditée sur votre moyen de paiement d'origine sous quelques jours (délai bancaire habituel).</p>
+  `);
+  return envoyerEmail(reservation.email, `↩️ Remboursement effectué — ${reservation.ref}`, html);
+}
+
 // ─── Templates ──────────────────────────────────────────────────────────────
 function enveloppe(contenu) {
   return `

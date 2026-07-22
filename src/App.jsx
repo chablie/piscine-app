@@ -17,7 +17,7 @@ import {
 import {
   envoyerEmailNouvelleDemande, envoyerEmailAcceptation,
   envoyerEmailRefus, envoyerEmailAnnulation,
-  envoyerSmsNouvelleDemande,
+  envoyerSmsNouvelleDemande, envoyerEmailCodePromo, envoyerEmailRemboursementCommercial,
 } from "./emails.js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -2091,6 +2091,9 @@ export default function App() {
           const d = await rep.json();
           updated = { ...updated, paiement: { ...updated.paiement, rembourse: true, montantRembourseStripe: d.montantRembourse } };
           setReservations(prev => prev.map(x => x.ref === ref ? updated : x));
+          // Prévenir le client par email et confirmer visuellement à la propriétaire
+          envoyerEmailRemboursementCommercial(updated, montant, fraisGestion, netRembourse);
+          alert(`✅ Remboursement Stripe effectué : ${netRembourse.toFixed(2).replace(".", ",")} € recrédités au client. Un email de confirmation lui a été envoyé.`);
         } else {
           const err = await rep.json().catch(() => ({}));
           console.error('Remboursement commercial échoué:', err);
@@ -2100,6 +2103,10 @@ export default function App() {
         console.error('Erreur réseau remboursement:', e);
         alert("Erreur réseau lors du remboursement. À faire manuellement depuis Stripe si besoin.");
       }
+    } else {
+      // Pas de paiement Stripe associé (ex : paiement espèces) — informer quand même le client
+      envoyerEmailRemboursementCommercial(updated, montant, fraisGestion, netRembourse);
+      alert(`✅ Remboursement enregistré (${netRembourse.toFixed(2).replace(".", ",")} €). Aucun paiement Stripe associé : à régler directement avec le client (espèces/virement). Un email l'en a informé.`);
     }
     setRembRef(null); setRembMontant("");
   }
@@ -2190,7 +2197,8 @@ export default function App() {
     if (!entree) { setCodePromoStatut("invalide"); return; }
     if (entree.utilise) { setCodePromoStatut("utilise"); return; }
     if (entree.dateExpISO < today()) { setCodePromoStatut("expire"); return; }
-    setCodePromoStatut("ok"); setRemise(5);
+    // Applique le taux propre à ce code (5% pour une note 4★, 10% pour 5★)
+    setCodePromoStatut("ok"); setRemise(entree.taux || 5);
   }
 
   function annulerCode() { setCodePromoSaisi(""); setCodePromoStatut(null); setRemise(0); }
@@ -2510,17 +2518,23 @@ export default function App() {
     const noteData = { note: noteProprioVal, commentaire: commentaireProprioVal };
     setNotesLocataires(prev => ({ ...prev, [ref]: noteData }));
     sauvegarderNoteLocataire(ref, noteData);
-    // Générer un code promo si note ≥ 4
+    // Code promo selon la note : 4★ = -5%, 5★ = -10%, valable 1 mois
     if (noteProprioVal >= 4) {
+      const taux = noteProprioVal === 5 ? 10 : 5;
       const promo = genererCodePromo();
-      const codeData = { expiration: promo.expiration, dateExpISO: promo.dateExpISO, utilise: false, reservationRef: ref };
+      promo.taux = taux;
+      const codeData = { expiration: promo.expiration, dateExpISO: promo.dateExpISO, taux, utilise: false, reservationRef: ref };
       setRegistreCodes(prev => ({ ...prev, [promo.code]: codeData }));
       sauvegarderCodePromo(promo.code, codeData);
-      // Stocker le code dans la réservation pour que le locataire le voie
+      // Stocker le code dans la réservation pour que le locataire le voie,
+      // et le lui envoyer aussi par email pour qu'il ne le rate pas
       setReservations(prev => {
         const next = prev.map(r => r.ref === ref ? { ...r, codePromo: promo } : r);
         const updated = next.find(r => r.ref === ref);
-        if (updated) sauvegarderReservation(updated);
+        if (updated) {
+          sauvegarderReservation(updated);
+          envoyerEmailCodePromo(updated, noteProprioVal, promo);
+        }
         return next;
       });
     }
@@ -3302,7 +3316,7 @@ export default function App() {
                       Note propriétaire : {"⭐".repeat(noteP.note)}
                       {r.codePromo && (
                         <div style={{ marginTop: 8, background: "#07a0f2", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
-                          <div style={{ fontSize: 11, color: "#b8e8f0", marginBottom: 2 }}>🎁 Code promo -5%</div>
+                          <div style={{ fontSize: 11, color: "#b8e8f0", marginBottom: 2 }}>🎁 Code promo -{r.codePromo.taux || 5}%</div>
                           <div style={{ fontSize: 17, fontWeight: 900, color: "#fff", fontFamily: "monospace", letterSpacing: 2 }}>{r.codePromo.code}</div>
                           <div style={{ fontSize: 11, color: "#b8e8f0", marginTop: 2 }}>Valable jusqu'au {r.codePromo.expiration} · usage unique</div>
                         </div>
@@ -3928,7 +3942,9 @@ export default function App() {
                   const dispo = estOuvert(propriDate, h);
                   const isSoir = h >= 20;
                   let bg, color, border, labelH, cliquable = false;
-                  if (res) { bg="#07a0f2"; color="#fff"; border="2px solid #07a0f2"; labelH="📅"; }
+                  // 💰 = réservation payée (argent encaissé) — bien distinct des
+                  // créneaux simplement fermés par la propriétaire (—) ou des tampons (🔒)
+                  if (res) { bg="#07a0f2"; color="#fff"; border="2px solid #07a0f2"; labelH="💰 Payé"; }
                   else if (blocked) { bg="#ffe8b0"; color="#a06000"; border="2px solid #f0c040"; labelH="🔒 Tampon"; }
                   else if (dispo) { bg=isSoir?"#0480c4":"#39b8f5"; color="#fff"; border=`2px solid ${isSoir?"#0480c4":"#39b8f5"}`; labelH=isSoir?"✓🌙":"✓"; cliquable=true; }
                   else { bg="#f5f5f5"; color="#bbb"; border="2px dashed #ddd"; labelH="—"; cliquable=true; }
@@ -3963,7 +3979,7 @@ export default function App() {
 
               {/* Légende */}
               <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginTop:12 }}>
-                {[["#39b8f5","Ouvert"],["#0480c4","Ouvert soirée (+1€)"],["#07a0f2","Réservé"],["#ffe8b0","Tampon"],["#f5f5f5","Fermé"]].map(([bg,label])=>(
+                {[["#39b8f5","Ouvert"],["#0480c4","Ouvert soirée (+1€)"],["#07a0f2","💰 Réservé & payé"],["#ffe8b0","Tampon"],["#f5f5f5","Fermé par moi"]].map(([bg,label])=>(
                   <div key={label} style={{display:"flex",alignItems:"center",gap:3,fontSize:10}}>
                     <div style={{width:11,height:11,borderRadius:3,background:bg,border:"1px solid #ccc"}}/>
                     <span style={{color:"#6b7f8c"}}>{label}</span>
@@ -4287,6 +4303,16 @@ export default function App() {
                       <div style={{ fontWeight: 700, color: "#07a0f2", fontSize: 13 }}>{r.ref}</div>
                       <div style={{ display:"flex", gap:4, flexWrap:"wrap", justifyContent:"flex-end" }}>
                         {/* Badge paiement */}
+                        {r.note && (
+                          <span title={r.commentaire || ""} style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#fff8e1", color:"#a06000", border:"1px solid #f0c040" }}>
+                            {"⭐".repeat(r.note)} avis client
+                          </span>
+                        )}
+                        {r.commentaire && (
+                          <div style={{ width:"100%", fontSize:12, color:"#6b7f8c", fontStyle:"italic", background:"#f8f9fa", borderRadius:8, padding:"6px 10px", marginTop:4 }}>
+                            💬 « {r.commentaire} »
+                          </div>
+                        )}
                         {r.paiement?.rembourse && (
                           <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#f0e6ff", color:"#6b3fa0", border:"1px solid #b088e0" }} title={r.paiement.dateRemboursement ? new Date(r.paiement.dateRemboursement).toLocaleDateString("fr-FR") : ""}>
                             ↩️ Remboursée {formatEur(r.paiement.montantRembourseStripe)}
@@ -4452,7 +4478,7 @@ export default function App() {
                         <div style={{ marginTop: 10, background: "#f0f9ff", borderRadius: 10, padding: "12px", border: "1px solid #b8e0f8" }}>
                           <div style={{ fontWeight: 700, color: "#07a0f2", fontSize: 13, marginBottom: 8 }}>⭐ Notez ce locataire</div>
                           <Stars value={noteProprioVal} onChange={setNoteProprioVal} />
-                          {noteProprioVal > 0 && <div style={{ marginTop: 6, padding: "5px 10px", borderRadius: 7, fontSize: 12, fontWeight: 600, background: noteProprioVal >= 4 ? "#e8f6fe" : "#fff0f0", color: noteProprioVal >= 4 ? "#07a0f2" : "#FF6B6B", border: `1px solid ${noteProprioVal >= 4 ? "#39b8f5" : "#FF6B6B"}`, marginBottom: 8, textAlign: "center" }}>{noteProprioVal >= 4 ? "✓ Code promo -5% accordé" : "✗ Pas de code promo"}</div>}
+                          {noteProprioVal > 0 && <div style={{ marginTop: 6, padding: "5px 10px", borderRadius: 7, fontSize: 12, fontWeight: 600, background: noteProprioVal >= 4 ? "#e8f6fe" : "#fff0f0", color: noteProprioVal >= 4 ? "#07a0f2" : "#FF6B6B", border: `1px solid ${noteProprioVal >= 4 ? "#39b8f5" : "#FF6B6B"}`, marginBottom: 8, textAlign: "center" }}>{noteProprioVal >= 4 ? `✓ Code promo accordé (${noteProprioVal === 5 ? "-10%" : "-5%"})` : "✗ Pas de code promo"}</div>}
                           <textarea value={commentaireProprioVal} onChange={e => setCommentaireProprioVal(e.target.value)} placeholder="Commentaire..." style={{ ...inp, height: 60, resize: "vertical", fontSize: 12, marginBottom: 8 }} />
                           <div style={{ display: "flex", gap: 8 }}>
                             <button style={{ ...btnP, marginTop: 0, fontSize: 13, padding: "9px" }} onClick={() => soumettreNoteLocataire(r.ref)}>Valider</button>
@@ -4829,7 +4855,7 @@ export default function App() {
             <div style={{ fontSize: 13, fontWeight: 700, color: "#07a0f2", marginBottom: 8 }}>🎁 Vous avez un code promo ?</div>
             {codePromoStatut === "ok" ? (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#e8f6fe", borderRadius: 8, padding: "8px 12px", border: "1.5px solid #39b8f5" }}>
-                <div><span style={{ fontWeight: 700, color: "#07a0f2", fontFamily: "monospace", fontSize: 14 }}>{codePromoSaisi.toUpperCase()}</span><span style={{ color: "#39b8f5", fontWeight: 600, fontSize: 13, marginLeft: 8 }}>✓ -5% appliqué</span></div>
+                <div><span style={{ fontWeight: 700, color: "#07a0f2", fontFamily: "monospace", fontSize: 14 }}>{codePromoSaisi.toUpperCase()}</span><span style={{ color: "#39b8f5", fontWeight: 600, fontSize: 13, marginLeft: 8 }}>✓ -{remise}% appliqué</span></div>
                 <button onClick={annulerCode} style={{ background: "none", border: "none", color: "#FF6B6B", cursor: "pointer", fontSize: 18, fontWeight: 700 }}>×</button>
               </div>
             ) : (
@@ -5178,7 +5204,7 @@ export default function App() {
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 34, marginBottom: 8 }}>🎁</div>
                 <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 17, color: "#07a0f2", fontWeight: 700, marginBottom: 6 }}>Bravo, vous méritez une réduction !</div>
-                <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14 }}>Le propriétaire vous a attribué <strong>{"⭐".repeat(noteP.note)}</strong>.<br />Code <strong>-5%</strong> valable jusqu'au <strong>{promoRecue?.expiration}</strong> :</div>
+                <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14 }}>Le propriétaire vous a attribué <strong>{"⭐".repeat(noteP.note)}</strong>.<br />Code <strong>-{promoRecue?.taux || 5}%</strong> valable jusqu'au <strong>{promoRecue?.expiration}</strong> :</div>
                 <div style={{ background: "#07a0f2", borderRadius: 12, padding: "14px 18px", display: "inline-block", marginBottom: 12 }}>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: 2, fontFamily: "monospace" }}>{promoRecue?.code}</div>
                   <div style={{ fontSize: 11, color: "#b8e8f0", marginTop: 2 }}>-5% · usage unique · 1 mois</div>
