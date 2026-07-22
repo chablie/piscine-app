@@ -18,6 +18,7 @@ import {
   envoyerEmailNouvelleDemande, envoyerEmailAcceptation,
   envoyerEmailRefus, envoyerEmailAnnulation,
   envoyerSmsNouvelleDemande, envoyerEmailCodePromo, envoyerEmailRemboursementCommercial,
+  envoyerEmailEdlAValider, envoyerSmsEdlAValider,
 } from "./emails.js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -68,6 +69,62 @@ const EMOJI_SUGGESTIONS = [
   "🏐","🎾","🥏","🌿","🌸","🌙","☀️","🔥","❄️","✨",
   "🚿","🧴","📦","🚗","🅿️","🧖","🛶","🏝️","⭐","💧",
 ];
+
+// ─── Zone de signature (doigt sur mobile, souris sur ordinateur) ─────────────
+// Utilisée à la fin de l'état des lieux : le locataire signe, la signature est
+// convertie en image (dataURL) et jointe à l'état des lieux envoyé à la
+// propriétaire pour validation.
+function ZoneSignature({ onChange }) {
+  const canvasRef = useRef(null);
+  const dessinEnCours = useRef(false);
+  const [vide, setVide] = useState(true);
+
+  function coords(e) {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - rect.left) * (canvas.width / rect.width), y: (src.clientY - rect.top) * (canvas.height / rect.height) };
+  }
+  function debut(e) {
+    e.preventDefault();
+    dessinEnCours.current = true;
+    const ctx = canvasRef.current.getContext("2d");
+    const { x, y } = coords(e);
+    ctx.beginPath(); ctx.moveTo(x, y);
+  }
+  function trace(e) {
+    if (!dessinEnCours.current) return;
+    e.preventDefault();
+    const ctx = canvasRef.current.getContext("2d");
+    ctx.strokeStyle = "#2C3E50"; ctx.lineWidth = 2.5; ctx.lineCap = "round";
+    const { x, y } = coords(e);
+    ctx.lineTo(x, y); ctx.stroke();
+    if (vide) setVide(false);
+  }
+  function fin() {
+    if (!dessinEnCours.current) return;
+    dessinEnCours.current = false;
+    onChange(vide ? null : canvasRef.current.toDataURL("image/png"));
+  }
+  function effacer() {
+    const canvas = canvasRef.current;
+    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+    setVide(true);
+    onChange(null);
+  }
+  return (
+    <div>
+      <canvas ref={canvasRef} width={600} height={200}
+        onMouseDown={debut} onMouseMove={trace} onMouseUp={fin} onMouseLeave={fin}
+        onTouchStart={debut} onTouchMove={trace} onTouchEnd={fin}
+        style={{ width: "100%", height: 120, background: "#fff", border: "2px dashed #b8e0f8", borderRadius: 10, touchAction: "none", cursor: "crosshair" }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 5 }}>
+        <span style={{ fontSize: 11, color: "#6b7f8c" }}>{vide ? "✍️ Signez ci-dessus (doigt ou souris)" : "✓ Signature enregistrée"}</span>
+        {!vide && <button type="button" onClick={effacer} style={{ background: "none", border: "none", color: "#FF6B6B", fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>Effacer</button>}
+      </div>
+    </div>
+  );
+}
 
 function SelecteurEmoji({ onChoisir }) {
   return (
@@ -459,7 +516,18 @@ function PhotoUploader({ label, photos, onChange, reference = null }) {
             <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
               <div style={{ position: "relative" }}>
                 <img src={p.url} alt="" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 7, border: "2px solid #39b8f5" }} />
-                <button onClick={() => onChange(photos.filter((_, j) => j !== i))} style={{ position: "absolute", top: -5, right: -5, background: "#FF6B6B", color: "#fff", border: "none", borderRadius: "50%", width: 17, height: 17, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>×</button>
+                <button onClick={() => onChange(photos.filter((_, j) => j !== i))} title="Supprimer" style={{ position: "absolute", top: -5, right: -5, background: "#FF6B6B", color: "#fff", border: "none", borderRadius: "50%", width: 17, height: 17, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>×</button>
+                {/* Remplacer la photo en place, sans devoir la supprimer puis recommencer */}
+                <label title="Remplacer cette photo" style={{ position: "absolute", bottom: -5, right: -5, background: "#07a0f2", color: "#fff", borderRadius: "50%", width: 17, height: 17, cursor: "pointer", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  🔄
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                    const f = e.target.files[0];
+                    if (!f) return;
+                    const rd = new FileReader();
+                    rd.onload = () => onChange(photos.map((x, j) => j === i ? { ...x, url: rd.result, name: f.name } : x));
+                    rd.readAsDataURL(f);
+                  }} />
+                </label>
               </div>
               {renommageIdx === i ? (
                 <div style={{ display: "flex", gap: 3 }}>
@@ -681,6 +749,10 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
 
   // Brouillon local : les modifications ne sont appliquées qu'au clic sur "Enregistrer"
   const [brouillon, setBrouillon] = useState(annonce);
+  // États du petit formulaire d'ajout d'équipement personnalisé
+  const [eqNouveauLabel, setEqNouveauLabel] = useState("");
+  const [eqNouvelEmoji, setEqNouvelEmoji] = useState("🅿️");
+  const [eqEmojiOuvert, setEqEmojiOuvert] = useState(false);
   const [sauvegarde, setSauvegarde] = useState(false);
   const [enregistrementEnCours, setEnregistrementEnCours] = useState(false);
   const [erreurSauvegarde, setErreurSauvegarde] = useState(false);
@@ -826,6 +898,30 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
                   <span style={{ fontSize:12, fontWeight:600, color:brouillon.equipements[k]?"#07a0f2":"#888" }}>{emoji} {label}</span>
                 </label>
               ))}
+              {/* Équipements personnalisés ajoutés par la propriétaire (ex : parking) */}
+              {(brouillon.equipementsPerso||[]).map((eq,i)=>(
+                <label key={eq.id} style={{ display:"flex", alignItems:"center", gap:7, cursor:"pointer", padding:"7px 9px", borderRadius:8, background:eq.actif?"#e8f6fe":"#f5f5f5", border:`1px solid ${eq.actif?"#39b8f5":"#e0e0e0"}` }}>
+                  <input type="checkbox" checked={!!eq.actif} onChange={e=>setBrouillon(a=>({...a,equipementsPerso:(a.equipementsPerso||[]).map((x,j)=>j===i?{...x,actif:e.target.checked}:x)}))} style={{ accentColor:"#07a0f2" }}/>
+                  <span style={{ fontSize:12, fontWeight:600, color:eq.actif?"#07a0f2":"#888", flex:1 }}>{eq.emoji} {eq.label}</span>
+                  <button type="button" onClick={ev=>{ ev.preventDefault(); if(window.confirm(`Supprimer l'équipement "${eq.label}" ?`)) setBrouillon(a=>({...a,equipementsPerso:(a.equipementsPerso||[]).filter((_,j)=>j!==i)})); }}
+                    style={{ background:"none", border:"none", color:"#FF6B6B", cursor:"pointer", fontSize:13, fontWeight:700, padding:0 }}>×</button>
+                </label>
+              ))}
+            </div>
+            {/* Formulaire d'ajout d'un équipement personnalisé */}
+            <div style={{ background:"#f8f9fa", borderRadius:10, padding:"10px 12px", marginTop:8 }}>
+              <div style={{ fontSize:12, fontWeight:700, color:"#07a0f2", marginBottom:6 }}>➕ Ajouter un équipement (ex : Parking extérieur)</div>
+              <div style={{ display:"flex", gap:7, alignItems:"center" }}>
+                <button type="button" onClick={()=>setEqEmojiOuvert(v=>!v)} style={{ width:38, height:38, borderRadius:8, border:"1.5px solid #b8e0f8", background:"#fff", fontSize:18, cursor:"pointer" }}>{eqNouvelEmoji}</button>
+                <input value={eqNouveauLabel} onChange={e=>setEqNouveauLabel(e.target.value)} placeholder="Nom de l'équipement" style={{ flex:1, padding:"9px 12px", borderRadius:8, border:"1.5px solid #b8e0f8", fontSize:13 }}/>
+                <button type="button" onClick={()=>{
+                  const label = eqNouveauLabel.trim();
+                  if (!label) return;
+                  setBrouillon(a=>({...a, equipementsPerso:[...(a.equipementsPerso||[]), { id:"eqp_"+Date.now(), emoji:eqNouvelEmoji, label, actif:true }]}));
+                  setEqNouveauLabel(""); setEqEmojiOuvert(false);
+                }} style={{ padding:"9px 16px", borderRadius:8, background:"#07a0f2", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>Ajouter</button>
+              </div>
+              {eqEmojiOuvert && <SelecteurEmoji onChoisir={em=>{ setEqNouvelEmoji(em); setEqEmojiOuvert(false); }}/>}
             </div>
           </div>
           <div>
@@ -1642,6 +1738,13 @@ export default function App() {
   const [modePaiement, setModePaiement] = useState(null); // "cb" | "especes" 
   const [photosAvant, setPhotosAvant] = useState([]);
   const [photosApres, setPhotosApres] = useState([]);
+  // ── Checklist état des lieux (coches Présent/Fonctionnel + commentaire + signature) ──
+  const [edlReponses, setEdlReponses] = useState({});             // entrée : { item: { present, fonctionnel } }
+  const [edlCommentaire, setEdlCommentaire] = useState("");
+  const [edlSignature, setEdlSignature] = useState(null);         // dataURL de la signature
+  const [edlReponsesSortie, setEdlReponsesSortie] = useState({});
+  const [edlCommentaireSortie, setEdlCommentaireSortie] = useState("");
+  const [edlSignatureSortie, setEdlSignatureSortie] = useState(null);
   const [photosCasse, setPhotosCasse] = useState([]);
   const [signalementCasse, setSignalementCasse] = useState(false);
   const [descriptionCasse, setDescriptionCasse] = useState("");
@@ -2215,8 +2318,13 @@ export default function App() {
 
   // Validation de l'état des lieux d'entrée le jour J (depuis la page edlEntree)
   function validerEdlEntree() {
+    // Compléter les réponses par défaut (tout présent/fonctionnel) pour les
+    // éléments que le locataire n'a pas touchés — cocher est l'exception
+    const reponsesCompletes = {};
+    elementsEdl.forEach(item => { reponsesCompletes[item] = edlReponses[item] || { present: true, fonctionnel: true }; });
+    const edlEntree = { reponses: reponsesCompletes, commentaire: edlCommentaire, signature: edlSignature, date: new Date().toISOString() };
     setReservations(prev => {
-      const next = prev.map(r => r.ref === reservation?.ref ? { ...r, photosAvant, edlEntreeFait: true } : r);
+      const next = prev.map(r => r.ref === reservation?.ref ? { ...r, edlEntree, edlEntreeFait: true } : r);
       const updated = next.find(r => r.ref === reservation?.ref);
       if (updated) sauvegarderReservation(updated);
       return next;
@@ -2414,10 +2522,18 @@ export default function App() {
   }
 
   function cloturerSession() {
+    const reponsesCompletes = {};
+    elementsEdl.forEach(item => { reponsesCompletes[item] = edlReponsesSortie[item] || { present: true, fonctionnel: true }; });
+    const edlSortie = { reponses: reponsesCompletes, commentaire: edlCommentaireSortie, signature: edlSignatureSortie, date: new Date().toISOString() };
     setReservations(prev => {
-      const next = prev.map(r => r.ref === reservation?.ref ? { ...r, photosApres, photosCasse, descriptionCasse, edlSortieFait: true } : r);
+      const next = prev.map(r => r.ref === reservation?.ref ? { ...r, edlSortie, photosCasse, descriptionCasse, edlSortieFait: true, edlValideProprio: false } : r);
       const updated = next.find(r => r.ref === reservation?.ref);
-      if (updated) sauvegarderReservation(updated);
+      if (updated) {
+        sauvegarderReservation(updated);
+        // Notifier la propriétaire : l'état des lieux de sortie attend sa validation
+        envoyerEmailEdlAValider(updated, PROPRIO_EMAIL);
+        envoyerSmsEdlAValider(updated);
+      }
       return next;
     });
     if (reservation?.ref) marquerEdlSortie(reservation.ref);
@@ -2823,6 +2939,12 @@ export default function App() {
                   </div>
                 );
               })}
+              {/* Équipements personnalisés (ex : parking) visibles au même titre que les autres */}
+              {(annonce.equipementsPerso||[]).filter(eq=>eq.actif).map(eq=>(
+                <div key={eq.id} style={{ display:"flex", alignItems:"center", gap:5, background:"#e8f6fe", borderRadius:20, padding:"5px 12px", fontSize:12, fontWeight:600, color:"#07a0f2" }}>
+                  {eq.emoji} {eq.label}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -3855,7 +3977,7 @@ export default function App() {
 
           {ongletPropri === "dispo" && (
             <div style={card}>
-              <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", marginBottom: 12, fontWeight: 700 }}>🗓 Disponibilités</div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}><div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", fontWeight: 700 }}>🗓 Disponibilités</div><span style={{ fontSize:11, color:"#1a9850", background:"#e8faf0", borderRadius:20, padding:"3px 10px", fontWeight:600 }}>✓ Enregistrement automatique</span></div>
 
               {/* Sélecteur de date */}
               <label style={lbl}>Date</label>
@@ -4038,7 +4160,7 @@ export default function App() {
 
           {ongletPropri === "extras" && (
             <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(0,0,0,.06)", padding:"20px 16px", marginBottom:14 }}>
-              <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, color:"#07a0f2", marginBottom:12, fontWeight:700 }}>🎁 Gérer les extras</div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}><div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, color:"#07a0f2", fontWeight:700 }}>🎁 Gérer les extras</div><span style={{ fontSize:11, color:"#1a9850", background:"#e8faf0", borderRadius:20, padding:"3px 10px", fontWeight:600 }}>✓ Enregistrement automatique</span></div>
 
               {extras.map((e, i) => (
                 <div key={e.id} style={{ background:"#f0f9ff", borderRadius:12, padding:"12px 14px", marginBottom:10, border:"1px solid #b8e0f8" }}>
@@ -4228,7 +4350,7 @@ export default function App() {
 
                     {ongletPropri === "inventaire" && (
             <div style={card}>
-              <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", marginBottom: 6, fontWeight: 700 }}>🛋️ État des lieux</div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}><div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", fontWeight: 700 }}>🛋️ État des lieux</div><span style={{ fontSize:11, color:"#1a9850", background:"#e8faf0", borderRadius:20, padding:"3px 10px", fontWeight:600 }}>✓ Enregistrement automatique</span></div>
               <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14, lineHeight: 1.5 }}>
                 Photographiez chaque élément en bon état. Ces photos serviront de <strong>référence</strong> lors des états des lieux d'entrée et de sortie des locataires. Vous pouvez ajouter ou retirer des éléments selon votre mobilier.
               </div>
@@ -4337,6 +4459,50 @@ export default function App() {
                     {r.demandeISO && <div style={{ fontSize: 11, color: "#aabbc0", marginTop: 2 }}>
                       🕐 Demande reçue le {new Date(r.demandeISO).toLocaleDateString("fr-FR")} à {new Date(r.demandeISO).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                     </div>}
+                    {/* ── État des lieux de sortie signé : récap + validation par la propriétaire ── */}
+                    {r.edlSortie && !r.edlValideProprio && (
+                      <div style={{ marginTop: 10, background: "#fff8e1", border: "2px solid #f0c040", borderRadius: 12, padding: "12px 14px" }}>
+                        <div style={{ fontWeight: 700, color: "#a06000", fontSize: 13, marginBottom: 8 }}>📋 État des lieux de sortie à valider</div>
+                        {(() => {
+                          const anomalies = Object.entries(r.edlSortie.reponses || {}).filter(([, rep]) => !rep.present || !rep.fonctionnel);
+                          return anomalies.length > 0 ? (
+                            <div style={{ marginBottom: 8 }}>
+                              {anomalies.map(([item, rep]) => (
+                                <div key={item} style={{ fontSize: 12, color: "#c0302a", background: "#fff0f0", borderRadius: 7, padding: "5px 9px", marginBottom: 4 }}>
+                                  ⚠️ {item} : {!rep.present ? "absent" : "présent"}{!rep.fonctionnel ? ", non fonctionnel" : ""}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 12, color: "#1a9850", marginBottom: 8 }}>✅ Tous les éléments indiqués présents et fonctionnels.</div>
+                          );
+                        })()}
+                        {r.edlSortie.commentaire && <div style={{ fontSize: 12, color: "#6b7f8c", fontStyle: "italic", marginBottom: 8 }}>💬 « {r.edlSortie.commentaire} »</div>}
+                        {r.descriptionCasse && <div style={{ fontSize: 12, color: "#c0302a", marginBottom: 8 }}><strong>Dégât signalé :</strong> {r.descriptionCasse}</div>}
+                        {r.edlSortie.signature && (
+                          <div style={{ marginBottom: 8 }}>
+                            <div style={{ fontSize: 11, color: "#6b7f8c", marginBottom: 3 }}>Signature du locataire :</div>
+                            <img src={r.edlSortie.signature} alt="Signature" style={{ height: 50, background: "#fff", borderRadius: 7, border: "1px solid #e0e0e0", padding: 4 }} />
+                          </div>
+                        )}
+                        <button onClick={() => {
+                          // Validation après le tour de la piscine — action explicite de la propriétaire
+                          setReservations(prev => {
+                            const next = prev.map(x => x.ref === r.ref ? { ...x, edlValideProprio: true, edlValideDate: new Date().toISOString() } : x);
+                            const updated = next.find(x => x.ref === r.ref);
+                            if (updated) sauvegarderReservation(updated);
+                            return next;
+                          });
+                        }} style={{ width: "100%", padding: "9px", borderRadius: 8, background: "#2ecc71", color: "#fff", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                          ✓ J'ai fait le tour, je valide l'état des lieux
+                        </button>
+                      </div>
+                    )}
+                    {r.edlValideProprio && (
+                      <div style={{ marginTop: 8, fontSize: 12, color: "#1a9850", background: "#e8faf0", borderRadius: 8, padding: "6px 10px" }}>
+                        ✅ État des lieux validé{r.edlValideDate ? ` le ${new Date(r.edlValideDate).toLocaleDateString("fr-FR")}` : ""}
+                      </div>
+                    )}
                     {r.note && <div style={{ fontSize: 12, color: "#f0a500", marginTop: 4 }}>💬 {"⭐".repeat(r.note)}{r.commentaire && ` — "${r.commentaire}"`}</div>}
                     {r.photosCasse && r.photosCasse.length > 0 && <div style={{ marginTop: 5, background: "#fff0f0", borderRadius: 7, padding: "5px 10px", fontSize: 12, color: "#FF6B6B" }}>⚠️ Casse : {r.descriptionCasse || "sans description"}</div>}
 
@@ -5027,14 +5193,48 @@ export default function App() {
         <div style={card}>
           <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 19, color: "#07a0f2", marginBottom: 6, fontWeight: 700 }}>État des lieux — Arrivée</div>
           <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 6 }}>Réservation {reservation?.ref}</div>
-          <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14, lineHeight: 1.5 }}>Photographiez chaque élément avant votre session. Les photos dorées sont les références propriétaire.</div>
-          {elementsEdl.map(item => (
-            <div key={item} style={{ borderBottom: "1px solid #e8f4f7", paddingBottom: 10, marginBottom: 10 }}>
-              <PhotoUploader label={item} photos={photosAvant.filter(p => p.item === item)} reference={inventaire[item] || []} onChange={photos => setPhotosAvant(prev => [...prev.filter(p => p.item !== item), ...photos.map(p => ({ ...p, item }))])} />
-            </div>
-          ))}
-          <div style={{ fontSize: 12, color: "#6b7f8c", marginBottom: 10 }}>📷 {photosAvant.length} photo{photosAvant.length > 1 ? "s" : ""}</div>
-          <button style={btnP} onClick={validerEdlEntree}>✓ Valider et commencer la session</button>
+          <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14, lineHeight: 1.5 }}>
+            Pour chaque élément, vérifiez qu'il est bien <strong>présent</strong> et <strong>fonctionnel</strong> (les photos de référence de la propriétaire sont affichées). En cas de souci, décochez et précisez dans les commentaires.
+          </div>
+          {elementsEdl.map(item => {
+            const rep = edlReponses[item] || { present: true, fonctionnel: true };
+            const refPhotos = inventaire[item] || [];
+            return (
+              <div key={item} style={{ borderBottom: "1px solid #e8f4f7", paddingBottom: 12, marginBottom: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#2C3E50", marginBottom: 6 }}>{item}</div>
+                {refPhotos.length > 0 && (
+                  <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                    {refPhotos.map((p, i) => <img key={i} src={p.data || p} alt={item} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "2px solid #f0c040" }} />)}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                  {[["present", "Présent"], ["fonctionnel", "Fonctionnel"]].map(([cle, label]) => (
+                    <div key={cle} style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <span style={{ fontSize: 13, color: "#6b7f8c" }}>{label} :</span>
+                      {[[true, "Oui"], [false, "Non"]].map(([val, txt]) => (
+                        <button key={txt} type="button" onClick={() => setEdlReponses(prev => ({ ...prev, [item]: { ...rep, [cle]: val } }))}
+                          style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: "pointer", border: rep[cle] === val ? "2px solid " + (val ? "#2ecc71" : "#FF6B6B") : "2px solid #e0e0e0", background: rep[cle] === val ? (val ? "#e8faf0" : "#fff0f0") : "#fff", color: rep[cle] === val ? (val ? "#1a9850" : "#c0302a") : "#888" }}>
+                          {txt}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#07a0f2", marginBottom: 5 }}>💬 Commentaires libres (facultatif)</div>
+            <textarea value={edlCommentaire} onChange={e => setEdlCommentaire(e.target.value)} rows={3}
+              placeholder="Mobilier non listé, remarque sur l'état de quelque chose..."
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 9, border: "1.5px solid #b8e0f8", fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#07a0f2", marginBottom: 5 }}>✍️ Votre signature</div>
+            <ZoneSignature onChange={setEdlSignature} />
+          </div>
+          <button style={{ ...btnP, opacity: edlSignature ? 1 : 0.5 }} onClick={() => edlSignature && validerEdlEntree()}>✓ Valider et commencer la session</button>
+          {!edlSignature && <div style={{ fontSize: 12, color: "#a06000", textAlign: "center", marginTop: 6 }}>La signature est requise pour valider.</div>}
           <button style={btnS} onClick={() => setMode(compteConnecte ? "compte" : "accueil")}>← Retour</button>
         </div>
       </div>
@@ -5142,12 +5342,42 @@ export default function App() {
         <div style={card}>
           <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 19, color: "#07a0f2", marginBottom: 6, fontWeight: 700 }}>État des lieux — Départ</div>
           <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 6 }}>Réservation {reservation?.ref}</div>
-          <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14 }}>Photographiez chaque élément dans l'état où vous le laissez.</div>
-          {elementsEdl.map(item => (
-            <div key={item} style={{ borderBottom: "1px solid #e8f4f7", paddingBottom: 10, marginBottom: 10 }}>
-              <PhotoUploader label={item} photos={photosApres.filter(p => p.item === item)} reference={inventaire[item] || []} onChange={photos => setPhotosApres(prev => [...prev.filter(p => p.item !== item), ...photos.map(p => ({ ...p, item }))])} />
-            </div>
-          ))}
+          <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14, lineHeight: 1.5 }}>
+            Vérifiez chaque élément dans l'état où vous le laissez : toujours <strong>présent</strong> et <strong>fonctionnel</strong> ?
+          </div>
+          {elementsEdl.map(item => {
+            const rep = edlReponsesSortie[item] || { present: true, fonctionnel: true };
+            const refPhotos = inventaire[item] || [];
+            return (
+              <div key={item} style={{ borderBottom: "1px solid #e8f4f7", paddingBottom: 12, marginBottom: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#2C3E50", marginBottom: 6 }}>{item}</div>
+                {refPhotos.length > 0 && (
+                  <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                    {refPhotos.map((p, i) => <img key={i} src={p.data || p} alt={item} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "2px solid #f0c040" }} />)}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                  {[["present", "Présent"], ["fonctionnel", "Fonctionnel"]].map(([cle, label]) => (
+                    <div key={cle} style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <span style={{ fontSize: 13, color: "#6b7f8c" }}>{label} :</span>
+                      {[[true, "Oui"], [false, "Non"]].map(([val, txt]) => (
+                        <button key={txt} type="button" onClick={() => setEdlReponsesSortie(prev => ({ ...prev, [item]: { ...rep, [cle]: val } }))}
+                          style={{ padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: "pointer", border: rep[cle] === val ? "2px solid " + (val ? "#2ecc71" : "#FF6B6B") : "2px solid #e0e0e0", background: rep[cle] === val ? (val ? "#e8faf0" : "#fff0f0") : "#fff", color: rep[cle] === val ? (val ? "#1a9850" : "#c0302a") : "#888" }}>
+                          {txt}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#07a0f2", marginBottom: 5 }}>💬 Commentaires libres (facultatif)</div>
+            <textarea value={edlCommentaireSortie} onChange={e => setEdlCommentaireSortie(e.target.value)} rows={3}
+              placeholder="Mobilier non listé, remarque sur l'état de quelque chose..."
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 9, border: "1.5px solid #b8e0f8", fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
+          </div>
           <div style={{ background: "#fff3f3", borderRadius: 10, padding: "13px", border: "2px solid #FF6B6B", marginTop: 4, marginBottom: 12 }}>
             <div style={{ fontWeight: 700, color: "#FF6B6B", fontSize: 14, marginBottom: 10 }}>⚠️ Signalement de dégât</div>
             <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginBottom: 10 }}>
@@ -5161,7 +5391,12 @@ export default function App() {
               </>
             )}
           </div>
-          <button style={btnP} onClick={cloturerSession}>✓ Clôturer la session</button>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#07a0f2", marginBottom: 5 }}>✍️ Votre signature</div>
+            <ZoneSignature onChange={setEdlSignatureSortie} />
+          </div>
+          <button style={{ ...btnP, opacity: edlSignatureSortie ? 1 : 0.5 }} onClick={() => edlSignatureSortie && cloturerSession()}>✓ Clôturer la session</button>
+          {!edlSignatureSortie && <div style={{ fontSize: 12, color: "#a06000", textAlign: "center", marginTop: 6 }}>La signature est requise pour clôturer.</div>}
         </div>
       </div>
     </div>

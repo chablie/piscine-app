@@ -238,3 +238,27 @@ export async function envoyerEmailCreneauPerdu(reservation) {
   `);
   return envoyerEmail(reservation.email, `Créneau attribué à un autre client — ${reservation.ref}`, html);
 }
+
+// ─── Notification : état des lieux de sortie à valider par la propriétaire ───
+export async function envoyerEmailEdlAValider(reservation, emailProprio) {
+  const anomalies = Object.entries(reservation.edlSortie?.reponses || {})
+    .filter(([, rep]) => !rep.present || !rep.fonctionnel)
+    .map(([item, rep]) => `${item} : ${!rep.present ? "absent" : "présent"}${!rep.fonctionnel ? ", non fonctionnel" : ""}`);
+  const html = enveloppe(`
+    <h2 style="color: #07a0f2; margin-top: 0;">📋 État des lieux à valider</h2>
+    <p style="color: #2C3E50; font-size: 14px;">${reservation.prenom} ${reservation.nom} vient de clôturer sa session (réservation <strong>${reservation.ref}</strong>) et a signé son état des lieux de sortie.</p>
+    ${anomalies.length
+      ? `<div style="background:#fff3f3; border-radius:10px; padding:12px 14px; margin:14px 0;"><strong style="color:#c0302a;">⚠️ ${anomalies.length} anomalie(s) signalée(s) :</strong><ul style="color:#2C3E50; font-size:13px; margin:8px 0 0;">${anomalies.map(a => `<li>${a}</li>`).join("")}</ul></div>`
+      : `<p style="color: #1a9850; font-size: 14px;">✅ Tous les éléments sont indiqués présents et fonctionnels.</p>`}
+    ${reservation.edlSortie?.commentaire ? `<p style="color: #2C3E50; font-size: 13px; font-style: italic;">💬 « ${reservation.edlSortie.commentaire} »</p>` : ""}
+    ${reservation.descriptionCasse ? `<p style="color: #c0302a; font-size: 13px;"><strong>Dégât signalé :</strong> ${reservation.descriptionCasse}</p>` : ""}
+    <p style="color: #2C3E50; font-size: 14px;">Faites le tour de la piscine, puis validez cet état des lieux depuis votre espace propriétaire (onglet Résas).</p>
+  `);
+  return envoyerEmail(emailProprio, `📋 État des lieux à valider — ${reservation.ref}`, html);
+}
+
+// ─── SMS : alerte instantanée état des lieux à valider ───────────────────────
+export async function envoyerSmsEdlAValider(reservation) {
+  const message = `📋 My Piscine Privée : ${reservation.prenom} a clôturé sa session (${reservation.ref}). État des lieux signé, à valider dans ton espace après ton tour de la piscine.`;
+  return envoyerSms(TELEPHONE_PROPRIO, message);
+}

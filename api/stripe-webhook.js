@@ -55,6 +55,50 @@ function formatHeure(h) {
   return `${heure}h${String(minutes).padStart(2, '0')}`;
 }
 
+// Convertit un numéro français saisi localement au format international E.164
+function normaliserTelephoneFR(tel) {
+  const chiffres = (tel || '').replace(/\D/g, '');
+  if (chiffres.startsWith('33') && chiffres.length === 11) return '+' + chiffres;
+  if (chiffres.startsWith('0') && chiffres.length === 10) return '+33' + chiffres.slice(1);
+  return chiffres ? '+' + chiffres : null;
+}
+
+// SMS de bienvenue : itinéraire et consignes pratiques, envoyé au client dès
+// que son paiement confirme la réservation. Ne bloque jamais le webhook si
+// Twilio n'est pas configuré ou si l'envoi échoue.
+async function envoyerSmsBienvenue(r) {
+  const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+  const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+  const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+  const TWILIO_SENDER_ID = process.env.TWILIO_SENDER_ID;
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) return;
+  const destinataire = normaliserTelephoneFR(r.telephone);
+  if (!destinataire) return;
+  const message = `Bonjour,
+Vous avez effectué une réservation sur My Piscine Privée pour une piscine.
+L'adresse :
+https://maps.app.goo.gl/qFNt1Ns2zswQzspc8?g_st=ic
+Il faudra prendre la 2eme entrée sur la GAUCHE après le radar, si vous allez en Direction de Briollay-Tierce.
+Le GPS va vous emmener à proximité du chemin « Bois SENE », il faut entrer et vous arriverez devant un portail rouge. Si vous ne voyez pas de portail rouge, c'est que vous n'êtes pas au bon endroit !
+Il y a un toilette extérieur. La chasse d'eau se trouve au sol. Il faut l'actionner avec le pied 🦶 pour pomper. Merci de le faire délicatement pour ne pas abîmer la pompe.
+Merci également de faire l'état des lieux d'entrée et de sortie. Vous avez les instructions depuis votre téléphone.
+Bien cordialement
+Aurélie`;
+  try {
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
+    const expediteur = (TWILIO_SENDER_ID && TWILIO_SENDER_ID.trim()) || TWILIO_PHONE_NUMBER;
+    const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
+    const rep = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ To: destinataire, From: expediteur, Body: message }),
+    });
+    if (!rep.ok) console.error('SMS bienvenue échoué:', await rep.json().catch(() => ({})));
+  } catch (e) {
+    console.error('Erreur réseau SMS bienvenue:', e);
+  }
+}
+
 function emailCreneauPerdu(r) {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #f8f9fa; padding: 24px;">
@@ -195,6 +239,10 @@ export default async function handler(req, res) {
         body: new URLSearchParams({ active: 'false' }),
       }).catch(e => console.error('Désactivation lien échouée:', e));
     }
+
+    // 4. SMS de bienvenue au client : itinéraire précis et consignes pratiques.
+    //    Envoyé une seule fois, au moment exact où le paiement confirme la réservation.
+    await envoyerSmsBienvenue(data);
 
     return res.status(200).json({ received: true });
   } catch (e) {
