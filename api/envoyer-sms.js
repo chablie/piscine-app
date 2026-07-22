@@ -2,6 +2,12 @@
 // Envoie un SMS via Twilio de façon sécurisée (les identifiants Twilio ne
 // quittent jamais le navigateur). Utilisé pour prévenir instantanément la
 // propriétaire d'une nouvelle demande de réservation, en complément de l'email.
+//
+// L'expéditeur affiché est soit un nom de marque (TWILIO_SENDER_ID, ex:
+// "MyPiscine") si cette variable est renseignée, soit le numéro de téléphone
+// Twilio par défaut. Le nom de marque ("Alphanumeric Sender ID") nécessite un
+// compte Twilio payant — inutile de le renseigner tant que le compte est en
+// mode essai, le numéro sera utilisé automatiquement à la place.
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,6 +20,7 @@ export default async function handler(req, res) {
   const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
   const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
   const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+  const TWILIO_SENDER_ID = process.env.TWILIO_SENDER_ID; // optionnel, ex: "MyPiscine"
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
     return res.status(500).json({ error: 'Configuration serveur manquante (Twilio)' });
   }
@@ -25,7 +32,8 @@ export default async function handler(req, res) {
 
   try {
     const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
-    const body = new URLSearchParams({ To: destinataire, From: TWILIO_PHONE_NUMBER, Body: message });
+    const expediteur = (TWILIO_SENDER_ID && TWILIO_SENDER_ID.trim()) || TWILIO_PHONE_NUMBER;
+    const body = new URLSearchParams({ To: destinataire, From: expediteur, Body: message });
     const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
 
     const rep = await fetch(url, {

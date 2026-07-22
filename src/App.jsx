@@ -1515,8 +1515,22 @@ export default function App() {
         if (elementsData) setElementsEdl(elementsData);
         else { await sauvegarderElementsEdl(MOBILIER); }
 
-        if (extrasData) setExtras(extrasData);
-        else { await sauvegarderExtras(EXTRAS_DEFAUT); }
+        if (extrasData) {
+          // Complète silencieusement avec les extras par défaut et Swimmy
+          // manquants — aucun clic requis, aucune confirmation. La propriétaire
+          // supprime elle-même ceux dont elle ne veut pas garder.
+          const manquantsDefaut = EXTRAS_DEFAUT.filter(def => !extrasData.some(e => e.id === def.id));
+          const manquantsSwimmy = EXTRAS_SWIMMY.filter(sw => !extrasData.some(e => e.id === sw.id) && !manquantsDefaut.some(d => d.id === sw.id));
+          const extrasComplets = [...extrasData, ...manquantsDefaut, ...manquantsSwimmy];
+          setExtras(extrasComplets);
+          if (manquantsDefaut.length || manquantsSwimmy.length) {
+            await sauvegarderExtras(extrasComplets);
+          }
+        } else {
+          const extrasInitiaux = [...EXTRAS_DEFAUT, ...EXTRAS_SWIMMY];
+          setExtras(extrasInitiaux);
+          await sauvegarderExtras(extrasInitiaux);
+        }
 
         setRegistreCodes(codesData || {});
         setNotesLocataires(notesData || {});
@@ -4194,28 +4208,6 @@ export default function App() {
               ) : (
                 <button style={{ width:"100%", padding:"11px", borderRadius:9, background:"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:14, cursor:"pointer", marginTop:8 }} onClick={()=>setAjoutExtraMode(true)}>
                   ➕ Ajouter un extra
-                </button>
-              )}
-              {EXTRAS_DEFAUT.some(def => !extras.some(e => e.id === def.id)) && (
-                <button style={{ width:"100%", padding:"10px", borderRadius:9, background:"#fff8e1", color:"#a06000", border:"1.5px solid #f0c040", fontWeight:700, fontSize:13, cursor:"pointer", marginTop:8 }}
-                  onClick={()=>{
-                    const manquants = EXTRAS_DEFAUT.filter(def => !extras.some(e => e.id === def.id));
-                    if (window.confirm(`Restaurer ${manquants.length} extra(s) d'origine manquant(s) : ${manquants.map(m=>m.nom).join(", ")} ?`)) {
-                      setExtras(prev => [...prev, ...manquants]);
-                    }
-                  }}>
-                  ♻️ Restaurer les extras d'origine manquants ({EXTRAS_DEFAUT.filter(def => !extras.some(e => e.id === def.id)).length})
-                </button>
-              )}
-              {EXTRAS_SWIMMY.some(sw => !extras.some(e => e.id === sw.id)) && (
-                <button style={{ width:"100%", padding:"10px", borderRadius:9, background:"#e6faf8", color:"#0B6E8A", border:"1.5px solid #4ECDC4", fontWeight:700, fontSize:13, cursor:"pointer", marginTop:8 }}
-                  onClick={()=>{
-                    const aAjouter = EXTRAS_SWIMMY.filter(sw => !extras.some(e => e.id === sw.id));
-                    if (window.confirm(`Ajouter ${aAjouter.length} extra(s) issus de ton ancienne annonce Swimmy : ${aAjouter.map(m=>m.nom).join(", ")} ?\n\nTes extras actuels (Barbecue, Hamac flottant...) seront conservés tels quels.`)) {
-                      setExtras(prev => [...prev, ...aAjouter]);
-                    }
-                  }}>
-                  📥 Ajouter les extras de mon ancienne annonce Swimmy ({EXTRAS_SWIMMY.filter(sw => !extras.some(e => e.id === sw.id)).length})
                 </button>
               )}
             </div>
