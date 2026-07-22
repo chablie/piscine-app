@@ -3432,6 +3432,13 @@ export default function App() {
                         </div>
                       )}
                     </div>
+                    {/* Avis accessible après coup : si la session est terminée et pas encore notée */}
+                    {r.edlSortieFait && !r.note && (
+                      <button onClick={() => { setReservation(r); setNote(0); setCommentaire(""); setAvisEnvoye(false); setMode("locataire"); setStep(7); }}
+                        style={{ width:"100%", marginTop:8, padding:"9px", borderRadius:8, background:"#f0c040", color:"#fff", border:"none", fontWeight:700, fontSize:12, cursor:"pointer" }}>
+                        ⭐ Donner mon avis sur ma session
+                      </button>
+                    )}
                   {r.note && <div style={{ fontSize: 12, color: "#f0a500", marginTop: 4 }}>Votre avis : {"⭐".repeat(r.note)}</div>}
                   {noteP && (
                     <div style={{ fontSize: 12, marginTop: 4, color: noteP.note >= 4 ? "#07a0f2" : "#888" }}>
