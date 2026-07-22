@@ -57,10 +57,10 @@ function formatHeure(h) {
 
 function emailCreneauPerdu(r) {
   return `
-    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #F7F0E6; padding: 24px;">
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #f8f9fa; padding: 24px;">
       <div style="text-align: center; margin-bottom: 20px;">
         <div style="font-size: 32px;">🏊</div>
-        <div style="font-size: 20px; font-weight: 700; color: #0B6E8A; margin-top: 4px;">My Piscine Privée</div>
+        <div style="font-size: 20px; font-weight: 700; color: #07a0f2; margin-top: 4px;">My Piscine Privée</div>
       </div>
       <div style="background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(11,110,138,.08);">
         <h2 style="color: #FF6B6B; margin-top: 0;">⏱️ Créneau attribué à un autre client</h2>

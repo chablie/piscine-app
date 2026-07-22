@@ -388,14 +388,14 @@ Les présentes conditions sont soumises au droit français. Tout litige relève 
 function Waves() {
   return (
     <svg viewBox="0 0 1440 80" preserveAspectRatio="none" style={{ display: "block", width: "100%", height: 50, marginTop: -2 }}>
-      <path fill="#F7F0E6" d="M0,40 C240,80 480,0 720,40 C960,80 1200,0 1440,40 L1440,80 L0,80 Z" />
+      <path fill="#f8f9fa" d="M0,40 C240,80 480,0 720,40 C960,80 1200,0 1440,40 L1440,80 L0,80 Z" />
     </svg>
   );
 }
 
 function StepDot({ n, active, done }) {
   return (
-    <div style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, background: done ? "#4ECDC4" : active ? "#0B6E8A" : "rgba(255,255,255,.25)", color: done || active ? "#fff" : "rgba(255,255,255,.6)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12 }}>
+    <div style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, background: done ? "#39b8f5" : active ? "#07a0f2" : "rgba(255,255,255,.25)", color: done || active ? "#fff" : "rgba(255,255,255,.6)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12 }}>
       {done ? "✓" : n}
     </div>
   );
@@ -431,7 +431,7 @@ function PhotoUploader({ label, photos, onChange, reference = null }) {
       <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 5, color: "#2C3E50" }}>{label}</div>
       {reference && reference.length > 0 && (
         <div style={{ marginBottom: 7 }}>
-          <div style={{ fontSize: 11, color: "#5a8a96", marginBottom: 3, fontWeight: 600 }}>📸 Référence :</div>
+          <div style={{ fontSize: 11, color: "#6b7f8c", marginBottom: 3, fontWeight: 600 }}>📸 Référence :</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             {reference.map((p, i) => (
               <div key={i} style={{ position: "relative" }}>
@@ -444,11 +444,11 @@ function PhotoUploader({ label, photos, onChange, reference = null }) {
       )}
       {/* Deux boutons distincts : prendre une photo OU choisir dans la galerie */}
       <div style={{ display: "flex", gap: 6 }}>
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 12px", background: "#4ECDC4", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 12px", background: "#39b8f5", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
           📷 Prendre une photo
           <input type="file" accept="image/*" capture="environment" multiple style={{ display: "none" }} onChange={handleFiles} />
         </label>
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 12px", background: "#0B6E8A", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 12px", background: "#07a0f2", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
           🖼️ Choisir un fichier
           <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handleFiles} />
         </label>
@@ -458,19 +458,19 @@ function PhotoUploader({ label, photos, onChange, reference = null }) {
           {photos.map((p, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
               <div style={{ position: "relative" }}>
-                <img src={p.url} alt="" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 7, border: "2px solid #4ECDC4" }} />
+                <img src={p.url} alt="" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 7, border: "2px solid #39b8f5" }} />
                 <button onClick={() => onChange(photos.filter((_, j) => j !== i))} style={{ position: "absolute", top: -5, right: -5, background: "#FF6B6B", color: "#fff", border: "none", borderRadius: "50%", width: 17, height: 17, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>×</button>
               </div>
               {renommageIdx === i ? (
                 <div style={{ display: "flex", gap: 3 }}>
                   <input autoFocus value={nomTemp} onChange={e => setNomTemp(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && validerRenommage(i)}
-                    style={{ width: 64, fontSize: 10, padding: "2px 4px", borderRadius: 4, border: "1px solid #b0d8e3" }} />
-                  <button onClick={() => validerRenommage(i)} style={{ fontSize: 10, padding: "2px 5px", borderRadius: 4, background: "#0B6E8A", color: "#fff", border: "none", cursor: "pointer" }}>✓</button>
+                    style={{ width: 64, fontSize: 10, padding: "2px 4px", borderRadius: 4, border: "1px solid #b8e0f8" }} />
+                  <button onClick={() => validerRenommage(i)} style={{ fontSize: 10, padding: "2px 5px", borderRadius: 4, background: "#07a0f2", color: "#fff", border: "none", cursor: "pointer" }}>✓</button>
                 </div>
               ) : (
                 <div onClick={() => { setRenommageIdx(i); setNomTemp(p.name || ""); }}
-                  style={{ fontSize: 10, color: "#5a8a96", cursor: "pointer", maxWidth: 64, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "underline dotted" }}
+                  style={{ fontSize: 10, color: "#6b7f8c", cursor: "pointer", maxWidth: 64, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "underline dotted" }}
                   title="Cliquer pour renommer">
                   ✏️ {p.name || "photo"}
                 </div>
@@ -510,22 +510,22 @@ function CalendrierDisponibilites({ disponibilites, reservations, onSelectDate, 
     return "dispo";
   }
 
-  const couleurs = { passe: "#e0e0e0", ferme: "#f5d0d0", complet: "#fde8b0", dispo: "#c8f0ea", selected: "#0B6E8A" };
-  const textCouleurs = { passe: "#aaa", ferme: "#c0706a", complet: "#a07000", dispo: "#0B6E8A", selected: "#fff" };
+  const couleurs = { passe: "#e0e0e0", ferme: "#f5d0d0", complet: "#fde8b0", dispo: "#c8f0ea", selected: "#07a0f2" };
+  const textCouleurs = { passe: "#aaa", ferme: "#c0706a", complet: "#a07000", dispo: "#07a0f2", selected: "#fff" };
 
   return (
     <div>
       {/* Nav mois */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <button onClick={() => setNav(n => { let m = n.month - 1, y = n.year; if (m < 0) { m = 11; y--; } return { year: y, month: m }; })}
-          style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#0B6E8A", padding: "4px 10px" }}>‹</button>
-        <span style={{ fontWeight: 700, fontSize: 15, color: "#0B6E8A" }}>{MOIS[month]} {year}</span>
+          style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#07a0f2", padding: "4px 10px" }}>‹</button>
+        <span style={{ fontWeight: 700, fontSize: 15, color: "#07a0f2" }}>{MOIS[month]} {year}</span>
         <button onClick={() => setNav(n => { let m = n.month + 1, y = n.year; if (m > 11) { m = 0; y++; } return { year: y, month: m }; })}
-          style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#0B6E8A", padding: "4px 10px" }}>›</button>
+          style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#07a0f2", padding: "4px 10px" }}>›</button>
       </div>
       {/* Jours semaine */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3, marginBottom: 3 }}>
-        {JOURS.map(j => <div key={j} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: "#5a8a96", padding: "2px 0" }}>{j}</div>)}
+        {JOURS.map(j => <div key={j} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: "#6b7f8c", padding: "2px 0" }}>{j}</div>)}
       </div>
       {/* Cases */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
@@ -543,7 +543,7 @@ function CalendrierDisponibilites({ disponibilites, reservations, onSelectDate, 
                 color: sel ? textCouleurs.selected : textCouleurs[st],
                 fontWeight: sel ? 700 : 600, fontSize: 13,
                 cursor: cliquable ? "pointer" : "default",
-                border: sel ? "2px solid #0B6E8A" : "2px solid transparent",
+                border: sel ? "2px solid #07a0f2" : "2px solid transparent",
                 transition: "all .15s",
               }}>
               {d}
@@ -553,10 +553,10 @@ function CalendrierDisponibilites({ disponibilites, reservations, onSelectDate, 
       </div>
       {/* Légende */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-        {[["#c8f0ea", "#0B6E8A", "Disponible"], ["#fde8b0", "#a07000", "Complet"], ["#f5d0d0", "#c0706a", "Fermé"], ["#e0e0e0", "#aaa", "Passé"]].map(([bg, col, label]) => (
+        {[["#c8f0ea", "#07a0f2", "Disponible"], ["#fde8b0", "#a07000", "Complet"], ["#f5d0d0", "#c0706a", "Fermé"], ["#e0e0e0", "#aaa", "Passé"]].map(([bg, col, label]) => (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
             <div style={{ width: 12, height: 12, borderRadius: 3, background: bg, border: `1px solid ${col}` }} />
-            <span style={{ color: "#5a8a96" }}>{label}</span>
+            <span style={{ color: "#6b7f8c" }}>{label}</span>
           </div>
         ))}
       </div>
@@ -596,13 +596,13 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
     onToggle(next);
   }
 
-  const coulBg = { libre: "#e6faf8", reserve: "#ffd6d6", tampon: "#ffe8b0", ferme: "#f0f0f0" };
-  const coulText = { libre: "#0B6E8A", reserve: "#c0302a", tampon: "#a06000", ferme: "#bbb" };
+  const coulBg = { libre: "#e8f6fe", reserve: "#ffd6d6", tampon: "#ffe8b0", ferme: "#f0f0f0" };
+  const coulText = { libre: "#07a0f2", reserve: "#c0302a", tampon: "#a06000", ferme: "#bbb" };
 
   return (
     <div>
-      <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 10, lineHeight: 1.5 }}>
-        Chaque bouton représente un bloc de <strong style={{color:"#0B6E8A"}}>30 minutes</strong> (ex. « 07:00→07:30 »). Sélectionnez-en plusieurs à la suite pour allonger votre session — minimum <strong style={{color:"#0B6E8A"}}>1 heure</strong> (2 blocs).
+      <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 10, lineHeight: 1.5 }}>
+        Chaque bouton représente un bloc de <strong style={{color:"#07a0f2"}}>30 minutes</strong> (ex. « 07:00→07:30 »). Sélectionnez-en plusieurs à la suite pour allonger votre session — minimum <strong style={{color:"#07a0f2"}}>1 heure</strong> (2 blocs).
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {ALL_SLOTS.map(h => {
@@ -615,8 +615,8 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
           const adjacent = creneaux.length > 0 && (h === Math.min(...creneaux) - PAS || h === Math.max(...creneaux) + PAS);
 
           let bg, color, border;
-          if (sel) { bg = "#0B6E8A"; color = "#fff"; border = "2px solid #0B6E8A"; }
-          else if (cliquable && (creneaux.length === 0 || adjacent)) { bg = "#e6faf8"; color = "#0B6E8A"; border = "2px dashed #4ECDC4"; }
+          if (sel) { bg = "#07a0f2"; color = "#fff"; border = "2px solid #07a0f2"; }
+          else if (cliquable && (creneaux.length === 0 || adjacent)) { bg = "#e8f6fe"; color = "#07a0f2"; border = "2px dashed #39b8f5"; }
           else { bg = coulBg[st] || "#f0f0f0"; color = coulText[st] || "#bbb"; border = "2px solid transparent"; }
 
           return (
@@ -641,7 +641,7 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
         })}
       </div>
       {creneaux.length > 0 && (
-        <div style={{ marginTop: 12, background: "linear-gradient(135deg,#0B6E8A,#4ECDC4)", borderRadius: 10, padding: "10px 14px", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ marginTop: 12, background: "#07a0f2", borderRadius: 10, padding: "10px 14px", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontSize: 13, fontWeight: 600 }}>
             {padH(Math.min(...creneaux))} → {padH(Math.max(...creneaux) + PAS)}
           </div>
@@ -656,10 +656,10 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
       )}
       {/* Légende */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-        {[["#0B6E8A","#fff","Sélectionné"],["#e6faf8","#0B6E8A","Libre"],["#ffd6d6","#c0302a","Réservé"],["#ffe8b0","#a06000","Indisponible"],["#f0f0f0","#bbb","Fermé"]].map(([bg,col,label])=>(
+        {[["#07a0f2","#fff","Sélectionné"],["#e8f6fe","#07a0f2","Libre"],["#ffd6d6","#c0302a","Réservé"],["#ffe8b0","#a06000","Indisponible"],["#f0f0f0","#bbb","Fermé"]].map(([bg,col,label])=>(
           <div key={label} style={{display:"flex",alignItems:"center",gap:3,fontSize:11}}>
             <div style={{width:12,height:12,borderRadius:3,background:bg,border:`1px solid ${col}`}}/>
-            <span style={{color:"#5a8a96"}}>{label}</span>
+            <span style={{color:"#6b7f8c"}}>{label}</span>
           </div>
         ))}
       </div>
@@ -668,16 +668,16 @@ function SelecteurHoraire({ disponibilites, reservations, date, creneaux, onTogg
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const card = { background: "#fff", borderRadius: 16, boxShadow: "0 4px 24px rgba(11,110,138,.10)", padding: "20px 16px", marginBottom: 14 };
-const btnP = { background: "linear-gradient(135deg,#0B6E8A,#4ECDC4)", color: "#fff", border: "none", borderRadius: 10, padding: "13px 24px", fontSize: 15, fontWeight: 700, cursor: "pointer", width: "100%", marginTop: 8 };
-const btnS = { background: "transparent", color: "#0B6E8A", border: "2px solid #0B6E8A", borderRadius: 10, padding: "11px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", width: "100%", marginTop: 8 };
-const lbl = { fontSize: 13, fontWeight: 600, color: "#0B6E8A", marginBottom: 4, display: "block" };
-const inp = { width: "100%", padding: "10px 12px", borderRadius: 8, fontSize: 15, border: "1.5px solid #b0d8e3", outline: "none", background: "#fff", boxSizing: "border-box", fontFamily: "Inter,sans-serif" };
+const card = { background: "#fff", borderRadius: 20, boxShadow: "0 4px 24px rgba(0,0,0,.06)", padding: "20px 16px", marginBottom: 14 };
+const btnP = { background: "#07a0f2", color: "#fff", border: "none", borderRadius: 50, padding: "14px 24px", fontSize: 15, fontWeight: 800, cursor: "pointer", width: "100%", marginTop: 8, boxShadow: "0 4px 14px rgba(7,160,242,.30)" };
+const btnS = { background: "#fff", color: "#07a0f2", border: "2px solid #07a0f2", borderRadius: 50, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer", width: "100%", marginTop: 8 };
+const lbl = { fontSize: 13, fontWeight: 600, color: "#07a0f2", marginBottom: 4, display: "block" };
+const inp = { width: "100%", padding: "10px 12px", borderRadius: 8, fontSize: 15, border: "1.5px solid #b8e0f8", outline: "none", background: "#fff", boxSizing: "border-box", fontFamily: "Inter,sans-serif" };
 
 // ─── Composant Gestion Annonce ───────────────────────────────────────────────
 function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
   const [ongletAnnonce, setOngletAnnonce] = useState("infos");
-  const tabStyle = t => ({ flex:1, padding:"8px 0", borderRadius:7, fontSize:11, fontWeight:600, border:"none", cursor:"pointer", background:ongletAnnonce===t?"#0B6E8A":"#e8f4f7", color:ongletAnnonce===t?"#fff":"#0B6E8A" });
+  const tabStyle = t => ({ flex:1, padding:"8px 0", borderRadius:7, fontSize:11, fontWeight:600, border:"none", cursor:"pointer", background:ongletAnnonce===t?"#07a0f2":"#e8f4f7", color:ongletAnnonce===t?"#fff":"#07a0f2" });
 
   // Brouillon local : les modifications ne sont appliquées qu'au clic sur "Enregistrer"
   const [brouillon, setBrouillon] = useState(annonce);
@@ -719,7 +719,7 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
   const BoutonSauvegarde = () => (
     <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:14 }}>
       <button onClick={enregistrer} disabled={!modifie || enregistrementEnCours}
-        style={{ flex:1, padding:"12px", borderRadius:10, background: (modifie && !enregistrementEnCours) ? "linear-gradient(135deg,#0B6E8A,#4ECDC4)" : "#e0e0e0", color: (modifie && !enregistrementEnCours) ? "#fff" : "#aaa", border:"none", fontWeight:700, fontSize:14, cursor: (modifie && !enregistrementEnCours) ? "pointer" : "not-allowed", transition:"all .2s" }}>
+        style={{ flex:1, padding:"12px", borderRadius:10, background: (modifie && !enregistrementEnCours) ? "#07a0f2" : "#e0e0e0", color: (modifie && !enregistrementEnCours) ? "#fff" : "#aaa", border:"none", fontWeight:700, fontSize:14, cursor: (modifie && !enregistrementEnCours) ? "pointer" : "not-allowed", transition:"all .2s" }}>
         {enregistrementEnCours ? "⏳ Enregistrement..." : "💾 Enregistrer les modifications"}
       </button>
       {modifie && !enregistrementEnCours && (
@@ -733,7 +733,7 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
   const BandeauStatut = () => (
     <>
       {sauvegarde && (
-        <div style={{ background:"#e6faf8", border:"1.5px solid #4ECDC4", borderRadius:10, padding:"10px 14px", marginBottom:12, color:"#0B6E8A", fontWeight:600, fontSize:13, display:"flex", alignItems:"center", gap:8 }}>
+        <div style={{ background:"#e8f6fe", border:"1.5px solid #39b8f5", borderRadius:10, padding:"10px 14px", marginBottom:12, color:"#07a0f2", fontWeight:600, fontSize:13, display:"flex", alignItems:"center", gap:8 }}>
           ✅ Modifications enregistrées avec succès
         </div>
       )}
@@ -763,74 +763,74 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
 
       {/* Boutons aperçu / statut */}
       <div style={{ display:"flex", gap:8, marginBottom:14 }}>
-        <button onClick={onVoir} style={{ flex:1, padding:"9px", borderRadius:9, background:"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+        <button onClick={onVoir} style={{ flex:1, padding:"9px", borderRadius:9, background:"#39b8f5", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
           👁 Voir l'annonce
         </button>
         <button onClick={()=>setBrouillon(a=>({...a,ouvert:!a.ouvert}))}
-          style={{ flex:1, padding:"9px", borderRadius:9, background:brouillon.ouvert?"#FF6B6B":"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+          style={{ flex:1, padding:"9px", borderRadius:9, background:brouillon.ouvert?"#FF6B6B":"#39b8f5", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
           {brouillon.ouvert?"✗ Fermer l'annonce":"✓ Ouvrir l'annonce"}
         </button>
       </div>
 
       {/* ── INFOS ── */}
       {ongletAnnonce==="infos" && (
-        <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"20px 16px", marginBottom:14 }}>
-          <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", fontWeight:700, marginBottom:12 }}>📝 Informations générales</div>
+        <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(0,0,0,.06)", padding:"20px 16px", marginBottom:14 }}>
+          <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", fontWeight:700, marginBottom:12 }}>📝 Informations générales</div>
           <div style={{ marginBottom:10 }}>
-            <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Titre</label>
-            <input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:14, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.titre} onChange={e=>setBrouillon(a=>({...a,titre:e.target.value}))}/>
+            <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Titre</label>
+            <input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:14, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.titre} onChange={e=>setBrouillon(a=>({...a,titre:e.target.value}))}/>
           </div>
           <div style={{ marginBottom:10 }}>
-            <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Description</label>
-            <textarea style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:12, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box", height:180, resize:"vertical", lineHeight:1.6 }} value={brouillon.description} onChange={e=>setBrouillon(a=>({...a,description:e.target.value}))}/>
+            <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Description</label>
+            <textarea style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:12, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box", height:180, resize:"vertical", lineHeight:1.6 }} value={brouillon.description} onChange={e=>setBrouillon(a=>({...a,description:e.target.value}))}/>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr", gap:8, marginBottom:10 }}>
-            <div><label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Adresse</label><input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.adresse} onChange={e=>setBrouillon(a=>({...a,adresse:e.target.value}))}/></div>
-            <div><label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>CP</label><input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.codePostal} onChange={e=>setBrouillon(a=>({...a,codePostal:e.target.value}))}/></div>
-            <div><label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Ville</label><input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.ville} onChange={e=>setBrouillon(a=>({...a,ville:e.target.value}))}/></div>
+            <div><label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Adresse</label><input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.adresse} onChange={e=>setBrouillon(a=>({...a,adresse:e.target.value}))}/></div>
+            <div><label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>CP</label><input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.codePostal} onChange={e=>setBrouillon(a=>({...a,codePostal:e.target.value}))}/></div>
+            <div><label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Ville</label><input style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.ville} onChange={e=>setBrouillon(a=>({...a,ville:e.target.value}))}/></div>
           </div>
           <div style={{ marginBottom:12 }}>
-            <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:6, display:"block" }}>Capacité maximale</label>
+            <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:6, display:"block" }}>Capacité maximale</label>
             <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-              <button onClick={()=>setBrouillon(a=>({...a,capaciteMax:Math.max(1,a.capaciteMax-1)}))} style={{ width:32,height:32,borderRadius:"50%",border:"2px solid #0B6E8A",background:"#fff",color:"#0B6E8A",fontSize:18,fontWeight:700,cursor:"pointer" }}>−</button>
+              <button onClick={()=>setBrouillon(a=>({...a,capaciteMax:Math.max(1,a.capaciteMax-1)}))} style={{ width:32,height:32,borderRadius:"50%",border:"2px solid #07a0f2",background:"#fff",color:"#07a0f2",fontSize:18,fontWeight:700,cursor:"pointer" }}>−</button>
               <span style={{ fontWeight:700, fontSize:18 }}>{brouillon.capaciteMax} pers.</span>
-              <button onClick={()=>setBrouillon(a=>({...a,capaciteMax:a.capaciteMax+1}))} style={{ width:32,height:32,borderRadius:"50%",border:"none",background:"#0B6E8A",color:"#fff",fontSize:18,fontWeight:700,cursor:"pointer" }}>+</button>
+              <button onClick={()=>setBrouillon(a=>({...a,capaciteMax:a.capaciteMax+1}))} style={{ width:32,height:32,borderRadius:"50%",border:"none",background:"#07a0f2",color:"#fff",fontSize:18,fontWeight:700,cursor:"pointer" }}>+</button>
             </div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:12 }}>
             <div>
-              <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Vis-à-vis</label>
-              <select style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.visAVis} onChange={e=>setBrouillon(a=>({...a,visAVis:e.target.value}))}>
+              <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Vis-à-vis</label>
+              <select style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.visAVis} onChange={e=>setBrouillon(a=>({...a,visAVis:e.target.value}))}>
                 <option value="aucun">Aucun</option><option value="leger">Léger</option><option value="complet">Complet</option>
               </select>
             </div>
             <div>
-              <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Présence</label>
-              <select style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.presenceProprietaire} onChange={e=>setBrouillon(a=>({...a,presenceProprietaire:e.target.value}))}>
+              <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Présence</label>
+              <select style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.presenceProprietaire} onChange={e=>setBrouillon(a=>({...a,presenceProprietaire:e.target.value}))}>
                 <option value="oui">Oui</option><option value="non">Non</option><option value="occasionnellement">Occasionnellement</option>
               </select>
             </div>
             <div>
-              <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Entretien</label>
-              <select style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.produitEntretien} onChange={e=>setBrouillon(a=>({...a,produitEntretien:e.target.value}))}>
+              <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Entretien</label>
+              <select style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.produitEntretien} onChange={e=>setBrouillon(a=>({...a,produitEntretien:e.target.value}))}>
                 <option value="chlore">Chlore</option><option value="sel">Sel</option><option value="brome">Brome</option><option value="autres">Autres</option>
               </select>
             </div>
           </div>
           <div style={{ marginBottom:12 }}>
-            <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:8, display:"block" }}>Équipements</label>
+            <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:8, display:"block" }}>Équipements</label>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
               {Object.entries(EQUIPEMENTS_LABELS).map(([k,[emoji,label]])=>(
-                <label key={k} style={{ display:"flex", alignItems:"center", gap:7, cursor:"pointer", padding:"7px 9px", borderRadius:8, background:brouillon.equipements[k]?"#e6faf8":"#f5f5f5", border:`1px solid ${brouillon.equipements[k]?"#4ECDC4":"#e0e0e0"}` }}>
-                  <input type="checkbox" checked={!!brouillon.equipements[k]} onChange={e=>setBrouillon(a=>({...a,equipements:{...a.equipements,[k]:e.target.checked}}))} style={{ accentColor:"#0B6E8A" }}/>
-                  <span style={{ fontSize:12, fontWeight:600, color:brouillon.equipements[k]?"#0B6E8A":"#888" }}>{emoji} {label}</span>
+                <label key={k} style={{ display:"flex", alignItems:"center", gap:7, cursor:"pointer", padding:"7px 9px", borderRadius:8, background:brouillon.equipements[k]?"#e8f6fe":"#f5f5f5", border:`1px solid ${brouillon.equipements[k]?"#39b8f5":"#e0e0e0"}` }}>
+                  <input type="checkbox" checked={!!brouillon.equipements[k]} onChange={e=>setBrouillon(a=>({...a,equipements:{...a.equipements,[k]:e.target.checked}}))} style={{ accentColor:"#07a0f2" }}/>
+                  <span style={{ fontSize:12, fontWeight:600, color:brouillon.equipements[k]?"#07a0f2":"#888" }}>{emoji} {label}</span>
                 </label>
               ))}
             </div>
           </div>
           <div>
-            <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Délai minimum avant réservation (heures)</label>
-            <input type="number" min={0} max={72} style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:14, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.delaiReservation} onChange={e=>setBrouillon(a=>({...a,delaiReservation:+e.target.value}))}/>
+            <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Délai minimum avant réservation (heures)</label>
+            <input type="number" min={0} max={72} style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:14, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.delaiReservation} onChange={e=>setBrouillon(a=>({...a,delaiReservation:+e.target.value}))}/>
           </div>
         </div>
       )}
@@ -838,10 +838,10 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
 
       {/* ── PHOTOS ── */}
       {ongletAnnonce==="photos" && (
-        <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"20px 16px", marginBottom:14 }}>
-          <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", fontWeight:700, marginBottom:6 }}>📷 Photos</div>
-          <div style={{ fontSize:13, color:"#5a8a96", marginBottom:12 }}>⭐ = photo principale · ▲▼ = réordonner · 🗑 = supprimer</div>
-          <label style={{ display:"inline-block", padding:"10px 18px", background:"#0B6E8A", color:"#fff", borderRadius:9, cursor:"pointer", fontSize:14, fontWeight:700, marginBottom:14 }}>
+        <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(0,0,0,.06)", padding:"20px 16px", marginBottom:14 }}>
+          <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", fontWeight:700, marginBottom:6 }}>📷 Photos</div>
+          <div style={{ fontSize:13, color:"#6b7f8c", marginBottom:12 }}>⭐ = photo principale · ▲▼ = réordonner · 🗑 = supprimer</div>
+          <label style={{ display:"inline-block", padding:"10px 18px", background:"#07a0f2", color:"#fff", borderRadius:9, cursor:"pointer", fontSize:14, fontWeight:700, marginBottom:14 }}>
             📷 Ajouter des photos
             <input type="file" multiple accept="image/*" style={{ display:"none" }} onChange={e=>{
               const files=Array.from(e.target.files);
@@ -851,13 +851,13 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
             }}/>
           </label>
           {brouillon.photos.length===0 ? (
-            <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"20px", border:"2px dashed #b0d8e3", borderRadius:10 }}>
+            <div style={{ color:"#6b7f8c", fontSize:13, textAlign:"center", padding:"20px", border:"2px dashed #b8e0f8", borderRadius:10 }}>
               Aucune photo ajoutée
             </div>
           ) : brouillon.photos.map((url,i)=>(
-            <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px", borderRadius:10, background:"#f0fafc", marginBottom:8, border:`2px solid ${brouillon.photoUne===i?"#f0c040":"#e0e0e0"}` }}>
+            <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"8px", borderRadius:10, background:"#f0f9ff", marginBottom:8, border:`2px solid ${brouillon.photoUne===i?"#f0c040":"#e0e0e0"}` }}>
               <img src={url} alt="" style={{ width:70,height:60,objectFit:"cover",borderRadius:8,flexShrink:0 }}/>
-              <div style={{ flex:1, fontSize:12, color:"#5a8a96" }}>
+              <div style={{ flex:1, fontSize:12, color:"#6b7f8c" }}>
                 Photo {i+1}{brouillon.photoUne===i?" ⭐":""}
               </div>
               <div style={{ display:"flex", gap:4 }}>
@@ -874,27 +874,27 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
 
       {/* ── RÈGLEMENT ── */}
       {ongletAnnonce==="reglement" && (
-        <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"20px 16px", marginBottom:14 }}>
-          <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", fontWeight:700, marginBottom:12 }}>📋 Règlement & autorisations</div>
+        <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(0,0,0,.06)", padding:"20px 16px", marginBottom:14 }}>
+          <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", fontWeight:700, marginBottom:12 }}>📋 Règlement & autorisations</div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:8, marginBottom:14 }}>
             {[["enfants","👶","Convient aux enfants (0-12 ans)"],["naturisme","🧘","Naturisme autorisé"],
               ["burkini","👙","Burkini autorisé"],["evenements","🎉","Événements autorisés"],
               ["alcool","🍷","Alcool autorisé"],["fumeur","🚬","Espace fumeur"],
               ["animaux","🐾","Animaux acceptés"],["musique","🎵","Musique autorisée"]].map(([k,emoji,label])=>(
-              <label key={k} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"10px 12px", borderRadius:10, background:brouillon.reglement[k]?"#e6faf8":"#f5f5f5", border:`1.5px solid ${brouillon.reglement[k]?"#4ECDC4":"#e0e0e0"}` }}>
-                <input type="checkbox" checked={!!brouillon.reglement[k]} onChange={e=>setBrouillon(a=>({...a,reglement:{...a.reglement,[k]:e.target.checked}}))} style={{ width:18,height:18,accentColor:"#0B6E8A" }}/>
+              <label key={k} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"10px 12px", borderRadius:10, background:brouillon.reglement[k]?"#e8f6fe":"#f5f5f5", border:`1.5px solid ${brouillon.reglement[k]?"#39b8f5":"#e0e0e0"}` }}>
+                <input type="checkbox" checked={!!brouillon.reglement[k]} onChange={e=>setBrouillon(a=>({...a,reglement:{...a.reglement,[k]:e.target.checked}}))} style={{ width:18,height:18,accentColor:"#07a0f2" }}/>
                 <span style={{ fontSize:16 }}>{emoji}</span>
-                <span style={{ fontSize:13, fontWeight:600, color:brouillon.reglement[k]?"#0B6E8A":"#888" }}>{label}</span>
+                <span style={{ fontSize:13, fontWeight:600, color:brouillon.reglement[k]?"#07a0f2":"#888" }}>{label}</span>
                 <span style={{ marginLeft:"auto", fontSize:16 }}>{brouillon.reglement[k]?"✅":"❌"}</span>
               </label>
             ))}
           </div>
           <div style={{ marginBottom:10 }}>
-            <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Délai minimum avant réservation (heures)</label>
-            <input type="number" min={0} max={72} style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:14, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.delaiReservation} onChange={e=>setBrouillon(a=>({...a,delaiReservation:+e.target.value}))}/>
+            <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Délai minimum avant réservation (heures)</label>
+            <input type="number" min={0} max={72} style={{ width:"100%", padding:"10px 12px", borderRadius:8, fontSize:14, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box" }} value={brouillon.delaiReservation} onChange={e=>setBrouillon(a=>({...a,delaiReservation:+e.target.value}))}/>
           </div>
           <div>
-            <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:8, display:"block" }}>Précisions supplémentaires (règles de vie sur place)</label>
+            <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:8, display:"block" }}>Précisions supplémentaires (règles de vie sur place)</label>
             {brouillon.precisions.map((p, i) => (
               <div key={p.id} style={{ display:"flex", alignItems:"flex-start", gap:8, marginBottom:8, background:"#f5f5f5", borderRadius:9, padding:"9px 10px" }}>
                 <span style={{ fontSize:18, flexShrink:0 }}>{p.emoji}</span>
@@ -905,16 +905,16 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
               </div>
             ))}
             {/* Ajout nouvelle règle */}
-            <div style={{ display:"flex", gap:8, marginTop:10, background:"#f0fafc", borderRadius:9, padding:"10px", border:"1.5px dashed #4ECDC4" }}>
+            <div style={{ display:"flex", gap:8, marginTop:10, background:"#f0f9ff", borderRadius:9, padding:"10px", border:"1.5px dashed #39b8f5" }}>
               <input value={nouvellePrecision.emoji} onChange={e=>setNouvellePrecision(p=>({...p,emoji:e.target.value}))} maxLength={2}
-                style={{ width:42, padding:"6px", borderRadius:6, fontSize:16, textAlign:"center", border:"1px solid #b0d8e3", boxSizing:"border-box" }}/>
+                style={{ width:42, padding:"6px", borderRadius:6, fontSize:16, textAlign:"center", border:"1px solid #b8e0f8", boxSizing:"border-box" }}/>
               <input value={nouvellePrecision.texte} onChange={e=>setNouvellePrecision(p=>({...p,texte:e.target.value}))}
-                placeholder="Nouvelle règle..." style={{ flex:1, padding:"6px 8px", borderRadius:6, fontSize:12, border:"1px solid #b0d8e3", boxSizing:"border-box" }}/>
+                placeholder="Nouvelle règle..." style={{ flex:1, padding:"6px 8px", borderRadius:6, fontSize:12, border:"1px solid #b8e0f8", boxSizing:"border-box" }}/>
               <button onClick={()=>{
                 if(!nouvellePrecision.texte.trim()) return;
                 setBrouillon(a=>({...a, precisions:[...a.precisions, {id:"p"+Date.now(), ...nouvellePrecision}]}));
                 setNouvellePrecision({emoji:"📌", texte:""});
-              }} style={{ padding:"6px 14px", borderRadius:6, background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer", flexShrink:0 }}>+ Ajouter</button>
+              }} style={{ padding:"6px 14px", borderRadius:6, background:"#07a0f2", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer", flexShrink:0 }}>+ Ajouter</button>
             </div>
           </div>
           <BoutonSauvegarde/>
@@ -923,18 +923,18 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
 
       {/* ── SÉCURITÉ ── */}
       {ongletAnnonce==="securite" && (
-        <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"20px 16px", marginBottom:14 }}>
-          <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", fontWeight:700, marginBottom:6 }}>🛡️ Dispositifs de sécurité</div>
-          <div style={{ fontSize:12, color:"#5a8a96", marginBottom:14, lineHeight:1.6 }}>
+        <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(0,0,0,.06)", padding:"20px 16px", marginBottom:14 }}>
+          <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", fontWeight:700, marginBottom:6 }}>🛡️ Dispositifs de sécurité</div>
+          <div style={{ fontSize:12, color:"#6b7f8c", marginBottom:14, lineHeight:1.6 }}>
             Conformité <strong>loi du 03/01/2003</strong> — cochez les dispositifs installés :
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:8 }}>
             {[["barriere","🚧","Barrière de protection"],["bache","🟦","Bâche de sécurité"],
               ["abri","🏠","Abri de piscine"],["alarme","🔔","Alarme de sécurité"]].map(([k,emoji,label])=>(
-              <label key={k} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"12px 14px", borderRadius:10, background:brouillon.dispositifs[k]?"#e6faf8":"#f5f5f5", border:`1.5px solid ${brouillon.dispositifs[k]?"#4ECDC4":"#e0e0e0"}` }}>
-                <input type="checkbox" checked={!!brouillon.dispositifs[k]} onChange={e=>setBrouillon(a=>({...a,dispositifs:{...a.dispositifs,[k]:e.target.checked}}))} style={{ width:18,height:18,accentColor:"#0B6E8A" }}/>
+              <label key={k} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"12px 14px", borderRadius:10, background:brouillon.dispositifs[k]?"#e8f6fe":"#f5f5f5", border:`1.5px solid ${brouillon.dispositifs[k]?"#39b8f5":"#e0e0e0"}` }}>
+                <input type="checkbox" checked={!!brouillon.dispositifs[k]} onChange={e=>setBrouillon(a=>({...a,dispositifs:{...a.dispositifs,[k]:e.target.checked}}))} style={{ width:18,height:18,accentColor:"#07a0f2" }}/>
                 <span style={{ fontSize:20 }}>{emoji}</span>
-                <span style={{ fontSize:13, fontWeight:600, color:brouillon.dispositifs[k]?"#0B6E8A":"#888" }}>{label}</span>
+                <span style={{ fontSize:13, fontWeight:600, color:brouillon.dispositifs[k]?"#07a0f2":"#888" }}>{label}</span>
                 <span style={{ marginLeft:"auto", fontSize:16 }}>{brouillon.dispositifs[k]?"✅":"❌"}</span>
               </label>
             ))}
@@ -948,7 +948,7 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
 
 // ─── Composant Stats Avancées ────────────────────────────────────────────────
 function StatsAvancees({ reservations, comptes, extras }) {
-  const card = { background: "#fff", borderRadius: 16, boxShadow: "0 4px 24px rgba(11,110,138,.10)", padding: "20px 16px", marginBottom: 14 };
+  const card = { background: "#fff", borderRadius: 20, boxShadow: "0 4px 24px rgba(0,0,0,.06)", padding: "20px 16px", marginBottom: 14 };
 
   const locatairesAvecCompte = reservations.map(r => comptes[r.email]).filter(Boolean);
 
@@ -1036,13 +1036,13 @@ function StatsAvancees({ reservations, comptes, extras }) {
     <div>
       {/* KPIs globaux */}
       <div style={card}>
-        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", marginBottom:14, fontWeight:700 }}>📊 Tableau de bord</div>
+        <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, color:"#07a0f2", marginBottom:14, fontWeight:700 }}>📊 Tableau de bord</div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:4 }}>
           {[["📅","Réservations",nbRes],["💶","CA total",formatEur(caTotal)],["🛒","Panier moyen",formatEur(panierMoyen)],["⭐","Satisfaction",noteMoyenneLocataire?`${noteMoyenneLocataire}/5`:"—"]].map(([emoji,label,val])=>(
-            <div key={label} style={{ background:"#f0fafc", borderRadius:10, padding:"12px 10px", border:"1px solid #b0d8e3", textAlign:"center" }}>
+            <div key={label} style={{ background:"#f0f9ff", borderRadius:10, padding:"12px 10px", border:"1px solid #b8e0f8", textAlign:"center" }}>
               <div style={{ fontSize:22 }}>{emoji}</div>
-              <div style={{ fontWeight:700, fontSize:16, color:"#0B6E8A", marginTop:2 }}>{val}</div>
-              <div style={{ fontSize:10, color:"#5a8a96", marginTop:1 }}>{label}</div>
+              <div style={{ fontWeight:700, fontSize:16, color:"#07a0f2", marginTop:2 }}>{val}</div>
+              <div style={{ fontSize:10, color:"#6b7f8c", marginTop:1 }}>{label}</div>
             </div>
           ))}
         </div>
@@ -1050,23 +1050,23 @@ function StatsAvancees({ reservations, comptes, extras }) {
 
       {/* Taux d'acceptation / refus / annulation */}
       <div style={card}>
-        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>📋 Demandes de réservation</div>
+        <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", marginBottom:12, fontWeight:700 }}>📋 Demandes de réservation</div>
         {nbEnAttente > 0 && (
           <div style={{ background:"#fff8e1", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#a06000", fontWeight:600, marginBottom:12 }}>
             ⏳ {nbEnAttente} demande{nbEnAttente>1?"s":""} actuellement en attente
           </div>
         )}
         {nbTraitees === 0 ? (
-          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucune demande traitée pour l'instant.</div>
+          <div style={{ color:"#6b7f8c", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucune demande traitée pour l'instant.</div>
         ) : (
           <>
             <div style={{ display:"flex", height:28, borderRadius:10, overflow:"hidden", marginBottom:12 }}>
-              {pctAcceptees>0 && <div style={{ width:`${pctAcceptees}%`, background:"#4ECDC4", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctAcceptees}%</div>}
+              {pctAcceptees>0 && <div style={{ width:`${pctAcceptees}%`, background:"#39b8f5", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctAcceptees}%</div>}
               {pctRefusees>0 && <div style={{ width:`${pctRefusees}%`, background:"#f0c040", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctRefusees}%</div>}
               {pctAnnulees>0 && <div style={{ width:`${pctAnnulees}%`, background:"#FF6B6B", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctAnnulees}%</div>}
             </div>
             <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:8 }}>
-              {[["#4ECDC4","Acceptées",nbAcceptees],["#f0c040","Refusées",nbRefusees],["#FF6B6B","Annulées",nbAnnulees]].map(([bg,label,nb])=>(
+              {[["#39b8f5","Acceptées",nbAcceptees],["#f0c040","Refusées",nbRefusees],["#FF6B6B","Annulées",nbAnnulees]].map(([bg,label,nb])=>(
                 <div key={label} style={{ display:"flex", alignItems:"center", gap:6 }}>
                   <div style={{ width:12, height:12, borderRadius:3, background:bg }}/>
                   <span style={{ fontSize:12, color:"#2C3E50" }}>{label} : <strong>{nb}</strong></span>
@@ -1074,7 +1074,7 @@ function StatsAvancees({ reservations, comptes, extras }) {
               ))}
             </div>
             {nbAnnulees > 0 && (
-              <div style={{ fontSize:11, color:"#5a8a96", marginBottom:10 }}>
+              <div style={{ fontSize:11, color:"#6b7f8c", marginBottom:10 }}>
                 Dont {nbAnnuleesParLocataire} annulation{nbAnnuleesParLocataire>1?"s":""} demandée{nbAnnuleesParLocataire>1?"s":""} par le locataire
               </div>
             )}
@@ -1115,18 +1115,18 @@ function StatsAvancees({ reservations, comptes, extras }) {
 
       {/* Satisfaction locataire détaillée */}
       <div style={card}>
-        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>⭐ Satisfaction des locataires</div>
+        <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", marginBottom:12, fontWeight:700 }}>⭐ Satisfaction des locataires</div>
         {avisPrestation.length === 0 ? (
-          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucun avis laissé pour l'instant.</div>
+          <div style={{ color:"#6b7f8c", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucun avis laissé pour l'instant.</div>
         ) : (
           <>
             <div style={{ textAlign:"center", marginBottom:14 }}>
-              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:32, fontWeight:700, color:"#0B6E8A" }}>{noteMoyenneLocataire}<span style={{fontSize:16,color:"#aaa"}}>/5</span></div>
-              <div style={{ fontSize:12, color:"#5a8a96" }}>{avisPrestation.length} avis sur la prestation</div>
+              <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:32, fontWeight:700, color:"#07a0f2" }}>{noteMoyenneLocataire}<span style={{fontSize:16,color:"#aaa"}}>/5</span></div>
+              <div style={{ fontSize:12, color:"#6b7f8c" }}>{avisPrestation.length} avis sur la prestation</div>
             </div>
             {repartitionAvis.map(({note,nb}) => (
               <div key={note} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
-                <span style={{ fontSize:12, color:"#5a8a96", width:30 }}>{note} ⭐</span>
+                <span style={{ fontSize:12, color:"#6b7f8c", width:30 }}>{note} ⭐</span>
                 <div style={{ flex:1, height:10, background:"#f0f0f0", borderRadius:5, overflow:"hidden" }}>
                   <div style={{ height:"100%", width:`${(nb/maxAvis)*100}%`, background:"linear-gradient(90deg,#f0c040,#ffe082)", borderRadius:5 }}/>
                 </div>
@@ -1139,16 +1139,16 @@ function StatsAvancees({ reservations, comptes, extras }) {
 
       {/* Évolution CA par mois */}
       <div style={card}>
-        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>📈 Évolution du chiffre d'affaires</div>
+        <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", marginBottom:12, fontWeight:700 }}>📈 Évolution du chiffre d'affaires</div>
         {moisSorted.length === 0 ? (
-          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucune donnée disponible.</div>
+          <div style={{ color:"#6b7f8c", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucune donnée disponible.</div>
         ) : (
           <div style={{ display:"flex", alignItems:"flex-end", gap:8, height:140, overflowX:"auto", paddingBottom:4 }}>
             {moisSorted.map(m => (
               <div key={m} style={{ display:"flex", flexDirection:"column", alignItems:"center", flexShrink:0, minWidth:44 }}>
-                <div style={{ fontSize:10, color:"#0B6E8A", fontWeight:700, marginBottom:3 }}>{formatEur(caParMois[m])}</div>
-                <div style={{ width:32, height:Math.max(4,(caParMois[m]/maxCaMois)*90), background:"linear-gradient(180deg,#4ECDC4,#0B6E8A)", borderRadius:"6px 6px 0 0" }}/>
-                <div style={{ fontSize:11, color:"#5a8a96", marginTop:5 }}>{labelMois(m)}</div>
+                <div style={{ fontSize:10, color:"#07a0f2", fontWeight:700, marginBottom:3 }}>{formatEur(caParMois[m])}</div>
+                <div style={{ width:32, height:Math.max(4,(caParMois[m]/maxCaMois)*90), background:"#07a0f2", borderRadius:"6px 6px 0 0" }}/>
+                <div style={{ fontSize:11, color:"#6b7f8c", marginTop:5 }}>{labelMois(m)}</div>
               </div>
             ))}
           </div>
@@ -1157,18 +1157,18 @@ function StatsAvancees({ reservations, comptes, extras }) {
 
       {/* Utilisation des extras */}
       <div style={card}>
-        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>🎁 Utilisation des extras</div>
+        <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", marginBottom:12, fontWeight:700 }}>🎁 Utilisation des extras</div>
         {totalUtilisationsExtras === 0 ? (
-          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucun extra utilisé pour l'instant.</div>
+          <div style={{ color:"#6b7f8c", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucun extra utilisé pour l'instant.</div>
         ) : (
           extrasUtilisation.filter(e=>e.nbUtilisations>0).map(e => (
             <div key={e.id} style={{ marginBottom:10 }}>
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:3 }}>
                 <span style={{ fontWeight:600, color:"#2C3E50" }}>{e.emoji} {e.nom}</span>
-                <span style={{ color:"#0B6E8A", fontWeight:700 }}>{e.nbUtilisations}× · {formatEur(e.revenu)}</span>
+                <span style={{ color:"#07a0f2", fontWeight:700 }}>{e.nbUtilisations}× · {formatEur(e.revenu)}</span>
               </div>
               <div style={{ height:7, background:"#e8f4f7", borderRadius:4, overflow:"hidden" }}>
-                <div style={{ height:"100%", width:`${(e.nbUtilisations/totalUtilisationsExtras)*100}%`, background:"linear-gradient(90deg,#0B6E8A,#4ECDC4)", borderRadius:4 }}/>
+                <div style={{ height:"100%", width:`${(e.nbUtilisations/totalUtilisationsExtras)*100}%`, background:"#07a0f2", borderRadius:4 }}/>
               </div>
             </div>
           ))
@@ -1177,22 +1177,22 @@ function StatsAvancees({ reservations, comptes, extras }) {
 
       {/* Répartition mode de paiement */}
       <div style={card}>
-        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>💳 Modes de paiement</div>
+        <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", marginBottom:12, fontWeight:700 }}>💳 Modes de paiement</div>
         {totalPaiements === 0 ? (
-          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucune donnée disponible.</div>
+          <div style={{ color:"#6b7f8c", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucune donnée disponible.</div>
         ) : (
           <>
             <div style={{ display:"flex", height:28, borderRadius:10, overflow:"hidden", marginBottom:12 }}>
-              {pctCB>0 && <div style={{ width:`${pctCB}%`, background:"#0B6E8A", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctCB}%</div>}
-              {pctEspeces>0 && <div style={{ width:`${pctEspeces}%`, background:"#4ECDC4", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctEspeces}%</div>}
+              {pctCB>0 && <div style={{ width:`${pctCB}%`, background:"#07a0f2", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctCB}%</div>}
+              {pctEspeces>0 && <div style={{ width:`${pctEspeces}%`, background:"#39b8f5", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctEspeces}%</div>}
             </div>
             <div style={{ display:"flex", gap:16, marginBottom:10 }}>
               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                <div style={{ width:12, height:12, borderRadius:3, background:"#0B6E8A" }}/>
+                <div style={{ width:12, height:12, borderRadius:3, background:"#07a0f2" }}/>
                 <span style={{ fontSize:12, color:"#2C3E50" }}>💳 Carte : <strong>{nbCB}</strong></span>
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                <div style={{ width:12, height:12, borderRadius:3, background:"#4ECDC4" }}/>
+                <div style={{ width:12, height:12, borderRadius:3, background:"#39b8f5" }}/>
                 <span style={{ fontSize:12, color:"#2C3E50" }}>💵 Espèces : <strong>{nbEspeces}</strong></span>
               </div>
             </div>
@@ -1207,34 +1207,34 @@ function StatsAvancees({ reservations, comptes, extras }) {
 
       {/* Géographie */}
       <div style={card}>
-        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>📍 Origine géographique</div>
+        <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", marginBottom:12, fontWeight:700 }}>📍 Origine géographique</div>
         {totalGeo === 0 ? (
-          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>
+          <div style={{ color:"#6b7f8c", fontSize:13, textAlign:"center", padding:"12px 0" }}>
             Aucune donnée. Les locataires inscrits avec adresse apparaîtront ici.
           </div>
         ) : (
           <>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
               {[["🏙️","Villes",villesSorted.length],["🗺️","Départements",deptSorted.length],["👤","Géolocalisés",totalGeo],["📌","Ville #1",villesSorted[0]?.[0]?.split(" ").slice(1).join(" ")||"—"]].map(([emoji,label,val])=>(
-                <div key={label} style={{ background:"#f0fafc", borderRadius:9, padding:"10px", border:"1px solid #b0d8e3", textAlign:"center" }}>
+                <div key={label} style={{ background:"#f0f9ff", borderRadius:9, padding:"10px", border:"1px solid #b8e0f8", textAlign:"center" }}>
                   <div style={{ fontSize:18 }}>{emoji}</div>
-                  <div style={{ fontWeight:700, fontSize:14, color:"#0B6E8A" }}>{val}</div>
-                  <div style={{ fontSize:10, color:"#5a8a96" }}>{label}</div>
+                  <div style={{ fontWeight:700, fontSize:14, color:"#07a0f2" }}>{val}</div>
+                  <div style={{ fontSize:10, color:"#6b7f8c" }}>{label}</div>
                 </div>
               ))}
             </div>
             <div style={{ marginBottom:12 }}>
-              <div style={{ fontSize:13, fontWeight:700, color:"#0B6E8A", marginBottom:8 }}>Par ville</div>
+              <div style={{ fontSize:13, fontWeight:700, color:"#07a0f2", marginBottom:8 }}>Par ville</div>
               {villesSorted.map(([ville,nb])=>{
                 const pct=Math.round(nb/totalGeo*100);
                 return (
                   <div key={ville} style={{ marginBottom:8 }}>
                     <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:3 }}>
                       <span style={{ fontWeight:600, color:"#2C3E50" }}>{ville}</span>
-                      <span style={{ color:"#0B6E8A", fontWeight:700 }}>{nb} · {pct}%</span>
+                      <span style={{ color:"#07a0f2", fontWeight:700 }}>{nb} · {pct}%</span>
                     </div>
                     <div style={{ height:7, background:"#e8f4f7", borderRadius:4, overflow:"hidden" }}>
-                      <div style={{ height:"100%", width:`${pct}%`, background:"linear-gradient(90deg,#0B6E8A,#4ECDC4)", borderRadius:4 }}/>
+                      <div style={{ height:"100%", width:`${pct}%`, background:"#07a0f2", borderRadius:4 }}/>
                     </div>
                   </div>
                 );
@@ -1243,7 +1243,7 @@ function StatsAvancees({ reservations, comptes, extras }) {
             {deptSorted.length>0 && (
               <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                 {deptSorted.map(([dept,nb])=>(
-                  <div key={dept} style={{ background:"#0B6E8A", color:"#fff", borderRadius:8, padding:"6px 12px", fontSize:13, fontWeight:700, textAlign:"center" }}>
+                  <div key={dept} style={{ background:"#07a0f2", color:"#fff", borderRadius:8, padding:"6px 12px", fontSize:13, fontWeight:700, textAlign:"center" }}>
                     {dept}<br/><span style={{fontSize:10,fontWeight:400}}>{nb} loc.</span>
                   </div>
                 ))}
@@ -1255,28 +1255,28 @@ function StatsAvancees({ reservations, comptes, extras }) {
 
       {/* Démographie */}
       <div style={card}>
-        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>👥 Répartition des participants</div>
+        <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", marginBottom:12, fontWeight:700 }}>👥 Répartition des participants</div>
         {totalPersonnes === 0 ? (
-          <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucune donnée disponible.</div>
+          <div style={{ color:"#6b7f8c", fontSize:13, textAlign:"center", padding:"12px 0" }}>Aucune donnée disponible.</div>
         ) : (
           <>
             <div style={{ display:"flex", height:28, borderRadius:10, overflow:"hidden", marginBottom:12 }}>
-              {pctA>0 && <div style={{ width:`${pctA}%`, background:"#0B6E8A", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctA}%</div>}
-              {pctE>0 && <div style={{ width:`${pctE}%`, background:"#4ECDC4", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctE}%</div>}
+              {pctA>0 && <div style={{ width:`${pctA}%`, background:"#07a0f2", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctA}%</div>}
+              {pctE>0 && <div style={{ width:`${pctE}%`, background:"#39b8f5", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:11, fontWeight:700 }}>{pctE}%</div>}
               {pctB>0 && <div style={{ width:`${pctB}%`, background:"#ffe082", display:"flex", alignItems:"center", justifyContent:"center", color:"#a06000", fontSize:11, fontWeight:700 }}>{pctB}%</div>}
             </div>
             <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:12 }}>
-              {[["#0B6E8A","Adultes (12+)",totalAdultes,pctA],["#4ECDC4","Enfants (3-11)",totalEnfants12,pctE],["#ffe082","Moins de 3 ans",totalMoins3,pctB]].map(([bg,label,nb,pct])=>(
+              {[["#07a0f2","Adultes (12+)",totalAdultes,pctA],["#39b8f5","Enfants (3-11)",totalEnfants12,pctE],["#ffe082","Moins de 3 ans",totalMoins3,pctB]].map(([bg,label,nb,pct])=>(
                 <div key={label} style={{ display:"flex", alignItems:"center", gap:6 }}>
                   <div style={{ width:12, height:12, borderRadius:3, background:bg }}/>
                   <div>
                     <div style={{ fontSize:12, fontWeight:700, color:"#2C3E50" }}>{label}</div>
-                    <div style={{ fontSize:11, color:"#5a8a96" }}>{nb} pers. · {pct}%</div>
+                    <div style={{ fontSize:11, color:"#6b7f8c" }}>{nb} pers. · {pct}%</div>
                   </div>
                 </div>
               ))}
             </div>
-            <div style={{ background:"#f0fafc", borderRadius:8, padding:"9px 12px", fontSize:13, color:"#0B6E8A", fontWeight:600, textAlign:"center" }}>
+            <div style={{ background:"#f0f9ff", borderRadius:8, padding:"9px 12px", fontSize:13, color:"#07a0f2", fontWeight:600, textAlign:"center" }}>
               Total : {totalPersonnes} participant{totalPersonnes>1?"s":""} sur {nbRes} réservation{nbRes>1?"s":""}
             </div>
           </>
@@ -1808,12 +1808,12 @@ export default function App() {
     setResetOtpCode(code);
     setResetOtpExp(exp);
     setResetErreur("");
-    const html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;background:#F7F0E6;padding:24px;">
-      <div style="text-align:center;margin-bottom:20px;"><div style="font-size:32px;">🏊</div><div style="font-size:20px;font-weight:700;color:#0B6E8A;">My Piscine Privée</div></div>
+    const html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;background:#f8f9fa;padding:24px;">
+      <div style="text-align:center;margin-bottom:20px;"><div style="font-size:32px;">🏊</div><div style="font-size:20px;font-weight:700;color:#07a0f2;">My Piscine Privée</div></div>
       <div style="background:#fff;border-radius:12px;padding:24px;">
-        <h2 style="color:#0B6E8A;margin-top:0;">🔐 Réinitialisation de mot de passe</h2>
+        <h2 style="color:#07a0f2;margin-top:0;">🔐 Réinitialisation de mot de passe</h2>
         <p style="color:#2C3E50;font-size:14px;">Voici votre code de vérification pour réinitialiser votre mot de passe :</p>
-        <div style="text-align:center;font-size:42px;font-weight:900;letter-spacing:10px;color:#0B6E8A;margin:24px 0;font-family:monospace;">${code}</div>
+        <div style="text-align:center;font-size:42px;font-weight:900;letter-spacing:10px;color:#07a0f2;margin:24px 0;font-family:monospace;">${code}</div>
         <p style="color:#888;font-size:12px;text-align:center;">Ce code est valable 15 minutes. Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
       </div></div>`;
     try {
@@ -2587,10 +2587,10 @@ export default function App() {
   function Header({ showSteps }) {
     return (
       <>
-      <div style={{ background: "linear-gradient(160deg,#0B6E8A 0%,#1a9fbd 100%)" }}>
+      <div style={{ background: "#07a0f2" }}>
         <div style={{ padding: "18px 16px 4px", textAlign: "center" }}>
           <div style={{ fontSize: 28 }}>🏊</div>
-          <div style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 21, fontWeight: 700, color: "#fff", marginTop: 3 }}>My Piscine Privée</div>
+          <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 22, fontWeight: 900, color: "#fff", marginTop: 3 }}>My Piscine Privée</div>
           <div style={{ color: "#b8e8f0", fontSize: 12, marginTop: 1 }}>Écouflant • Maine-et-Loire</div>
           {(adminConnecte || proprioConnecte) && (
             <div style={{ marginTop:5, display:"flex", alignItems:"center", justifyContent:"center", gap:6, flexWrap:"wrap" }}>
@@ -2613,7 +2613,7 @@ export default function App() {
           )}
           {/* Alerte état des lieux */}
         {alerteEdl && (
-          <div style={{ background: alerteEdl==="entree" ? "#4ECDC4" : "#FF6B6B", padding:"10px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
+          <div style={{ background: alerteEdl==="entree" ? "#39b8f5" : "#FF6B6B", padding:"10px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
             <div>
               <div style={{ color:"#fff", fontWeight:700, fontSize:13 }}>
                 {alerteEdl==="entree" ? "🏊 C'est l'heure ! Faites l'état des lieux d'entrée" : "⏰ Fin de session ! Faites l'état des lieux de sortie"}
@@ -2644,7 +2644,7 @@ export default function App() {
         {showSteps && (
           <>
             <div style={{ display: "flex", justifyContent: "center", gap: 4, alignItems: "center", padding: "8px 16px 0" }}>
-              {[1, 2, 3, 4, 5].map(n => (<div key={n} style={{ display: "flex", alignItems: "center", gap: 3 }}><StepDot n={n} active={step === n} done={step > n} />{n < 5 && <div style={{ width: 12, height: 2, background: step > n ? "#4ECDC4" : "rgba(255,255,255,.25)", borderRadius: 2 }} />}</div>))}
+              {[1, 2, 3, 4, 5].map(n => (<div key={n} style={{ display: "flex", alignItems: "center", gap: 3 }}><StepDot n={n} active={step === n} done={step > n} />{n < 5 && <div style={{ width: 12, height: 2, background: step > n ? "#39b8f5" : "rgba(255,255,255,.25)", borderRadius: 2 }} />}</div>))}
             </div>
             <div style={{ textAlign: "center", color: "#e0f4f8", fontSize: 11, paddingBottom: 5, paddingTop: 2 }}>{STEP_LABELS[Math.min(step, 7)]}</div>
           </>
@@ -2654,13 +2654,13 @@ export default function App() {
           <div style={{ position:"fixed", left:0, right:0, bottom:0, zIndex:2000, background:"#fff", boxShadow:"0 -4px 20px rgba(0,0,0,.15)", padding:"16px", borderRadius:"16px 16px 0 0" }}>
             <div style={{ fontSize:13, color:"#2C3E50", lineHeight:1.6, marginBottom:12 }}>
               🍪 Cette application utilise uniquement des cookies techniques nécessaires à son fonctionnement (connexion, préférences de réservation). Aucun cookie publicitaire n'est utilisé.{" "}
-              <span onClick={() => { setModeOrigineAvantLegal(mode); setMode("confidentialite"); }} style={{ color:"#0B6E8A", fontWeight:700, cursor:"pointer", textDecoration:"underline" }}>En savoir plus</span>
+              <span onClick={() => { setModeOrigineAvantLegal(mode); setMode("confidentialite"); }} style={{ color:"#07a0f2", fontWeight:700, cursor:"pointer", textDecoration:"underline" }}>En savoir plus</span>
             </div>
             <div style={{ display:"flex", gap:8 }}>
-              <button onClick={() => repondreConsentement(true)} style={{ flex:1, padding:"10px", borderRadius:9, background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+              <button onClick={() => repondreConsentement(true)} style={{ flex:1, padding:"10px", borderRadius:9, background:"#07a0f2", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
                 Accepter
               </button>
-              <button onClick={() => repondreConsentement(false)} style={{ flex:1, padding:"10px", borderRadius:9, background:"#fff", color:"#0B6E8A", border:"1.5px solid #0B6E8A", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+              <button onClick={() => repondreConsentement(false)} style={{ flex:1, padding:"10px", borderRadius:9, background:"#fff", color:"#07a0f2", border:"1.5px solid #07a0f2", fontWeight:700, fontSize:13, cursor:"pointer" }}>
                 Refuser
               </button>
             </div>
@@ -2675,22 +2675,22 @@ export default function App() {
 
   // ── ÉCRAN DE CHARGEMENT INITIAL ───────────────────────────────────────────
   if (chargementInitial) return (
-    <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center" }}>
+    <div style={{ fontFamily:"Inter,sans-serif", background:"#f8f9fa", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div style={{ textAlign:"center" }}>
         <div style={{ fontSize:48, marginBottom:14, animation:"pulse 1.5s infinite" }}>🏊</div>
-        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", fontWeight:700 }}>Chargement...</div>
+        <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, color:"#07a0f2", fontWeight:700 }}>Chargement...</div>
         <style>{`@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }`}</style>
       </div>
     </div>
   );
 
   if (erreurChargement) return (
-    <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+    <div style={{ fontFamily:"Inter,sans-serif", background:"#f8f9fa", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
       <div style={{ textAlign:"center", maxWidth:340 }}>
         <div style={{ fontSize:48, marginBottom:14 }}>⚠️</div>
-        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#FF6B6B", fontWeight:700, marginBottom:10 }}>Connexion impossible</div>
-        <div style={{ fontSize:13, color:"#5a8a96", lineHeight:1.6, marginBottom:16 }}>Impossible de charger les données. Vérifiez votre connexion internet et réessayez.</div>
-        <button onClick={() => window.location.reload()} style={{ background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", borderRadius:10, padding:"12px 24px", fontSize:14, fontWeight:700, cursor:"pointer" }}>Réessayer</button>
+        <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, color:"#FF6B6B", fontWeight:700, marginBottom:10 }}>Connexion impossible</div>
+        <div style={{ fontSize:13, color:"#6b7f8c", lineHeight:1.6, marginBottom:16 }}>Impossible de charger les données. Vérifiez votre connexion internet et réessayez.</div>
+        <button onClick={() => window.location.reload()} style={{ background:"#07a0f2", color:"#fff", border:"none", borderRadius:10, padding:"12px 24px", fontSize:14, fontWeight:700, cursor:"pointer" }}>Réessayer</button>
       </div>
     </div>
   );
@@ -2698,12 +2698,12 @@ export default function App() {
 
   // ── PAGE ANNONCE PUBLIQUE ────────────────────────────────────────────────
   if (mode === "annonce") return (
-    <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh" }}>
+    <div style={{ fontFamily:"Inter,sans-serif", background:"#f8f9fa", minHeight:"100vh" }}>
       <Header showSteps={false}/>
       <div style={{ padding:"0 0 32px" }}>
         {/* Galerie photos */}
         {annonce.photos.length > 0 ? (
-          <div style={{ position:"relative", height:240, overflow:"hidden", background:"#0B6E8A" }}>
+          <div style={{ position:"relative", height:240, overflow:"hidden", background:"#07a0f2" }}>
             <img src={annonce.photos[photoAffichee] || annonce.photos[0]} alt="piscine"
               style={{ width:"100%", height:"100%", objectFit:"cover", opacity:.9 }}/>
             {annonce.photos.length > 1 && (
@@ -2730,7 +2730,7 @@ export default function App() {
             )}
           </div>
         ) : (
-          <div style={{ height:180, background:"linear-gradient(160deg,#0B6E8A,#4ECDC4)", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column" }}>
+          <div style={{ height:180, background:"#07a0f2", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column" }}>
             <div style={{ fontSize:48 }}>🏊</div>
             <div style={{ color:"rgba(255,255,255,.7)", fontSize:13, marginTop:4 }}>Photos à venir</div>
           </div>
@@ -2747,7 +2747,7 @@ export default function App() {
             <div style={{ flex:1, overflowY:"auto", display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:8 }} onClick={e => e.stopPropagation()}>
               {annonce.photos.map((url, i) => (
                 <img key={i} src={url} alt="" onClick={() => { setPhotoAffichee(i); setGalerieOuverte(false); }}
-                  style={{ width:"100%", height:140, objectFit:"cover", borderRadius:10, cursor:"pointer", border: i===photoAffichee ? "3px solid #4ECDC4" : "none" }}/>
+                  style={{ width:"100%", height:140, objectFit:"cover", borderRadius:10, cursor:"pointer", border: i===photoAffichee ? "3px solid #39b8f5" : "none" }}/>
               ))}
             </div>
           </div>
@@ -2757,7 +2757,7 @@ export default function App() {
         <div style={{ padding:"16px 16px 0" }}>
           {/* Titre + statut */}
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
-            <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, fontWeight:700, color:"#2C3E50", lineHeight:1.3, flex:1 }}>
+            <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, fontWeight:700, color:"#2C3E50", lineHeight:1.3, flex:1 }}>
               {annonce.titre}
             </div>
             {!annonce.ouvert && (
@@ -2780,10 +2780,10 @@ export default function App() {
           </div>
 
           {/* Tarif */}
-          <div style={{ background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", borderRadius:12, padding:"12px 16px", marginBottom:14, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div style={{ background:"#07a0f2", borderRadius:12, padding:"12px 16px", marginBottom:14, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             <div>
               <div style={{ color:"#b8e8f0", fontSize:12 }}>À partir de</div>
-              <div style={{ color:"#fff", fontWeight:700, fontSize:22, fontFamily:"'Playfair Display',serif" }}>{TARIF_BASE} €<span style={{ fontSize:13, fontWeight:400 }}>/pers/h</span></div>
+              <div style={{ color:"#fff", fontWeight:700, fontSize:22, fontFamily:"'Nunito',sans-serif" }}>{TARIF_BASE} €<span style={{ fontSize:13, fontWeight:400 }}>/pers/h</span></div>
             </div>
             <div style={{ textAlign:"right" }}>
               <div style={{ color:"#ffe082", fontSize:12 }}>🌙 Soirée (après 20h)</div>
@@ -2793,18 +2793,18 @@ export default function App() {
 
           {/* Description */}
           <div style={{ ...card, marginBottom:14 }}>
-            <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", fontWeight:700, marginBottom:10 }}>À propos</div>
+            <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", fontWeight:700, marginBottom:10 }}>À propos</div>
             <div style={{ fontSize:13, color:"#2C3E50", lineHeight:1.8, whiteSpace:"pre-line" }}>{annonce.description}</div>
           </div>
 
           {/* Équipements */}
           <div style={{ ...card, marginBottom:14 }}>
-            <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", fontWeight:700, marginBottom:12 }}>🧰 Équipements</div>
+            <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", fontWeight:700, marginBottom:12 }}>🧰 Équipements</div>
             <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
               {Object.entries(annonce.equipements).filter(([,v])=>v).map(([k])=>{
                 const [emoji,label] = EQUIPEMENTS_LABELS[k]||["✓",k];
                 return (
-                  <div key={k} style={{ display:"flex", alignItems:"center", gap:5, background:"#e6faf8", borderRadius:20, padding:"5px 12px", fontSize:12, fontWeight:600, color:"#0B6E8A" }}>
+                  <div key={k} style={{ display:"flex", alignItems:"center", gap:5, background:"#e8f6fe", borderRadius:20, padding:"5px 12px", fontSize:12, fontWeight:600, color:"#07a0f2" }}>
                     {emoji} {label}
                   </div>
                 );
@@ -2814,7 +2814,7 @@ export default function App() {
 
           {/* Règlement */}
           <div style={{ ...card, marginBottom:14 }}>
-            <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", fontWeight:700, marginBottom:12 }}>📋 Règlement</div>
+            <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", fontWeight:700, marginBottom:12 }}>📋 Règlement</div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
               {[["enfants","👶","Enfants 0-12 ans"],["naturisme","🧘","Naturisme"],["burkini","👙","Burkini"],
                 ["evenements","🎉","Événements"],["alcool","🍷","Alcool"],["fumeur","🚬","Fumeur"],
@@ -2822,14 +2822,14 @@ export default function App() {
                 <div key={k} style={{ display:"flex", alignItems:"center", gap:6, fontSize:12 }}>
                   <span style={{ fontSize:16 }}>{emoji}</span>
                   <span style={{ color:"#2C3E50", fontWeight:600 }}>{label}</span>
-                  <span style={{ marginLeft:"auto", color:annonce.reglement[k]?"#4ECDC4":"#FF6B6B", fontWeight:700, fontSize:14 }}>
+                  <span style={{ marginLeft:"auto", color:annonce.reglement[k]?"#39b8f5":"#FF6B6B", fontWeight:700, fontSize:14 }}>
                     {annonce.reglement[k]?"✓":"✗"}
                   </span>
                 </div>
               ))}
             </div>
             {annonce.precisions && annonce.precisions.length > 0 && (
-              <div style={{ marginTop:12, background:"#f0fafc", borderRadius:8, padding:"12px", border:"1px solid #b0d8e3", maxHeight:240, overflowY:"auto" }}>
+              <div style={{ marginTop:12, background:"#f0f9ff", borderRadius:8, padding:"12px", border:"1px solid #b8e0f8", maxHeight:240, overflowY:"auto" }}>
                 {annonce.precisions.map(p => (
                   <div key={p.id} style={{ display:"flex", alignItems:"flex-start", gap:8, marginBottom:8, fontSize:12, color:"#2C3E50", lineHeight:1.5 }}>
                     <span style={{ flexShrink:0 }}>{p.emoji}</span>
@@ -2842,12 +2842,12 @@ export default function App() {
 
           {/* Dispositifs sécurité */}
           <div style={{ ...card, marginBottom:14 }}>
-            <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"#0B6E8A", fontWeight:700, marginBottom:10 }}>🛡️ Dispositifs de sécurité</div>
-            <div style={{ fontSize:12, color:"#5a8a96", marginBottom:8 }}>Conformité loi du 03/01/2003 :</div>
+            <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, color:"#07a0f2", fontWeight:700, marginBottom:10 }}>🛡️ Dispositifs de sécurité</div>
+            <div style={{ fontSize:12, color:"#6b7f8c", marginBottom:8 }}>Conformité loi du 03/01/2003 :</div>
             <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
               {[["barriere","🚧","Barrière de protection"],["bache","🟦","Bâche de sécurité"],
                 ["abri","🏠","Abri de piscine"],["alarme","🔔","Alarme de sécurité"]].map(([k,emoji,label])=>(
-                <div key={k} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:600, background:annonce.dispositifs[k]?"#e6faf8":"#f5f5f5", color:annonce.dispositifs[k]?"#0B6E8A":"#bbb", border:`1px solid ${annonce.dispositifs[k]?"#4ECDC4":"#e0e0e0"}` }}>
+                <div key={k} style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:600, background:annonce.dispositifs[k]?"#e8f6fe":"#f5f5f5", color:annonce.dispositifs[k]?"#07a0f2":"#bbb", border:`1px solid ${annonce.dispositifs[k]?"#39b8f5":"#e0e0e0"}` }}>
                   {emoji} {label} {annonce.dispositifs[k]&&"✓"}
                 </div>
               ))}
@@ -2867,14 +2867,14 @@ export default function App() {
 
   // ── PAGES LÉGALES (Politique de confidentialité & CGU) ───────────────────
   if (mode === "confidentialite" || mode === "cgu") return (
-    <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
       <Header showSteps={false} />
       <div style={{ padding: "16px 16px 32px" }}>
         <div style={card}>
-          <div style={{ fontFamily:"'Playfair Display',serif", fontSize:19, color:"#0B6E8A", fontWeight:700, marginBottom:14 }}>
+          <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:19, color:"#07a0f2", fontWeight:700, marginBottom:14 }}>
             {mode === "confidentialite" ? "🔒 Politique de confidentialité" : "📜 Conditions générales d'utilisation"}
           </div>
-          <div style={{ background:"#f0fafc", borderRadius:10, padding:"14px 16px", fontSize:13, color:"#2C3E50", lineHeight:1.7, whiteSpace:"pre-line", border:"1px solid #b0d8e3", maxHeight:480, overflowY:"auto" }}>
+          <div style={{ background:"#f0f9ff", borderRadius:10, padding:"14px 16px", fontSize:13, color:"#2C3E50", lineHeight:1.7, whiteSpace:"pre-line", border:"1px solid #b8e0f8", maxHeight:480, overflowY:"auto" }}>
             {mode === "confidentialite" ? POLITIQUE_CONFIDENTIALITE : CGU_TEXTE}
           </div>
         </div>
@@ -2900,15 +2900,15 @@ export default function App() {
         )
       : null;
     return (
-    <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
       <Header showSteps={false} />
       <div style={{ padding: "16px 16px 32px" }}>
         {retourPaiement && (
-          <div style={{ background: "#e6faf8", border: "2px solid #4ECDC4", borderRadius: 12, padding: "14px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-            <div style={{ fontSize: 14, color: "#0B6E8A", lineHeight: 1.5 }}>
+          <div style={{ background: "#e8f6fe", border: "2px solid #39b8f5", borderRadius: 12, padding: "14px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+            <div style={{ fontSize: 14, color: "#07a0f2", lineHeight: 1.5 }}>
               ✅ <strong>Paiement bien reçu !</strong> Votre réservation{retourPaiement.ref ? ` ${retourPaiement.ref}` : ""} est définitivement confirmée. Un récapitulatif est disponible dans « Mon compte ».
             </div>
-            <button onClick={() => setRetourPaiement(null)} style={{ background: "transparent", border: "none", color: "#0B6E8A", fontSize: 18, cursor: "pointer", fontWeight: 700, flexShrink: 0 }}>✕</button>
+            <button onClick={() => setRetourPaiement(null)} style={{ background: "transparent", border: "none", color: "#07a0f2", fontSize: 18, cursor: "pointer", fontWeight: 700, flexShrink: 0 }}>✕</button>
           </div>
         )}
         <div style={{ ...card, textAlign: "center" }}>
@@ -2916,22 +2916,22 @@ export default function App() {
             // ── Accueil locataire connecté ──
             <>
               <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
-              <div style={{ fontFamily:"'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: "#0B6E8A", marginBottom: 4 }}>
+              <div style={{ fontFamily:"'Nunito',sans-serif", fontSize: 20, fontWeight: 700, color: "#07a0f2", marginBottom: 4 }}>
                 Bonjour {comptes[compteConnecte]?.prenom} !
               </div>
               {sessionEnCours ? (
                 // Session active en ce moment
-                <div style={{ background: "linear-gradient(135deg,#4ECDC4,#0B6E8A)", borderRadius: 14, padding: "16px", margin: "12px 0", color: "#fff" }}>
+                <div style={{ background: "#07a0f2", borderRadius: 14, padding: "16px", margin: "12px 0", color: "#fff" }}>
                   <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>🏊 Session en cours !</div>
                   <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 12 }}>{sessionEnCours.ref} · {padH(sessionEnCours.heureDebut)} → {padH(sessionEnCours.heureFin)}</div>
                   {!sessionEnCours.edlEntreeFait ? (
                     <button onClick={() => { setReservation(sessionEnCours); setMode("edlEntree"); }}
-                      style={{ width: "100%", padding: "11px", borderRadius: 10, background: "#fff", color: "#0B6E8A", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                      style={{ width: "100%", padding: "11px", borderRadius: 10, background: "#fff", color: "#07a0f2", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
                       📷 Faire l'état des lieux d'entrée
                     </button>
                   ) : !sessionEnCours.edlSortieFait ? (
                     <button onClick={() => { setReservation(sessionEnCours); setMode("edlSortie"); }}
-                      style={{ width: "100%", padding: "11px", borderRadius: 10, background: "#fff", color: "#0B6E8A", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                      style={{ width: "100%", padding: "11px", borderRadius: 10, background: "#fff", color: "#07a0f2", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
                       📷 Faire l'état des lieux de sortie
                     </button>
                   ) : (
@@ -2941,16 +2941,16 @@ export default function App() {
                   )}
                 </div>
               ) : prochaine ? (
-                <div style={{ background: prochaine.statut === "acceptee" ? "#e6faf8" : "#fff8e1", border: `2px solid ${prochaine.statut === "acceptee" ? "#4ECDC4" : "#f0c040"}`, borderRadius: 12, padding: "12px 14px", margin: "14px 0", textAlign: "left" }}>
-                  <div style={{ fontSize: 12, color: "#5a8a96", marginBottom: 4 }}>
+                <div style={{ background: prochaine.statut === "acceptee" ? "#e8f6fe" : "#fff8e1", border: `2px solid ${prochaine.statut === "acceptee" ? "#39b8f5" : "#f0c040"}`, borderRadius: 12, padding: "12px 14px", margin: "14px 0", textAlign: "left" }}>
+                  <div style={{ fontSize: 12, color: "#6b7f8c", marginBottom: 4 }}>
                     {prochaine.statut === "acceptee" ? "✅ Prochaine réservation confirmée" : "⏳ Demande en attente de validation"}
                   </div>
-                  <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 14 }}>{prochaine.ref}</div>
+                  <div style={{ fontWeight: 700, color: "#07a0f2", fontSize: 14 }}>{prochaine.ref}</div>
                   <div style={{ fontSize: 13, color: "#2C3E50" }}>📅 {prochaine.date} · {padH(prochaine.heureDebut)} → {padH(prochaine.heureFin)}</div>
-                  <div style={{ fontSize: 12, color: "#5a8a96", marginTop: 4 }}>{prochaine.adultes} adulte{prochaine.adultes > 1 ? "s" : ""}{prochaine.enfants12 > 0 ? ` + ${prochaine.enfants12} enfant` : ""} · {formatEur(prochaine.totalGeneral || prochaine.prix)}</div>
+                  <div style={{ fontSize: 12, color: "#6b7f8c", marginTop: 4 }}>{prochaine.adultes} adulte{prochaine.adultes > 1 ? "s" : ""}{prochaine.enfants12 > 0 ? ` + ${prochaine.enfants12} enfant` : ""} · {formatEur(prochaine.totalGeneral || prochaine.prix)}</div>
                 </div>
               ) : (
-                <div style={{ color: "#5a8a96", fontSize: 13, margin: "12px 0" }}>Vous n'avez pas de réservation à venir.</div>
+                <div style={{ color: "#6b7f8c", fontSize: 13, margin: "12px 0" }}>Vous n'avez pas de réservation à venir.</div>
               )}
               <button style={{ ...btnP, marginBottom: 10 }} onClick={() => setMode("annonce")}>🏊 Réserver un créneau</button>
               <button style={{ ...btnS }} onClick={() => setMode("compte")}>📋 Mes réservations</button>
@@ -2961,24 +2961,24 @@ export default function App() {
           ) : (
             // ── Accueil visiteur ──
             <>
-              <div style={{ fontSize: 14, color: "#5a8a96", marginBottom: 18, lineHeight: 1.6 }}>Bienvenue ! Réservez notre piscine privée ou accédez à votre espace.</div>
+              <div style={{ fontSize: 14, color: "#6b7f8c", marginBottom: 18, lineHeight: 1.6 }}>Bienvenue ! Réservez notre piscine privée ou accédez à votre espace.</div>
               <button style={btnP} onClick={() => setMode("annonce")}>🏊 Voir l'annonce & Réserver</button>
               <button style={{ ...btnS, marginTop: 10 }} onClick={() => { setAuthMode("login"); setMode("auth"); }}>👤 Se connecter / Créer un compte</button>
             </>
           )}
           <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid #e0eef2", display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-            <button style={{ background:"none", border:"1px solid #b0d8e3", borderRadius:8, padding:"6px 14px", fontSize:12, color:"#0B6E8A", cursor:"pointer" }} onClick={() => setMode(proprioConnecte || adminConnecte ? "proprio" : "loginProprio")}>🔑 Espace propriétaire</button>
+            <button style={{ background:"none", border:"1px solid #b8e0f8", borderRadius:8, padding:"6px 14px", fontSize:12, color:"#07a0f2", cursor:"pointer" }} onClick={() => setMode(proprioConnecte || adminConnecte ? "proprio" : "loginProprio")}>🔑 Espace propriétaire</button>
             <button style={{ background:"none", border:"1px solid #ddd", borderRadius:8, padding:"6px 14px", fontSize:11, color:"#aaa", cursor:"pointer" }} onClick={() => setMode(adminConnecte ? "proprio" : "loginAdmin")}>⚙️ Admin</button>
           </div>
         </div>
         {(proprioConnecte || adminConnecte) && (
           <div style={card}>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, color: "#0B6E8A", marginBottom: 4, fontWeight: 700 }}>Infos pratiques</div>
+            <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 17, color: "#07a0f2", marginBottom: 4, fontWeight: 700 }}>Infos pratiques</div>
             <div style={{ fontSize: 11, color: "#aaa", marginBottom: 10 }}>Visible uniquement par vous, aide-mémoire</div>
             {[["💧", "Piscine privée", "Accès exclusif pendant votre créneau"], ["👥", "Tarifs", "9 €/pers/h · -50% enfants 3–11 ans · gratuit -3 ans"], ["⏱️", "Créneaux", "Choisissez librement vos horaires"], ["🧹", "Nettoyage", "1h de battement automatique entre chaque location"]].map(([icon, title, desc]) => (
               <div key={title} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
                 <span style={{ fontSize: 19 }}>{icon}</span>
-                <div><div style={{ fontWeight: 600, fontSize: 13, color: "#2C3E50" }}>{title}</div><div style={{ fontSize: 12, color: "#5a8a96" }}>{desc}</div></div>
+                <div><div style={{ fontWeight: 600, fontSize: 13, color: "#2C3E50" }}>{title}</div><div style={{ fontSize: 12, color: "#6b7f8c" }}>{desc}</div></div>
               </div>
             ))}
           </div>
@@ -3001,18 +3001,18 @@ export default function App() {
       <div style={{ position:"relative" }}>
         <input style={{ ...inp, paddingRight:42 }} type={showMdp[key] ? "text" : "password"} value={val} onChange={onChange} placeholder={placeholder || "••••••••"} autoComplete="new-password"/>
         <button type="button" onClick={()=>setShowMdp(p=>({...p,[key]:!p[key]}))}
-          style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:18, color:"#5a8a96", padding:2 }}>
+          style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:18, color:"#6b7f8c", padding:2 }}>
           {showMdp[key] ? "🙈" : "👁️"}
         </button>
       </div>
     );
     return (
-    <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh" }}>
+    <div style={{ fontFamily:"Inter,sans-serif", background:"#f8f9fa", minHeight:"100vh" }}>
       <Header showSteps={false} />
       <div style={{ padding:"16px 16px 40px", maxWidth:480, margin:"0 auto" }}>
         <div style={{ display:"flex", gap:0, marginBottom:14, background:"#e8f4f7", borderRadius:10, padding:4 }}>
           {[["login","Se connecter"],["register","Créer un compte"]].map(([v,label]) => (
-            <button key={v} onClick={()=>{setAuthMode(v);setAuthErreur("");}} style={{ flex:1, padding:"9px", borderRadius:8, border:"none", background:authMode===v?"#0B6E8A":"transparent", color:authMode===v?"#fff":"#0B6E8A", fontWeight:700, fontSize:13, cursor:"pointer" }}>{label}</button>
+            <button key={v} onClick={()=>{setAuthMode(v);setAuthErreur("");}} style={{ flex:1, padding:"9px", borderRadius:8, border:"none", background:authMode===v?"#07a0f2":"transparent", color:authMode===v?"#fff":"#07a0f2", fontWeight:700, fontSize:13, cursor:"pointer" }}>{label}</button>
           ))}
         </div>
         <div style={card}>
@@ -3048,9 +3048,9 @@ export default function App() {
           {authMode === "register" && authForm.email && comptes[authForm.email.trim().toLowerCase()] && (
             <div style={{ background:"#fff8e1", border:"2px solid #f0c040", borderRadius:10, padding:"12px 14px", marginBottom:12 }}>
               <div style={{ fontWeight:700, color:"#a06000", fontSize:13, marginBottom:6 }}>👤 Vous avez déjà un compte !</div>
-              <div style={{ fontSize:12, color:"#5a8a96", marginBottom:10 }}>Un compte existe pour <strong>{authForm.email}</strong>. Connectez-vous pour retrouver toutes vos réservations.</div>
+              <div style={{ fontSize:12, color:"#6b7f8c", marginBottom:10 }}>Un compte existe pour <strong>{authForm.email}</strong>. Connectez-vous pour retrouver toutes vos réservations.</div>
               <button onClick={()=>{setAuthMode("login");setAuthErreur("");}}
-                style={{ width:"100%", padding:"10px", borderRadius:8, background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                style={{ width:"100%", padding:"10px", borderRadius:8, background:"#07a0f2", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
                 → Se connecter à mon compte
               </button>
             </div>
@@ -3071,7 +3071,7 @@ export default function App() {
                 <div style={{ color:"#FF6B6B", fontSize:12, marginTop:4 }}>❌ Les mots de passe ne correspondent pas</div>
               )}
               {authForm.motdepasse2 && authForm.motdepasse === authForm.motdepasse2 && authForm.motdepasse.length >= 8 && (
-                <div style={{ color:"#4ECDC4", fontSize:12, marginTop:4 }}>✅ Mots de passe identiques</div>
+                <div style={{ color:"#39b8f5", fontSize:12, marginTop:4 }}>✅ Mots de passe identiques</div>
               )}
             </div>
           )}
@@ -3086,12 +3086,12 @@ export default function App() {
           {/* CGU */}
           {authMode === "register" && (
             <label style={{ display:"flex", alignItems:"flex-start", gap:8, marginBottom:14, cursor:"pointer" }}>
-              <input type="checkbox" checked={authForm.cguAcceptees||false} onChange={e=>setAuthForm(f=>({...f,cguAcceptees:e.target.checked}))} style={{ marginTop:3, width:16, height:16, accentColor:"#0B6E8A", flexShrink:0 }}/>
-              <span style={{ fontSize:12, color:"#5a8a96", lineHeight:1.6 }}>
+              <input type="checkbox" checked={authForm.cguAcceptees||false} onChange={e=>setAuthForm(f=>({...f,cguAcceptees:e.target.checked}))} style={{ marginTop:3, width:16, height:16, accentColor:"#07a0f2", flexShrink:0 }}/>
+              <span style={{ fontSize:12, color:"#6b7f8c", lineHeight:1.6 }}>
                 J'accepte les{" "}
-                <span onClick={e=>{e.preventDefault();e.stopPropagation();setModeOrigineAvantLegal("auth");setMode("cgu");}} style={{ color:"#0B6E8A", fontWeight:600, textDecoration:"underline", cursor:"pointer" }}>CGU</span>
+                <span onClick={e=>{e.preventDefault();e.stopPropagation();setModeOrigineAvantLegal("auth");setMode("cgu");}} style={{ color:"#07a0f2", fontWeight:600, textDecoration:"underline", cursor:"pointer" }}>CGU</span>
                 {" "}et la{" "}
-                <span onClick={e=>{e.preventDefault();e.stopPropagation();setModeOrigineAvantLegal("auth");setMode("confidentialite");}} style={{ color:"#0B6E8A", fontWeight:600, textDecoration:"underline", cursor:"pointer" }}>politique de confidentialité</span>
+                <span onClick={e=>{e.preventDefault();e.stopPropagation();setModeOrigineAvantLegal("auth");setMode("confidentialite");}} style={{ color:"#07a0f2", fontWeight:600, textDecoration:"underline", cursor:"pointer" }}>politique de confidentialité</span>
               </span>
             </label>
           )}
@@ -3110,7 +3110,7 @@ export default function App() {
           </button>
           {authMode==="login" && (
             <button onClick={()=>{setResetEmail(authForm.email||"");ouvrirReset("locataire");}}
-              style={{ background:"none", border:"none", color:"#5a8a96", fontSize:13, cursor:"pointer", textDecoration:"underline", width:"100%", marginTop:8 }}>
+              style={{ background:"none", border:"none", color:"#6b7f8c", fontSize:13, cursor:"pointer", textDecoration:"underline", width:"100%", marginTop:8 }}>
               Mot de passe oublié ?
             </button>
           )}
@@ -3133,38 +3133,38 @@ export default function App() {
         return aAvenir ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date);
       });
     return (
-      <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+      <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
         <Header showSteps={false} />
         <div style={{ padding: "16px 16px 32px" }}>
           <button onClick={() => setMode("accueil")}
-            style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", color:"#0B6E8A", fontWeight:600, fontSize:14, cursor:"pointer", marginBottom:14, padding:0 }}>
+            style={{ display:"flex", alignItems:"center", gap:6, background:"none", border:"none", color:"#07a0f2", fontWeight:600, fontSize:14, cursor:"pointer", marginBottom:14, padding:0 }}>
             ← Retour à l'accueil
           </button>
           <div style={card}>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", fontWeight: 700, marginBottom: 12 }}>👤 Mon compte</div>
+            <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", fontWeight: 700, marginBottom: 12 }}>👤 Mon compte</div>
             <div style={{ fontSize: 14, color: "#2C3E50", lineHeight: 2 }}>
               <strong>{compte?.prenom} {compte?.nom}</strong><br />
               📧 {compte?.email}<br />
               📞 {compte?.telephone}<br />
               {compte?.adresse && <>{compte.adresse}<br /></>}
-              {(compte?.codePostal || compte?.ville) && <span style={{color:"#5a8a96"}}>📍 {compte?.codePostal} {compte?.ville}</span>}
+              {(compte?.codePostal || compte?.ville) && <span style={{color:"#6b7f8c"}}>📍 {compte?.codePostal} {compte?.ville}</span>}
             </div>
           </div>
           <div style={card}>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", fontWeight: 700, marginBottom: 12 }}>📋 Mes réservations</div>
+            <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", fontWeight: 700, marginBottom: 12 }}>📋 Mes réservations</div>
             {mesRes.length === 0 ? (
-              <div style={{ color: "#5a8a96", fontSize: 14, textAlign: "center", padding: "16px 0" }}>Aucune réservation pour l'instant.</div>
+              <div style={{ color: "#6b7f8c", fontSize: 14, textAlign: "center", padding: "16px 0" }}>Aucune réservation pour l'instant.</div>
             ) : mesRes.map(r => {
               const noteP = notesLocataires[r.ref];
               const showFacture = factureOuverte === r.ref;
               const extrasRes = extras.filter(e => r.extrasChoisis?.[e.id]);
               return (
-                <div key={r.ref} style={{ background: "#f0fafc", borderRadius: 10, padding: "12px 14px", marginBottom: 10, border: "1px solid #b0d8e3" }}>
+                <div key={r.ref} style={{ background: "#f0f9ff", borderRadius: 10, padding: "12px 14px", marginBottom: 10, border: "1px solid #b8e0f8" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
-                      <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 13 }}>{r.ref}</div>
-                      <div style={{ fontSize: 12, color: "#5a8a96" }}>{r.date} · {padH(r.heureDebut ?? parseInt(r.heureDebut))} → {padH(r.heureFin ?? parseInt(r.heureFin))}</div>
-                      <div style={{ fontSize: 12, color: "#5a8a96" }}>{r.adultes} adulte{r.adultes > 1 ? "s" : ""}{r.enfants12 > 0 ? ` + ${r.enfants12} enfant` : ""} · {formatEur(r.totalGeneral || r.prix)}</div>
+                      <div style={{ fontWeight: 700, color: "#07a0f2", fontSize: 13 }}>{r.ref}</div>
+                      <div style={{ fontSize: 12, color: "#6b7f8c" }}>{r.date} · {padH(r.heureDebut ?? parseInt(r.heureDebut))} → {padH(r.heureFin ?? parseInt(r.heureFin))}</div>
+                      <div style={{ fontSize: 12, color: "#6b7f8c" }}>{r.adultes} adulte{r.adultes > 1 ? "s" : ""}{r.enfants12 > 0 ? ` + ${r.enfants12} enfant` : ""} · {formatEur(r.totalGeneral || r.prix)}</div>
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}>
                       {/* Badge statut validation */}
@@ -3172,10 +3172,10 @@ export default function App() {
                         const s = r.statut || "en_attente";
                         const cfg = {
                           en_attente: { bg:"#fff8e1", color:"#a06000", border:"#f0c040", label:"⏳ En attente" },
-                          acceptee:   { bg:"#e6faf8", color:"#0B6E8A", border:"#4ECDC4", label:"✅ Confirmée" },
+                          acceptee:   { bg:"#e8f6fe", color:"#07a0f2", border:"#39b8f5", label:"✅ Confirmée" },
                           refusee:    { bg:"#fff0f0", color:"#c0302a", border:"#FF6B6B", label:"✗ Non acceptée" },
                           annulee:    { bg:"#f5f5f5", color:"#888",    border:"#ccc",    label:"🚫 Annulée" },
-                        }[s] || { bg:"#f0fafc", color:"#0B6E8A", border:"#b0d8e3", label:"—" };
+                        }[s] || { bg:"#f0f9ff", color:"#07a0f2", border:"#b8e0f8", label:"—" };
                         return (
                           <span style={{ fontSize:11, padding:"3px 9px", borderRadius:20, background:cfg.bg, color:cfg.color, border:`1px solid ${cfg.border}`, fontWeight:700 }}>
                             {cfg.label}
@@ -3183,7 +3183,7 @@ export default function App() {
                         );
                       })()}
                       {/* Badge à venir / passée */}
-                      <span style={{ fontSize:11, padding:"3px 8px", borderRadius:20, background: r.date >= today() ? "#f0fafc" : "#f0f0f0", color: r.date >= today() ? "#0B6E8A" : "#888", fontWeight:600 }}>
+                      <span style={{ fontSize:11, padding:"3px 8px", borderRadius:20, background: r.date >= today() ? "#f0f9ff" : "#f0f0f0", color: r.date >= today() ? "#07a0f2" : "#888", fontWeight:600 }}>
                         {r.date >= today() ? "À venir" : "Passée"}
                       </span>
                     </div>
@@ -3197,15 +3197,15 @@ export default function App() {
                   )}
                   {/* Paiement en attente après acceptation */}
                   {r.statut === "acceptee" && r.paiement && r.paiement.statut !== "paye" && r.paiement.url && (
-                    <div style={{ marginTop:10, background:"#f0fafc", border:"1.5px solid #4ECDC4", borderRadius:8, padding:"12px", fontSize:12, color:"#0B6E8A", lineHeight:1.5 }}>
+                    <div style={{ marginTop:10, background:"#f0f9ff", border:"1.5px solid #39b8f5", borderRadius:8, padding:"12px", fontSize:12, color:"#07a0f2", lineHeight:1.5 }}>
                       💳 <strong>Dernière étape :</strong> réglez {formatEur(r.paiement.montant)} pour confirmer définitivement votre réservation.
                       {r.modePaiement === "especes" && (
-                        <div style={{ marginTop:4, color:"#5a8a96" }}>
+                        <div style={{ marginTop:4, color:"#6b7f8c" }}>
                           Acompte de 20% — le solde de {formatEur((r.totalGeneral || r.prix || 0) - r.paiement.montant)} sera à régler en espèces sur place.
                         </div>
                       )}
                       <a href={r.paiement.url} target="_blank" rel="noopener noreferrer"
-                        style={{ display:"block", textAlign:"center", background:"#0B6E8A", color:"#fff", textDecoration:"none", fontWeight:700, fontSize:13, padding:"10px 0", borderRadius:8, marginTop:8 }}>
+                        style={{ display:"block", textAlign:"center", background:"#07a0f2", color:"#fff", textDecoration:"none", fontWeight:700, fontSize:13, padding:"10px 0", borderRadius:8, marginTop:8 }}>
                         Payer {formatEur(r.paiement.montant)} en ligne
                       </a>
                       <div style={{ marginTop:8, background:"#fff8e1", borderRadius:6, padding:"8px 10px", color:"#a06000", fontSize:11 }}>
@@ -3215,7 +3215,7 @@ export default function App() {
                   )}
                   {/* Paiement effectué */}
                   {r.paiement?.statut === "paye" && (
-                    <div style={{ marginTop:10, background:"#e6faf8", border:"1px solid #4ECDC4", borderRadius:8, padding:"9px 12px", fontSize:12, color:"#0B6E8A", lineHeight:1.5 }}>
+                    <div style={{ marginTop:10, background:"#e8f6fe", border:"1px solid #39b8f5", borderRadius:8, padding:"9px 12px", fontSize:12, color:"#07a0f2", lineHeight:1.5 }}>
                       ✅ Paiement de <strong>{formatEur(r.paiement.montantPaye || r.paiement.montant)}</strong> bien reçu{r.paiement.datePaiement ? ` le ${new Date(r.paiement.datePaiement).toLocaleDateString("fr-FR")}` : ""}.
                       {r.modePaiement === "especes" && (
                         <> Solde de {formatEur((r.totalGeneral || r.prix || 0) - (r.paiement.montantPaye || r.paiement.montant))} à régler en espèces sur place.</>
@@ -3255,7 +3255,7 @@ export default function App() {
                             : <strong>Vous serez remboursé(e) intégralement.</strong>
                           }
                         </div>
-                        <label style={{ fontSize:12, color:"#5a8a96", marginBottom:6, display:"block" }}>Motif (optionnel)</label>
+                        <label style={{ fontSize:12, color:"#6b7f8c", marginBottom:6, display:"block" }}>Motif (optionnel)</label>
                         <input value={annulLocMotif} onChange={e=>setAnnulLocMotif(e.target.value)}
                           style={{ width:"100%", padding:"9px 10px", borderRadius:8, border:"1.5px solid #FFb0b0", fontSize:13, marginBottom:10, boxSizing:"border-box" }}
                           placeholder="Raison de l'annulation..."/>
@@ -3265,7 +3265,7 @@ export default function App() {
                             ✗ Confirmer l'annulation
                           </button>
                           <button onClick={()=>{ setAnnulLocRef(null); setAnnulLocMotif(""); }}
-                            style={{ flex:1, padding:"10px", borderRadius:8, background:"#e8f4f7", color:"#0B6E8A", border:"none", fontWeight:600, fontSize:13, cursor:"pointer" }}>
+                            style={{ flex:1, padding:"10px", borderRadius:8, background:"#e8f4f7", color:"#07a0f2", border:"none", fontWeight:600, fontSize:13, cursor:"pointer" }}>
                             Garder ma réservation
                           </button>
                         </div>
@@ -3280,7 +3280,7 @@ export default function App() {
                     <div style={{ display:"flex", gap:8, marginTop:10 }}>
                       {!r.edlEntreeFait && (
                         <button onClick={() => { setReservation(r); setMode("edlEntree"); }}
-                          style={{ flex:1, padding:"9px", borderRadius:8, background:"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:12, cursor:"pointer" }}>
+                          style={{ flex:1, padding:"9px", borderRadius:8, background:"#39b8f5", color:"#fff", border:"none", fontWeight:700, fontSize:12, cursor:"pointer" }}>
                           📷 État des lieux d'entrée
                         </button>
                       )}
@@ -3291,17 +3291,17 @@ export default function App() {
                         </button>
                       )}
                       {r.edlEntreeFait && r.edlSortieFait && (
-                        <div style={{ flex:1, padding:"9px", borderRadius:8, background:"#e6faf8", color:"#0B6E8A", textAlign:"center", fontWeight:600, fontSize:12 }}>
+                        <div style={{ flex:1, padding:"9px", borderRadius:8, background:"#e8f6fe", color:"#07a0f2", textAlign:"center", fontWeight:600, fontSize:12 }}>
                           ✓ États des lieux complétés
                         </div>
                       )}
                     </div>
                   {r.note && <div style={{ fontSize: 12, color: "#f0a500", marginTop: 4 }}>Votre avis : {"⭐".repeat(r.note)}</div>}
                   {noteP && (
-                    <div style={{ fontSize: 12, marginTop: 4, color: noteP.note >= 4 ? "#0B6E8A" : "#888" }}>
+                    <div style={{ fontSize: 12, marginTop: 4, color: noteP.note >= 4 ? "#07a0f2" : "#888" }}>
                       Note propriétaire : {"⭐".repeat(noteP.note)}
                       {r.codePromo && (
-                        <div style={{ marginTop: 8, background: "linear-gradient(135deg,#0B6E8A,#4ECDC4)", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
+                        <div style={{ marginTop: 8, background: "#07a0f2", borderRadius: 10, padding: "10px 14px", textAlign: "center" }}>
                           <div style={{ fontSize: 11, color: "#b8e8f0", marginBottom: 2 }}>🎁 Code promo -5%</div>
                           <div style={{ fontSize: 17, fontWeight: 900, color: "#fff", fontFamily: "monospace", letterSpacing: 2 }}>{r.codePromo.code}</div>
                           <div style={{ fontSize: 11, color: "#b8e8f0", marginTop: 2 }}>Valable jusqu'au {r.codePromo.expiration} · usage unique</div>
@@ -3311,33 +3311,33 @@ export default function App() {
                   )}
                   {/* Bouton facture */}
                   <button onClick={() => setFactureOuverte(showFacture ? null : r.ref)}
-                    style={{ marginTop:10, width:"100%", padding:"8px", borderRadius:8, background:showFacture?"#e8f4f7":"#0B6E8A", color:showFacture?"#0B6E8A":"#fff", border:showFacture?"1.5px solid #0B6E8A":"none", fontSize:13, fontWeight:600, cursor:"pointer" }}>
+                    style={{ marginTop:10, width:"100%", padding:"8px", borderRadius:8, background:showFacture?"#e8f4f7":"#07a0f2", color:showFacture?"#07a0f2":"#fff", border:showFacture?"1.5px solid #07a0f2":"none", fontSize:13, fontWeight:600, cursor:"pointer" }}>
                     {showFacture ? "▲ Masquer la facture" : "🧾 Voir la facture / ticket"}
                   </button>
                   {/* Facture dépliable */}
                   {showFacture && (
-                    <div style={{ marginTop:10, background:"#fff", borderRadius:10, padding:"16px", border:"2px solid #0B6E8A" }}>
+                    <div style={{ marginTop:10, background:"#fff", borderRadius:10, padding:"16px", border:"2px solid #07a0f2" }}>
                       <div style={{ textAlign:"center", marginBottom:12 }}>
-                        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700, color:"#0B6E8A" }}>🏊 My Piscine Privée</div>
-                        <div style={{ fontSize:11, color:"#5a8a96" }}>Écouflant · Maine-et-Loire</div>
-                        <div style={{ height:1, background:"#0B6E8A", margin:"8px 0" }}/>
+                        <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, fontWeight:700, color:"#07a0f2" }}>🏊 My Piscine Privée</div>
+                        <div style={{ fontSize:11, color:"#6b7f8c" }}>Écouflant · Maine-et-Loire</div>
+                        <div style={{ height:1, background:"#07a0f2", margin:"8px 0" }}/>
                         <div style={{ fontSize:14, fontWeight:700, color:"#2C3E50", letterSpacing:.5 }}>FACTURE</div>
                       </div>
                       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginBottom:10, fontSize:11, fontFamily:"monospace" }}>
-                        <div><span style={{ color:"#5a8a96" }}>N° facture</span><br/><strong>{r.ref}</strong></div>
-                        <div><span style={{ color:"#5a8a96" }}>Émise le</span><br/><strong>{new Date().toLocaleDateString("fr-FR")}</strong></div>
-                        <div style={{ marginTop:4 }}><span style={{ color:"#5a8a96" }}>Client</span><br/><strong>{r.prenom} {r.nom}</strong></div>
-                        <div style={{ marginTop:4 }}><span style={{ color:"#5a8a96" }}>Session du</span><br/><strong>{r.date}</strong></div>
+                        <div><span style={{ color:"#6b7f8c" }}>N° facture</span><br/><strong>{r.ref}</strong></div>
+                        <div><span style={{ color:"#6b7f8c" }}>Émise le</span><br/><strong>{new Date().toLocaleDateString("fr-FR")}</strong></div>
+                        <div style={{ marginTop:4 }}><span style={{ color:"#6b7f8c" }}>Client</span><br/><strong>{r.prenom} {r.nom}</strong></div>
+                        <div style={{ marginTop:4 }}><span style={{ color:"#6b7f8c" }}>Session du</span><br/><strong>{r.date}</strong></div>
                       </div>
                       <div style={{ height:1, background:"#e0e0e0", margin:"8px 0" }}/>
                       <div style={{ fontSize:11, fontFamily:"monospace", marginBottom:8 }}>
-                        <div style={{ display:"flex", justifyContent:"space-between", fontWeight:700, color:"#5a8a96", marginBottom:5, fontSize:10 }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", fontWeight:700, color:"#6b7f8c", marginBottom:5, fontSize:10 }}>
                           <span>DÉSIGNATION</span><span>MONTANT</span>
                         </div>
                         <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
                           <div>
                             <div style={{ fontWeight:600 }}>Location piscine privée</div>
-                            <div style={{ fontSize:10, color:"#5a8a96" }}>{padH(r.heureDebut)} → {padH(r.heureFin)} · {r.adultes} adulte{r.adultes>1?"s":""}{r.enfants12>0?` + ${r.enfants12} enfant`:""}{r.moins3>0?` + ${r.moins3} bébé`:""}</div>
+                            <div style={{ fontSize:10, color:"#6b7f8c" }}>{padH(r.heureDebut)} → {padH(r.heureFin)} · {r.adultes} adulte{r.adultes>1?"s":""}{r.enfants12>0?` + ${r.enfants12} enfant`:""}{r.moins3>0?` + ${r.moins3} bébé`:""}</div>
                             {r.creneaux?.some(h=>h>=20) && <div style={{ fontSize:10, color:"#a06000" }}>🌙 Majoration soirée incluse</div>}
                           </div>
                           <span style={{ fontWeight:600 }}>{formatEur(r.prix)}</span>
@@ -3350,41 +3350,41 @@ export default function App() {
                             <div key={e.id} style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
                               <div>
                                 <div style={{ fontWeight:600 }}>{e.emoji} {e.nom}</div>
-                                <div style={{ fontSize:10, color:"#5a8a96" }}>{e.type==="personne"?`${e.tarif}€ × ${nb}`:"Forfait"}</div>
+                                <div style={{ fontSize:10, color:"#6b7f8c" }}>{e.type==="personne"?`${e.tarif}€ × ${nb}`:"Forfait"}</div>
                               </div>
-                              <span style={{ fontWeight:600, color: offert ? "#4ECDC4" : "inherit" }}>{offert ? "Gratuit 🎁" : formatEur(e.tarif*nb)}</span>
+                              <span style={{ fontWeight:600, color: offert ? "#39b8f5" : "inherit" }}>{offert ? "Gratuit 🎁" : formatEur(e.tarif*nb)}</span>
                             </div>
                           );
                         })}
                         {r.remiseFidelite > 0 && (
-                          <div style={{ display:"flex", justifyContent:"space-between", color:"#0B6E8A", fontWeight:700, marginBottom:4 }}>
+                          <div style={{ display:"flex", justifyContent:"space-between", color:"#07a0f2", fontWeight:700, marginBottom:4 }}>
                             <span>🎁 Remise fidélité -{r.remiseFidelite}%</span>
                             <span>offerte</span>
                           </div>
                         )}
                         {r.remise > 0 && (
-                          <div style={{ display:"flex", justifyContent:"space-between", color:"#4ECDC4", marginBottom:4 }}>
+                          <div style={{ display:"flex", justifyContent:"space-between", color:"#39b8f5", marginBottom:4 }}>
                             <span>Code promo -{r.remise}%</span>
                             <span>-{formatEur(r.prix*(r.remise/100))}</span>
                           </div>
                         )}
                       </div>
-                      <div style={{ height:1, background:"#0B6E8A", margin:"6px 0" }}/>
+                      <div style={{ height:1, background:"#07a0f2", margin:"6px 0" }}/>
                       <div style={{ display:"flex", justifyContent:"space-between", fontWeight:700, fontSize:15, marginBottom:6, fontFamily:"monospace" }}>
                         <span>TOTAL</span>
-                        <span style={{ color:"#0B6E8A" }}>{formatEur(r.totalGeneral||r.prix)}</span>
+                        <span style={{ color:"#07a0f2" }}>{formatEur(r.totalGeneral||r.prix)}</span>
                       </div>
-                      <div style={{ fontSize:11, color:"#5a8a96", fontFamily:"monospace", marginBottom:2 }}>
+                      <div style={{ fontSize:11, color:"#6b7f8c", fontFamily:"monospace", marginBottom:2 }}>
                         Mode : {r.modePaiement==="especes"?"Espèces (acompte 20% en ligne)":"Carte bancaire"}
                       </div>
                       {r.modePaiement==="especes" && (
                         <div style={{ fontSize:11, fontFamily:"monospace" }}>
                           <div style={{ display:"flex", justifyContent:"space-between" }}>
-                            <span style={{ color:"#5a8a96" }}>Acompte réglé</span>
-                            <span style={{ fontWeight:600, color:"#4ECDC4" }}>{formatEur(r.acompte)} ✓</span>
+                            <span style={{ color:"#6b7f8c" }}>Acompte réglé</span>
+                            <span style={{ fontWeight:600, color:"#39b8f5" }}>{formatEur(r.acompte)} ✓</span>
                           </div>
                           <div style={{ display:"flex", justifyContent:"space-between" }}>
-                            <span style={{ color:"#5a8a96" }}>Reste en espèces</span>
+                            <span style={{ color:"#6b7f8c" }}>Reste en espèces</span>
                             <span style={{ fontWeight:600, color:"#FF6B6B" }}>{formatEur(r.resteARegler)}</span>
                           </div>
                         </div>
@@ -3394,7 +3394,7 @@ export default function App() {
                         Document non soumis à TVA · Prestataire individuel<br/>
                         Merci de votre confiance — My Piscine Privée 🏊
                       </div>
-                      <button onClick={() => window.print()} style={{ marginTop:10, width:"100%", padding:"8px", borderRadius:8, background:"#f0fafc", color:"#0B6E8A", border:"1.5px solid #0B6E8A", fontSize:13, fontWeight:700, cursor:"pointer" }}>
+                      <button onClick={() => window.print()} style={{ marginTop:10, width:"100%", padding:"8px", borderRadius:8, background:"#f0f9ff", color:"#07a0f2", border:"1.5px solid #07a0f2", fontSize:13, fontWeight:700, cursor:"pointer" }}>
                         🖨️ Imprimer / Enregistrer en PDF
                       </button>
                     </div>
@@ -3429,7 +3429,7 @@ export default function App() {
           )}
         </div>
         <div style={{ padding: "0 8px 24px" }}>
-          <button style={{ width:"100%", padding:"12px", borderRadius:10, background:"transparent", border:"2px solid #0B6E8A", color:"#0B6E8A", fontWeight:700, fontSize:14, cursor:"pointer" }} onClick={() => setMode("accueil")}>← Retour à l'accueil</button>
+          <button style={{ width:"100%", padding:"12px", borderRadius:10, background:"transparent", border:"2px solid #07a0f2", color:"#07a0f2", fontWeight:700, fontSize:14, cursor:"pointer" }} onClick={() => setMode("accueil")}>← Retour à l'accueil</button>
         </div>
       </div>
     );
@@ -3441,99 +3441,99 @@ export default function App() {
   if (mode === "resetMdp") {
     const titres = { admin: "Administrateur", proprio: "Propriétaire", locataire: "Mon compte" };
     return (
-      <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh" }}>
-        <div style={{ background:"linear-gradient(160deg,#0B6E8A 0%,#1a9fbd 100%)", paddingBottom:0 }}>
+      <div style={{ fontFamily:"Inter,sans-serif", background:"#f8f9fa", minHeight:"100vh" }}>
+        <div style={{ background:"#07a0f2", paddingBottom:0 }}>
           <div style={{ padding:"28px 16px 8px", textAlign:"center" }}>
             <div style={{ fontSize:32 }}>🔐</div>
-            <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, fontWeight:700, color:"#fff", marginTop:4 }}>Mot de passe oublié</div>
+            <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:22, fontWeight:700, color:"#fff", marginTop:4 }}>Mot de passe oublié</div>
             <div style={{ color:"#b8e8f0", fontSize:12, marginTop:2 }}>Espace {titres[resetMode]}</div>
           </div>
           <Waves/>
         </div>
         <div style={{ padding:"24px 16px 32px" }}>
-          <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"24px 20px", marginBottom:14 }}>
+          <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(0,0,0,.06)", padding:"24px 20px", marginBottom:14 }}>
 
             {/* Étape 1 : saisie email */}
             {resetEtape === 1 && (<>
-              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", fontWeight:700, marginBottom:8 }}>Vérification de votre identité</div>
-              <div style={{ fontSize:13, color:"#5a8a96", marginBottom:16 }}>
+              <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, color:"#07a0f2", fontWeight:700, marginBottom:8 }}>Vérification de votre identité</div>
+              <div style={{ fontSize:13, color:"#6b7f8c", marginBottom:16 }}>
                 Saisissez votre adresse email. Nous vous enverrons un code de vérification à 6 chiffres.
               </div>
               {resetMode === "locataire" && (
                 <div style={{ marginBottom:12 }}>
-                  <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Votre adresse email</label>
+                  <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Votre adresse email</label>
                   <input type="email" value={resetEmail} onChange={e=>{ setResetEmail(e.target.value); setResetErreur(""); }}
-                    style={{ width:"100%", padding:"11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b0d8e3", boxSizing:"border-box" }}
+                    style={{ width:"100%", padding:"11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b8e0f8", boxSizing:"border-box" }}
                     placeholder="votre@email.fr"/>
                 </div>
               )}
               {resetMode !== "locataire" && (
-                <div style={{ background:"#f0fafc", borderRadius:10, padding:"12px 14px", marginBottom:14, fontSize:13, color:"#0B6E8A" }}>
+                <div style={{ background:"#f0f9ff", borderRadius:10, padding:"12px 14px", marginBottom:14, fontSize:13, color:"#07a0f2" }}>
                   📧 Un code sera envoyé à <strong>{resetEmail}</strong>
                 </div>
               )}
               {resetErreur && <div style={{ color:"#FF6B6B", fontSize:13, marginBottom:10 }}>❌ {resetErreur}</div>}
               <button onClick={envoyerResetOTP}
-                style={{ width:"100%", padding:"13px", borderRadius:10, background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer", marginBottom:10 }}>
+                style={{ width:"100%", padding:"13px", borderRadius:10, background:"#07a0f2", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer", marginBottom:10 }}>
                 📨 Envoyer le code de vérification
               </button>
             </>)}
 
             {/* Étape 2 : saisie du code */}
             {resetEtape === 2 && (<>
-              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", fontWeight:700, marginBottom:8 }}>Entrez votre code</div>
-              <div style={{ background:"#e6faf8", borderRadius:10, padding:"10px 14px", marginBottom:14, fontSize:13, color:"#0B6E8A" }}>
+              <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, color:"#07a0f2", fontWeight:700, marginBottom:8 }}>Entrez votre code</div>
+              <div style={{ background:"#e8f6fe", borderRadius:10, padding:"10px 14px", marginBottom:14, fontSize:13, color:"#07a0f2" }}>
                 📧 Un code à 6 chiffres a été envoyé à <strong>{resetEmail}</strong>. Valable 15 minutes.
               </div>
               <input type="text" inputMode="numeric" maxLength={6} placeholder="Code à 6 chiffres"
                 value={resetOtpSaisi} onChange={e=>{ setResetOtpSaisi(e.target.value.replace(/\D/g,"")); setResetErreur(""); }}
-                style={{ width:"100%", padding:"14px", borderRadius:10, border:`2px solid ${resetErreur ? "#FF6B6B" : "#b0d8e3"}`, fontSize:28, fontWeight:900, letterSpacing:12, textAlign:"center", boxSizing:"border-box", marginBottom:10 }}/>
+                style={{ width:"100%", padding:"14px", borderRadius:10, border:`2px solid ${resetErreur ? "#FF6B6B" : "#b8e0f8"}`, fontSize:28, fontWeight:900, letterSpacing:12, textAlign:"center", boxSizing:"border-box", marginBottom:10 }}/>
               {resetErreur && <div style={{ color:"#FF6B6B", fontSize:13, marginBottom:8 }}>❌ {resetErreur}</div>}
               <button onClick={validerResetOTP}
-                style={{ width:"100%", padding:"13px", borderRadius:10, background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer", marginBottom:10 }}>
+                style={{ width:"100%", padding:"13px", borderRadius:10, background:"#07a0f2", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer", marginBottom:10 }}>
                 Valider le code →
               </button>
               <button onClick={()=>{ setResetEtape(1); setResetOtpSaisi(""); setResetErreur(""); }}
-                style={{ background:"none", border:"none", color:"#5a8a96", fontSize:13, cursor:"pointer", textDecoration:"underline" }}>
+                style={{ background:"none", border:"none", color:"#6b7f8c", fontSize:13, cursor:"pointer", textDecoration:"underline" }}>
                 Renvoyer le code
               </button>
             </>)}
 
             {/* Étape 3 : nouveau mot de passe */}
             {resetEtape === 3 && (resetMode === "admin" || resetMode === "proprio") && (<>
-              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", fontWeight:700, marginBottom:8 }}>Changement via Vercel</div>
-              <div style={{ fontSize:13, color:"#5a8a96", marginBottom:14, lineHeight:1.6 }}>
+              <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, color:"#07a0f2", fontWeight:700, marginBottom:8 }}>Changement via Vercel</div>
+              <div style={{ fontSize:13, color:"#6b7f8c", marginBottom:14, lineHeight:1.6 }}>
                 Pour votre sécurité, le mot de passe {resetMode === "admin" ? "administrateur" : "propriétaire"} ne peut plus être modifié depuis l'application — il vit uniquement dans les variables d'environnement de Vercel. Pour le changer : Vercel → Settings → Environment Variables → {resetMode === "admin" ? "ADMIN_PASSWORD" : "PROPRIO_PASSWORD"}, puis redéployez.
               </div>
               <button onClick={validerNouveauMdp}
-                style={{ width:"100%", padding:"13px", borderRadius:10, background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer" }}>
+                style={{ width:"100%", padding:"13px", borderRadius:10, background:"#07a0f2", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer" }}>
                 J'ai compris
               </button>
             </>)}
             {resetEtape === 3 && resetMode === "locataire" && (<>
-              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", fontWeight:700, marginBottom:8 }}>Nouveau mot de passe</div>
-              <div style={{ fontSize:13, color:"#5a8a96", marginBottom:14 }}>Choisissez un mot de passe sécurisé (8 caractères minimum).</div>
+              <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, color:"#07a0f2", fontWeight:700, marginBottom:8 }}>Nouveau mot de passe</div>
+              <div style={{ fontSize:13, color:"#6b7f8c", marginBottom:14 }}>Choisissez un mot de passe sécurisé (8 caractères minimum).</div>
               <div style={{ marginBottom:10 }}>
-                <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Nouveau mot de passe</label>
+                <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Nouveau mot de passe</label>
                 <div style={{ position:"relative" }}>
                   <input type={voirResetMdp ? "text" : "password"} value={resetNouveauMdp} onChange={e=>{ setResetNouveauMdp(e.target.value); setResetErreur(""); }}
-                    style={{ width:"100%", padding:"11px 40px 11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b0d8e3", boxSizing:"border-box" }}
+                    style={{ width:"100%", padding:"11px 40px 11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b8e0f8", boxSizing:"border-box" }}
                     placeholder="Minimum 8 caractères"/>
                   <button type="button" onClick={()=>setVoirResetMdp(v=>!v)}
-                    style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:17, color:"#5a8a96", padding:4 }}
+                    style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:17, color:"#6b7f8c", padding:4 }}
                     aria-label={voirResetMdp ? "Masquer le mot de passe" : "Afficher le mot de passe"}>
                     {voirResetMdp ? "🙈" : "👁"}
                   </button>
                 </div>
               </div>
               <div style={{ marginBottom:14 }}>
-                <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Confirmer le mot de passe</label>
+                <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Confirmer le mot de passe</label>
                 <div style={{ position:"relative" }}>
                   <input type={voirResetMdp ? "text" : "password"} value={resetNouveauMdp2} onChange={e=>{ setResetNouveauMdp2(e.target.value); setResetErreur(""); }}
-                    style={{ width:"100%", padding:"11px 40px 11px 12px", borderRadius:8, fontSize:15, border:`1.5px solid ${resetErreur ? "#FF6B6B" : "#b0d8e3"}`, boxSizing:"border-box" }}
+                    style={{ width:"100%", padding:"11px 40px 11px 12px", borderRadius:8, fontSize:15, border:`1.5px solid ${resetErreur ? "#FF6B6B" : "#b8e0f8"}`, boxSizing:"border-box" }}
                     placeholder="Répétez le mot de passe"/>
                   <button type="button" onClick={()=>setVoirResetMdp(v=>!v)}
-                    style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:17, color:"#5a8a96", padding:4 }}
+                    style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:17, color:"#6b7f8c", padding:4 }}
                     aria-label={voirResetMdp ? "Masquer le mot de passe" : "Afficher le mot de passe"}>
                     {voirResetMdp ? "🙈" : "👁"}
                   </button>
@@ -3541,7 +3541,7 @@ export default function App() {
               </div>
               {resetErreur && <div style={{ color:"#FF6B6B", fontSize:13, marginBottom:10 }}>❌ {resetErreur}</div>}
               <button onClick={validerNouveauMdp}
-                style={{ width:"100%", padding:"13px", borderRadius:10, background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer" }}>
+                style={{ width:"100%", padding:"13px", borderRadius:10, background:"#07a0f2", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer" }}>
                 ✓ Enregistrer le nouveau mot de passe
               </button>
             </>)}
@@ -3550,8 +3550,8 @@ export default function App() {
             {resetEtape === 4 && (<>
               <div style={{ textAlign:"center", padding:"16px 0" }}>
                 <div style={{ fontSize:48, marginBottom:12 }}>✅</div>
-                <div style={{ fontFamily:"'Playfair Display',serif", fontSize:20, color:"#0B6E8A", fontWeight:700, marginBottom:8 }}>Mot de passe modifié !</div>
-                <div style={{ fontSize:14, color:"#5a8a96", marginBottom:20 }}>Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.</div>
+                <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:20, color:"#07a0f2", fontWeight:700, marginBottom:8 }}>Mot de passe modifié !</div>
+                <div style={{ fontSize:14, color:"#6b7f8c", marginBottom:20 }}>Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.</div>
                 <button onClick={()=>{
                     if (resetMode === "locataire") {
                       setAuthForm(f => ({ ...f, email: resetEmail, motdepasse: "" }));
@@ -3564,7 +3564,7 @@ export default function App() {
                       setMode("loginAdmin");
                     }
                   }}
-                  style={{ width:"100%", padding:"13px", borderRadius:10, background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer" }}>
+                  style={{ width:"100%", padding:"13px", borderRadius:10, background:"#07a0f2", color:"#fff", border:"none", fontWeight:700, fontSize:15, cursor:"pointer" }}>
                   → Se connecter
                 </button>
               </div>
@@ -3572,7 +3572,7 @@ export default function App() {
 
           </div>
           <button onClick={()=>setMode(resetMode === "locataire" ? "accueil" : resetMode === "proprio" ? "loginProprio" : "loginAdmin")}
-            style={{ background:"transparent", color:"#0B6E8A", border:"2px solid #0B6E8A", borderRadius:10, padding:"11px 24px", fontSize:14, fontWeight:600, cursor:"pointer", width:"100%" }}>
+            style={{ background:"transparent", color:"#07a0f2", border:"2px solid #07a0f2", borderRadius:10, padding:"11px 24px", fontSize:14, fontWeight:600, cursor:"pointer", width:"100%" }}>
             ← Retour
           </button>
         </div>
@@ -3581,31 +3581,31 @@ export default function App() {
   }
 
   if (mode === "loginAdmin") return (
-    <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh" }}>
-      <div style={{ background:"linear-gradient(160deg,#0B6E8A 0%,#1a9fbd 100%)", paddingBottom:0 }}>
+    <div style={{ fontFamily:"Inter,sans-serif", background:"#f8f9fa", minHeight:"100vh" }}>
+      <div style={{ background:"#07a0f2", paddingBottom:0 }}>
         <div style={{ padding:"28px 16px 8px", textAlign:"center" }}>
           <div style={{ fontSize:32 }}>🔑</div>
-          <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, fontWeight:700, color:"#fff", marginTop:4 }}>Espace propriétaire</div>
+          <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:22, fontWeight:700, color:"#fff", marginTop:4 }}>Espace propriétaire</div>
           <div style={{ color:"#b8e8f0", fontSize:12, marginTop:2 }}>Accès réservé</div>
         </div>
         <Waves/>
       </div>
       <div style={{ padding:"24px 16px 32px" }}>
-        <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"24px 20px", marginBottom:14 }}>
-          <div style={{ fontFamily:"'Playfair Display',serif", fontSize:19, color:"#0B6E8A", fontWeight:700, marginBottom:16 }}>Connexion administrateur</div>
+        <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(0,0,0,.06)", padding:"24px 20px", marginBottom:14 }}>
+          <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:19, color:"#07a0f2", fontWeight:700, marginBottom:16 }}>Connexion administrateur</div>
           <div style={{ marginBottom:12 }}>
-            <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Email</label>
-            <input type="email" style={{ width:"100%", padding:"11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }}
+            <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Email</label>
+            <input type="email" style={{ width:"100%", padding:"11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box" }}
               value={authAdmin.email} onChange={e=>setAuthAdmin(a=>({...a,email:e.target.value}))}
               placeholder="votre@email.fr"/>
           </div>
           <div style={{ marginBottom:16 }}>
-            <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Mot de passe</label>
+            <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Mot de passe</label>
             <div style={{ position:"relative" }}>
-              <input type={showMdp.admin?"text":"password"} style={{ width:"100%", padding:"11px 42px 11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }}
+              <input type={showMdp.admin?"text":"password"} style={{ width:"100%", padding:"11px 42px 11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box" }}
                 value={authAdmin.password} onChange={e=>setAuthAdmin(a=>({...a,password:e.target.value}))}
                 onKeyDown={e=>e.key==="Enter"&&connecterAdmin()} placeholder="••••••••"/>
-              <button type="button" onClick={()=>setShowMdp(p=>({...p,admin:!p.admin}))} style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:18, color:"#5a8a96" }}>{showMdp.admin?"🙈":"👁️"}</button>
+              <button type="button" onClick={()=>setShowMdp(p=>({...p,admin:!p.admin}))} style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:18, color:"#6b7f8c" }}>{showMdp.admin?"🙈":"👁️"}</button>
             </div>
           </div>
           {erreurAdmin && (
@@ -3618,16 +3618,16 @@ export default function App() {
               🔒 Compte bloqué encore {tempsRestant("admin")} min. Réinitialisez votre mot de passe.
             </div>
           )}
-          <button style={{ background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", borderRadius:10, padding:"13px 24px", fontSize:15, fontWeight:700, cursor:"pointer", width:"100%", marginBottom:10, opacity: estBloque("admin") ? 0.4 : 1 }}
+          <button style={{ background:"#07a0f2", color:"#fff", border:"none", borderRadius:10, padding:"13px 24px", fontSize:15, fontWeight:700, cursor:"pointer", width:"100%", marginBottom:10, opacity: estBloque("admin") ? 0.4 : 1 }}
             onClick={connecterAdmin} disabled={estBloque("admin")}>
             Se connecter
           </button>
           <button onClick={()=>ouvrirReset("admin")}
-            style={{ background:"none", border:"none", color:"#5a8a96", fontSize:13, cursor:"pointer", textDecoration:"underline", width:"100%", marginBottom:4 }}>
+            style={{ background:"none", border:"none", color:"#6b7f8c", fontSize:13, cursor:"pointer", textDecoration:"underline", width:"100%", marginBottom:4 }}>
             Mot de passe oublié ?
           </button>
         </div>
-        <button style={{ background:"transparent", color:"#0B6E8A", border:"2px solid #0B6E8A", borderRadius:10, padding:"11px 24px", fontSize:14, fontWeight:600, cursor:"pointer", width:"100%" }}
+        <button style={{ background:"transparent", color:"#07a0f2", border:"2px solid #07a0f2", borderRadius:10, padding:"11px 24px", fontSize:14, fontWeight:600, cursor:"pointer", width:"100%" }}
           onClick={()=>setMode("accueil")}>← Accueil</button>
       </div>
     </div>
@@ -3635,31 +3635,31 @@ export default function App() {
 
   // ── PAGE LOGIN PROPRIÉTAIRE ──────────────────────────────────────────────────
   if (mode === "loginProprio") return (
-    <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh" }}>
-      <div style={{ background:"linear-gradient(160deg,#0B6E8A 0%,#1a9fbd 100%)", paddingBottom:0 }}>
+    <div style={{ fontFamily:"Inter,sans-serif", background:"#f8f9fa", minHeight:"100vh" }}>
+      <div style={{ background:"#07a0f2", paddingBottom:0 }}>
         <div style={{ padding:"28px 16px 8px", textAlign:"center" }}>
           <div style={{ fontSize:32 }}>🏊</div>
-          <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, fontWeight:700, color:"#fff", marginTop:4 }}>Espace propriétaire</div>
+          <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:22, fontWeight:700, color:"#fff", marginTop:4 }}>Espace propriétaire</div>
           <div style={{ color:"#b8e8f0", fontSize:12, marginTop:2 }}>Gérez votre annonce et vos réservations</div>
         </div>
         <Waves/>
       </div>
       <div style={{ padding:"24px 16px 32px" }}>
-        <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"24px 20px", marginBottom:14 }}>
-          <div style={{ fontFamily:"'Playfair Display',serif", fontSize:19, color:"#0B6E8A", fontWeight:700, marginBottom:16 }}>Connexion propriétaire</div>
+        <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(0,0,0,.06)", padding:"24px 20px", marginBottom:14 }}>
+          <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:19, color:"#07a0f2", fontWeight:700, marginBottom:16 }}>Connexion propriétaire</div>
           <div style={{ marginBottom:12 }}>
-            <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Email</label>
-            <input type="email" style={{ width:"100%", padding:"11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }}
+            <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Email</label>
+            <input type="email" style={{ width:"100%", padding:"11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box" }}
               value={authProprio.email} onChange={e=>setAuthProprio(a=>({...a,email:e.target.value}))}
               placeholder="votre@email.fr"/>
           </div>
           <div style={{ marginBottom:16 }}>
-            <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:4, display:"block" }}>Mot de passe</label>
+            <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:4, display:"block" }}>Mot de passe</label>
             <div style={{ position:"relative" }}>
-              <input type={showMdp.proprio?"text":"password"} style={{ width:"100%", padding:"11px 42px 11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box" }}
+              <input type={showMdp.proprio?"text":"password"} style={{ width:"100%", padding:"11px 42px 11px 12px", borderRadius:8, fontSize:15, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box" }}
                 value={authProprio.password} onChange={e=>setAuthProprio(a=>({...a,password:e.target.value}))}
                 onKeyDown={e=>e.key==="Enter"&&connecterProprio()} placeholder="••••••••"/>
-              <button type="button" onClick={()=>setShowMdp(p=>({...p,proprio:!p.proprio}))} style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:18, color:"#5a8a96" }}>{showMdp.proprio?"🙈":"👁️"}</button>
+              <button type="button" onClick={()=>setShowMdp(p=>({...p,proprio:!p.proprio}))} style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:18, color:"#6b7f8c" }}>{showMdp.proprio?"🙈":"👁️"}</button>
             </div>
           </div>
           {erreurProprio && (
@@ -3672,16 +3672,16 @@ export default function App() {
               🔒 Compte bloqué encore {tempsRestant("proprio")} min. Réinitialisez votre mot de passe.
             </div>
           )}
-          <button style={{ background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", color:"#fff", border:"none", borderRadius:10, padding:"13px 24px", fontSize:15, fontWeight:700, cursor:"pointer", width:"100%", marginBottom:10, opacity: estBloque("proprio") ? 0.4 : 1 }}
+          <button style={{ background:"#07a0f2", color:"#fff", border:"none", borderRadius:10, padding:"13px 24px", fontSize:15, fontWeight:700, cursor:"pointer", width:"100%", marginBottom:10, opacity: estBloque("proprio") ? 0.4 : 1 }}
             onClick={connecterProprio} disabled={estBloque("proprio")}>
             Se connecter
           </button>
           <button onClick={()=>ouvrirReset("proprio")}
-            style={{ background:"none", border:"none", color:"#5a8a96", fontSize:13, cursor:"pointer", textDecoration:"underline", width:"100%", marginBottom:4 }}>
+            style={{ background:"none", border:"none", color:"#6b7f8c", fontSize:13, cursor:"pointer", textDecoration:"underline", width:"100%", marginBottom:4 }}>
             Mot de passe oublié ?
           </button>
         </div>
-        <button style={{ background:"transparent", color:"#0B6E8A", border:"2px solid #0B6E8A", borderRadius:10, padding:"11px 24px", fontSize:14, fontWeight:600, cursor:"pointer", width:"100%" }}
+        <button style={{ background:"transparent", color:"#07a0f2", border:"2px solid #07a0f2", borderRadius:10, padding:"11px 24px", fontSize:14, fontWeight:600, cursor:"pointer", width:"100%" }}
           onClick={()=>setMode("accueil")}>← Accueil</button>
       </div>
     </div>
@@ -3689,13 +3689,13 @@ export default function App() {
 
   // ── PAGE MAINTENANCE (vue locataires) ─────────────────────────────────────
   if (modeMainenance && !adminConnecte && !proprioConnecte && mode !== "loginAdmin" && mode !== "loginProprio") return (
-    <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 24px" }}>
+    <div style={{ fontFamily:"Inter,sans-serif", background:"#f8f9fa", minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 24px" }}>
       <div style={{ textAlign:"center", maxWidth:360 }}>
         <div style={{ fontSize:64, marginBottom:16 }}>🔧</div>
-        <div style={{ fontFamily:"'Playfair Display',serif", fontSize:24, fontWeight:700, color:"#0B6E8A", marginBottom:12 }}>
+        <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:24, fontWeight:700, color:"#07a0f2", marginBottom:12 }}>
           Maintenance en cours
         </div>
-        <div style={{ fontSize:15, color:"#5a8a96", lineHeight:1.7, marginBottom:28, background:"#fff", borderRadius:14, padding:"16px 20px", boxShadow:"0 4px 20px rgba(11,110,138,.08)" }}>
+        <div style={{ fontSize:15, color:"#6b7f8c", lineHeight:1.7, marginBottom:28, background:"#fff", borderRadius:14, padding:"16px 20px", boxShadow:"0 4px 20px rgba(0,0,0,.05)" }}>
           {messageMainenance}
         </div>
         <div style={{ fontSize:13, color:"#aaa" }}>
@@ -3720,9 +3720,9 @@ export default function App() {
   // ── ESPACE PROPRIÉTAIRE ───────────────────────────────────────────────────
   if (mode === "proprio") {
     const blockedH = heuresBloquees(reservations, propriDate);
-    const ongletStyle = o => ({ flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", background: ongletPropri === o ? "#0B6E8A" : "#e8f4f7", color: ongletPropri === o ? "#fff" : "#0B6E8A" });
+    const ongletStyle = o => ({ flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", background: ongletPropri === o ? "#07a0f2" : "#e8f4f7", color: ongletPropri === o ? "#fff" : "#07a0f2" });
     return (
-      <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+      <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
         <Header showSteps={false} />
         <div style={{ padding: "16px 16px 32px" }}>
           <div style={{ display: "flex", gap: 5, marginBottom: 14 }}>
@@ -3738,49 +3738,49 @@ export default function App() {
           {ongletPropri === "annonce" && <GestionAnnonce annonce={annonce} setAnnonce={setAnnonce} onVoir={() => setMode("annonce")} />}
 
           {ongletPropri === "maintenance" && adminConnecte && (
-            <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"20px 16px", marginBottom:14 }}>
-              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", marginBottom:6, fontWeight:700 }}>🔧 Gestion de la maintenance</div>
-              <div style={{ fontSize:13, color:"#5a8a96", marginBottom:18, lineHeight:1.5 }}>
+            <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(0,0,0,.06)", padding:"20px 16px", marginBottom:14 }}>
+              <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, color:"#07a0f2", marginBottom:6, fontWeight:700 }}>🔧 Gestion de la maintenance</div>
+              <div style={{ fontSize:13, color:"#6b7f8c", marginBottom:18, lineHeight:1.5 }}>
                 Activez le mode maintenance pour afficher un message aux locataires pendant une intervention. Vous gardez l'accès à l'espace propriétaire.
               </div>
 
               {/* Toggle maintenance */}
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background: modeMainenance ? "#fff3f3" : "#e6faf8", borderRadius:12, padding:"16px", border:`2px solid ${modeMainenance?"#FF6B6B":"#4ECDC4"}`, marginBottom:16 }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background: modeMainenance ? "#fff3f3" : "#e8f6fe", borderRadius:12, padding:"16px", border:`2px solid ${modeMainenance?"#FF6B6B":"#39b8f5"}`, marginBottom:16 }}>
                 <div>
-                  <div style={{ fontWeight:700, fontSize:15, color: modeMainenance?"#c0302a":"#0B6E8A" }}>
+                  <div style={{ fontWeight:700, fontSize:15, color: modeMainenance?"#c0302a":"#07a0f2" }}>
                     {modeMainenance ? "🔴 Mode maintenance ACTIF" : "🟢 Application opérationnelle"}
                   </div>
-                  <div style={{ fontSize:12, color:"#5a8a96", marginTop:3 }}>
+                  <div style={{ fontSize:12, color:"#6b7f8c", marginTop:3 }}>
                     {modeMainenance ? "Les locataires voient la page de maintenance" : "Les locataires accèdent normalement à l'appli"}
                   </div>
                 </div>
                 <div onClick={() => setModeMaintenance(m => !m)}
-                  style={{ width:52, height:30, borderRadius:15, background: modeMainenance?"#FF6B6B":"#4ECDC4", cursor:"pointer", position:"relative", transition:"background .3s", flexShrink:0, marginLeft:12 }}>
+                  style={{ width:52, height:30, borderRadius:15, background: modeMainenance?"#FF6B6B":"#39b8f5", cursor:"pointer", position:"relative", transition:"background .3s", flexShrink:0, marginLeft:12 }}>
                   <div style={{ position:"absolute", top:3, left: modeMainenance?25:3, width:24, height:24, borderRadius:"50%", background:"#fff", transition:"left .3s", boxShadow:"0 1px 4px rgba(0,0,0,.25)" }}/>
                 </div>
               </div>
 
               {/* Message personnalisé */}
               <div style={{ marginBottom:14 }}>
-                <label style={{ fontSize:13, fontWeight:600, color:"#0B6E8A", marginBottom:6, display:"block" }}>Message affiché aux locataires</label>
+                <label style={{ fontSize:13, fontWeight:600, color:"#07a0f2", marginBottom:6, display:"block" }}>Message affiché aux locataires</label>
                 <textarea value={messageMainenance} onChange={e => setMessageMaintenance(e.target.value)}
-                  style={{ width:"100%", padding:"11px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b0d8e3", outline:"none", background:"#fff", boxSizing:"border-box", height:100, resize:"vertical", lineHeight:1.6 }}/>
+                  style={{ width:"100%", padding:"11px 12px", borderRadius:8, fontSize:13, border:"1.5px solid #b8e0f8", outline:"none", background:"#fff", boxSizing:"border-box", height:100, resize:"vertical", lineHeight:1.6 }}/>
               </div>
 
               {/* Aperçu */}
-              <div style={{ background:"#F7F0E6", borderRadius:12, padding:"16px", border:"1px solid #e0d4c0" }}>
-                <div style={{ fontSize:12, fontWeight:700, color:"#5a8a96", marginBottom:10, textTransform:"uppercase", letterSpacing:.5 }}>Aperçu — Ce que voient les locataires</div>
+              <div style={{ background:"#f8f9fa", borderRadius:12, padding:"16px", border:"1px solid #e0d4c0" }}>
+                <div style={{ fontSize:12, fontWeight:700, color:"#6b7f8c", marginBottom:10, textTransform:"uppercase", letterSpacing:.5 }}>Aperçu — Ce que voient les locataires</div>
                 <div style={{ textAlign:"center", padding:"16px 12px" }}>
                   <div style={{ fontSize:40, marginBottom:8 }}>🔧</div>
-                  <div style={{ fontFamily:"'Playfair Display',serif", fontSize:17, fontWeight:700, color:"#0B6E8A", marginBottom:8 }}>Maintenance en cours</div>
-                  <div style={{ fontSize:13, color:"#5a8a96", lineHeight:1.6, background:"#fff", borderRadius:10, padding:"12px 14px" }}>{messageMainenance}</div>
+                  <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:17, fontWeight:700, color:"#07a0f2", marginBottom:8 }}>Maintenance en cours</div>
+                  <div style={{ fontSize:13, color:"#6b7f8c", lineHeight:1.6, background:"#fff", borderRadius:10, padding:"12px 14px" }}>{messageMainenance}</div>
                   <div style={{ fontSize:11, color:"#aaa", marginTop:10 }}>Merci de votre patience 🙏</div>
                 </div>
               </div>
 
               {/* Messages rapides */}
               <div style={{ marginTop:14 }}>
-                <div style={{ fontSize:12, fontWeight:600, color:"#5a8a96", marginBottom:8 }}>Messages rapides :</div>
+                <div style={{ fontSize:12, fontWeight:600, color:"#6b7f8c", marginBottom:8 }}>Messages rapides :</div>
                 {[
                   "🔧 L'application est momentanément en maintenance. Nous revenons très bientôt !",
                   "🏊 La piscine est fermée pour entretien. Réouverture prochainement.",
@@ -3788,7 +3788,7 @@ export default function App() {
                   "🌊 Traitement de l'eau en cours. Réouverture dans quelques heures.",
                 ].map((msg, i) => (
                   <button key={i} onClick={() => setMessageMaintenance(msg)}
-                    style={{ width:"100%", textAlign:"left", padding:"9px 12px", borderRadius:8, background: messageMainenance===msg?"#e6faf8":"#f5f5f5", border:`1.5px solid ${messageMainenance===msg?"#4ECDC4":"#e0e0e0"}`, fontSize:12, color:"#2C3E50", cursor:"pointer", marginBottom:6, lineHeight:1.4 }}>
+                    style={{ width:"100%", textAlign:"left", padding:"9px 12px", borderRadius:8, background: messageMainenance===msg?"#e8f6fe":"#f5f5f5", border:`1.5px solid ${messageMainenance===msg?"#39b8f5":"#e0e0e0"}`, fontSize:12, color:"#2C3E50", cursor:"pointer", marginBottom:6, lineHeight:1.4 }}>
                     {msg}
                   </button>
                 ))}
@@ -3798,16 +3798,16 @@ export default function App() {
 
           {/* Zone de réinitialisation des données de test — admin uniquement */}
           {ongletPropri === "maintenance" && adminConnecte && (
-            <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"20px 16px", marginBottom:14, border:"2px solid #FF6B6B" }}>
-              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#c0302a", marginBottom:6, fontWeight:700 }}>🗑 Réinitialiser les données de test</div>
-              <div style={{ fontSize:13, color:"#5a8a96", lineHeight:1.5, marginBottom:10 }}>
+            <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(0,0,0,.06)", padding:"20px 16px", marginBottom:14, border:"2px solid #FF6B6B" }}>
+              <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, color:"#c0302a", marginBottom:6, fontWeight:700 }}>🗑 Réinitialiser les données de test</div>
+              <div style={{ fontSize:13, color:"#6b7f8c", lineHeight:1.5, marginBottom:10 }}>
                 Supprime définitivement <strong>toutes les réservations</strong>, les <strong>notes locataires</strong> et les <strong>codes promo</strong>. Les statistiques repartiront de zéro.
               </div>
-              <div style={{ fontSize:12, color:"#2C3E50", background:"#f0fafc", borderRadius:8, padding:"8px 12px", marginBottom:12, lineHeight:1.5 }}>
+              <div style={{ fontSize:12, color:"#2C3E50", background:"#f0f9ff", borderRadius:8, padding:"8px 12px", marginBottom:12, lineHeight:1.5 }}>
                 ✅ Conservés : annonce, disponibilités, extras, éléments d'état des lieux, comptes locataires, réglages.
               </div>
               {suppressionResultat === "ok" && (
-                <div style={{ background:"#e6faf8", border:"1.5px solid #4ECDC4", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#0B6E8A", fontWeight:600, marginBottom:12 }}>
+                <div style={{ background:"#e8f6fe", border:"1.5px solid #39b8f5", borderRadius:8, padding:"10px 12px", fontSize:13, color:"#07a0f2", fontWeight:600, marginBottom:12 }}>
                   ✅ Données de test supprimées. Les statistiques sont remises à zéro.
                 </div>
               )}
@@ -3841,7 +3841,7 @@ export default function App() {
 
           {ongletPropri === "dispo" && (
             <div style={card}>
-              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", marginBottom: 12, fontWeight: 700 }}>🗓 Disponibilités</div>
+              <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", marginBottom: 12, fontWeight: 700 }}>🗓 Disponibilités</div>
 
               {/* Sélecteur de date */}
               <label style={lbl}>Date</label>
@@ -3849,9 +3849,9 @@ export default function App() {
 
               {/* Boutons rapides */}
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#5a8a96", marginBottom: 8 }}>Actions rapides pour cette date</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7f8c", marginBottom: 8 }}>Actions rapides pour cette date</div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => toutOuvrir(propriDate)} style={{ flex:1, padding:"9px 0", borderRadius:9, background:"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                  <button onClick={() => toutOuvrir(propriDate)} style={{ flex:1, padding:"9px 0", borderRadius:9, background:"#39b8f5", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
                     ✓ Tout ouvrir
                   </button>
                   <button onClick={() => toutFermer(propriDate)} style={{ flex:1, padding:"9px 0", borderRadius:9, background:"#FF6B6B", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
@@ -3861,8 +3861,8 @@ export default function App() {
               </div>
 
               {/* Plage horaire rapide */}
-              <div style={{ background:"#f0fafc", borderRadius:10, padding:"12px", border:"1px solid #b0d8e3", marginBottom:14 }}>
-                <div style={{ fontSize:13, fontWeight:700, color:"#0B6E8A", marginBottom:10 }}>⏱ Ouvrir / Fermer une plage</div>
+              <div style={{ background:"#f0f9ff", borderRadius:10, padding:"12px", border:"1px solid #b8e0f8", marginBottom:14 }}>
+                <div style={{ fontSize:13, fontWeight:700, color:"#07a0f2", marginBottom:10 }}>⏱ Ouvrir / Fermer une plage</div>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8 }}>
                   <div>
                     <label style={lbl}>De</label>
@@ -3878,7 +3878,7 @@ export default function App() {
                   </div>
                 </div>
                 <div style={{ display:"flex", gap:8 }}>
-                  <button onClick={() => ouvrirPlage(propriDate, propriDebut, propriFin)} style={{ flex:1, padding:"9px 0", borderRadius:9, background:"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                  <button onClick={() => ouvrirPlage(propriDate, propriDebut, propriFin)} style={{ flex:1, padding:"9px 0", borderRadius:9, background:"#39b8f5", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
                     ✓ Ouvrir cette plage
                   </button>
                   <button onClick={() => fermerPlage(propriDate, propriDebut, propriFin)} style={{ flex:1, padding:"9px 0", borderRadius:9, background:"#FF6B6B", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
@@ -3904,7 +3904,7 @@ export default function App() {
                   <button onClick={() => fermerPeriode(periodeDebut, periodeFin)} style={{ flex:1, padding:"9px 0", borderRadius:9, background:"#FF6B6B", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
                     ✗ Fermer toute la période
                   </button>
-                  <button onClick={() => ouvrirPeriode(periodeDebut, periodeFin)} style={{ flex:1, padding:"9px 0", borderRadius:9, background:"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                  <button onClick={() => ouvrirPeriode(periodeDebut, periodeFin)} style={{ flex:1, padding:"9px 0", borderRadius:9, background:"#39b8f5", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
                     ✓ Ouvrir toute la période
                   </button>
                 </div>
@@ -3916,8 +3916,8 @@ export default function App() {
               </div>
 
               {/* Vue case par case */}
-              <div style={{ fontSize:13, color:"#5a8a96", marginBottom:10, lineHeight:1.5 }}>
-                Appuyez sur un créneau pour l'<strong style={{color:"#4ECDC4"}}>ouvrir</strong> ou le <strong style={{color:"#FF6B6B"}}>fermer</strong> individuellement.
+              <div style={{ fontSize:13, color:"#6b7f8c", marginBottom:10, lineHeight:1.5 }}>
+                Appuyez sur un créneau pour l'<strong style={{color:"#39b8f5"}}>ouvrir</strong> ou le <strong style={{color:"#FF6B6B"}}>fermer</strong> individuellement.
               </div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:14 }}>
                 {ALL_SLOTS.map(h => {
@@ -3928,9 +3928,9 @@ export default function App() {
                   const dispo = estOuvert(propriDate, h);
                   const isSoir = h >= 20;
                   let bg, color, border, labelH, cliquable = false;
-                  if (res) { bg="#0B6E8A"; color="#fff"; border="2px solid #0B6E8A"; labelH="📅"; }
+                  if (res) { bg="#07a0f2"; color="#fff"; border="2px solid #07a0f2"; labelH="📅"; }
                   else if (blocked) { bg="#ffe8b0"; color="#a06000"; border="2px solid #f0c040"; labelH="🔒 Tampon"; }
-                  else if (dispo) { bg=isSoir?"#0d5c75":"#4ECDC4"; color="#fff"; border=`2px solid ${isSoir?"#0d5c75":"#4ECDC4"}`; labelH=isSoir?"✓🌙":"✓"; cliquable=true; }
+                  else if (dispo) { bg=isSoir?"#0480c4":"#39b8f5"; color="#fff"; border=`2px solid ${isSoir?"#0480c4":"#39b8f5"}`; labelH=isSoir?"✓🌙":"✓"; cliquable=true; }
                   else { bg="#f5f5f5"; color="#bbb"; border="2px dashed #ddd"; labelH="—"; cliquable=true; }
                   return (
                     <div key={h} onClick={() => cliquable && toggleCreneauProprio(h)}
@@ -3947,10 +3947,10 @@ export default function App() {
               {/* Résumé plages */}
               {(disponibilites[propriDate]||[]).length > 0 ? (
                 <div>
-                  <div style={{ fontSize:12, fontWeight:700, color:"#0B6E8A", marginBottom:6 }}>Plages ouvertes :</div>
+                  <div style={{ fontSize:12, fontWeight:700, color:"#07a0f2", marginBottom:6 }}>Plages ouvertes :</div>
                   {(disponibilites[propriDate]||[]).map((p,i) => (
-                    <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background:"#e6faf8", borderRadius:8, padding:"7px 12px", marginBottom:5 }}>
-                      <span style={{ fontWeight:600, color:"#0B6E8A", fontSize:13 }}>{padH(p.debut)} → {padH(p.fin)}</span>
+                    <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", background:"#e8f6fe", borderRadius:8, padding:"7px 12px", marginBottom:5 }}>
+                      <span style={{ fontWeight:600, color:"#07a0f2", fontSize:13 }}>{padH(p.debut)} → {padH(p.fin)}</span>
                       <button onClick={() => fermerPlage(propriDate, p.debut, p.fin)} style={{ background:"none", border:"none", color:"#FF6B6B", cursor:"pointer", fontSize:15, fontWeight:700 }}>×</button>
                     </div>
                   ))}
@@ -3963,10 +3963,10 @@ export default function App() {
 
               {/* Légende */}
               <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginTop:12 }}>
-                {[["#4ECDC4","Ouvert"],["#0d5c75","Ouvert soirée (+1€)"],["#0B6E8A","Réservé"],["#ffe8b0","Tampon"],["#f5f5f5","Fermé"]].map(([bg,label])=>(
+                {[["#39b8f5","Ouvert"],["#0480c4","Ouvert soirée (+1€)"],["#07a0f2","Réservé"],["#ffe8b0","Tampon"],["#f5f5f5","Fermé"]].map(([bg,label])=>(
                   <div key={label} style={{display:"flex",alignItems:"center",gap:3,fontSize:10}}>
                     <div style={{width:11,height:11,borderRadius:3,background:bg,border:"1px solid #ccc"}}/>
-                    <span style={{color:"#5a8a96"}}>{label}</span>
+                    <span style={{color:"#6b7f8c"}}>{label}</span>
                   </div>
                 ))}
               </div>
@@ -3974,23 +3974,23 @@ export default function App() {
           )}
 
           {ongletPropri === "extras" && (
-            <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"20px 16px", marginBottom:14 }}>
-              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", marginBottom:4, fontWeight:700 }}>🖼️ Banque d'images</div>
-              <div style={{ fontSize:12, color:"#5a8a96", marginBottom:12, lineHeight:1.5 }}>
+            <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(0,0,0,.06)", padding:"20px 16px", marginBottom:14 }}>
+              <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, color:"#07a0f2", marginBottom:4, fontWeight:700 }}>🖼️ Banque d'images</div>
+              <div style={{ fontSize:12, color:"#6b7f8c", marginBottom:12, lineHeight:1.5 }}>
                 Ajoute des photos une fois, réutilise-les ensuite sur n'importe quel extra.
               </div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:10, marginBottom:12 }}>
                 {banqueImages.map(img => (
                   <div key={img.id} style={{ position:"relative", width:72 }}>
-                    <img src={img.url} alt={img.nom} style={{ width:72, height:72, borderRadius:10, objectFit:"cover", border:"1.5px solid #b0d8e3" }} />
-                    <div style={{ fontSize:9, color:"#5a8a96", textAlign:"center", marginTop:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{img.nom}</div>
+                    <img src={img.url} alt={img.nom} style={{ width:72, height:72, borderRadius:10, objectFit:"cover", border:"1.5px solid #b8e0f8" }} />
+                    <div style={{ fontSize:9, color:"#6b7f8c", textAlign:"center", marginTop:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{img.nom}</div>
                     <button onClick={()=>{ if (window.confirm(`Supprimer l'image "${img.nom}" de la banque ? Les extras qui l'utilisent garderont leur photo actuelle, mais tu ne pourras plus la choisir pour de nouveaux extras.`)) { supprimerImageBanque(img.id); setBanqueImages(prev=>prev.filter(i=>i.id!==img.id)); } }}
                       style={{ position:"absolute", top:-6, right:-6, width:20, height:20, borderRadius:"50%", background:"#fff", border:"1.5px solid #FF6B6B", color:"#FF6B6B", fontSize:11, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", padding:0 }}>✕</button>
                   </div>
                 ))}
                 {banqueImages.length === 0 && <div style={{ fontSize:12, color:"#bbb" }}>Aucune image pour l'instant.</div>}
               </div>
-              <label style={{ display:"inline-block", padding:"9px 16px", borderRadius:9, background:"#0B6E8A", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+              <label style={{ display:"inline-block", padding:"9px 16px", borderRadius:9, background:"#07a0f2", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer" }}>
                 📤 Ajouter une image
                 <input type="file" accept="image/*" style={{ display:"none" }} onChange={e => {
                   const file = e.target.files[0];
@@ -4002,18 +4002,18 @@ export default function App() {
                 }} />
               </label>
               {nouvelleImageBanque && (
-                <div style={{ marginTop:10, background:"#f0fafc", borderRadius:10, padding:12, border:"1px solid #b0d8e3" }}>
+                <div style={{ marginTop:10, background:"#f0f9ff", borderRadius:10, padding:12, border:"1px solid #b8e0f8" }}>
                   <img src={nouvelleImageBanque.url} alt="" style={{ width:80, height:80, borderRadius:8, objectFit:"cover", marginBottom:8 }} />
                   <input value={nouvelleImageBanque.nom} onChange={e=>setNouvelleImageBanque(prev=>({...prev, nom:e.target.value}))}
-                    placeholder="Nom de l'image" style={{ width:"100%", padding:"8px 10px", borderRadius:7, border:"1.5px solid #b0d8e3", fontSize:13, boxSizing:"border-box", marginBottom:8 }} />
+                    placeholder="Nom de l'image" style={{ width:"100%", padding:"8px 10px", borderRadius:7, border:"1.5px solid #b8e0f8", fontSize:13, boxSizing:"border-box", marginBottom:8 }} />
                   <div style={{ display:"flex", gap:8 }}>
                     <button onClick={()=>{
                         const id = "img_"+Date.now();
                         sauvegarderImageBanque(id, nouvelleImageBanque.nom || "Sans nom", nouvelleImageBanque.url);
                         setBanqueImages(prev=>[{ id, nom: nouvelleImageBanque.nom || "Sans nom", url: nouvelleImageBanque.url }, ...prev]);
                         setNouvelleImageBanque(null);
-                      }} style={{ flex:1, padding:"8px", borderRadius:7, background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>✓ Enregistrer</button>
-                    <button onClick={()=>setNouvelleImageBanque(null)} style={{ padding:"8px 14px", borderRadius:7, background:"transparent", color:"#5a8a96", border:"1.5px solid #ddd", fontWeight:600, fontSize:13, cursor:"pointer" }}>Annuler</button>
+                      }} style={{ flex:1, padding:"8px", borderRadius:7, background:"#07a0f2", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>✓ Enregistrer</button>
+                    <button onClick={()=>setNouvelleImageBanque(null)} style={{ padding:"8px 14px", borderRadius:7, background:"transparent", color:"#6b7f8c", border:"1.5px solid #ddd", fontWeight:600, fontSize:13, cursor:"pointer" }}>Annuler</button>
                   </div>
                 </div>
               )}
@@ -4021,44 +4021,44 @@ export default function App() {
           )}
 
           {ongletPropri === "extras" && (
-            <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(11,110,138,.10)", padding:"20px 16px", marginBottom:14 }}>
-              <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, color:"#0B6E8A", marginBottom:12, fontWeight:700 }}>🎁 Gérer les extras</div>
+            <div style={{ background:"#fff", borderRadius:16, boxShadow:"0 4px 24px rgba(0,0,0,.06)", padding:"20px 16px", marginBottom:14 }}>
+              <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, color:"#07a0f2", marginBottom:12, fontWeight:700 }}>🎁 Gérer les extras</div>
 
               {extras.map((e, i) => (
-                <div key={e.id} style={{ background:"#f0fafc", borderRadius:12, padding:"12px 14px", marginBottom:10, border:"1px solid #b0d8e3" }}>
+                <div key={e.id} style={{ background:"#f0f9ff", borderRadius:12, padding:"12px 14px", marginBottom:10, border:"1px solid #b8e0f8" }}>
                   {extraEnEdition === e.id ? (
                     /* Mode édition */
                     <div>
                       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8 }}>
                         <div>
-                          <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Emoji</label>
+                          <label style={{ fontSize:12, fontWeight:600, color:"#07a0f2", marginBottom:3, display:"block" }}>Emoji</label>
                           <div style={{ display:"flex", gap:6 }}>
-                            <input style={{ flex:1, padding:"8px", borderRadius:7, fontSize:18, border:"1.5px solid #b0d8e3", textAlign:"center", boxSizing:"border-box" }} value={e.emoji}
+                            <input style={{ flex:1, padding:"8px", borderRadius:7, fontSize:18, border:"1.5px solid #b8e0f8", textAlign:"center", boxSizing:"border-box" }} value={e.emoji}
                               onChange={ev=>setExtras(prev=>prev.map((x,j)=>j===i?{...x,emoji:ev.target.value}:x))} maxLength={2}/>
-                            <button type="button" onClick={()=>setChoixEmojiExtraId(choixEmojiExtraId===e.id?null:e.id)} style={{ padding:"0 10px", borderRadius:7, border:"1.5px solid #b0d8e3", background:"#f0fafc", cursor:"pointer", fontSize:14 }}>😀</button>
+                            <button type="button" onClick={()=>setChoixEmojiExtraId(choixEmojiExtraId===e.id?null:e.id)} style={{ padding:"0 10px", borderRadius:7, border:"1.5px solid #b8e0f8", background:"#f0f9ff", cursor:"pointer", fontSize:14 }}>😀</button>
                           </div>
                           {choixEmojiExtraId === e.id && <SelecteurEmoji onChoisir={em=>{ setExtras(prev=>prev.map((x,j)=>j===i?{...x,emoji:em}:x)); setChoixEmojiExtraId(null); }} />}
                         </div>
                         <div>
-                          <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Nom</label>
-                          <input style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:13, border:"1.5px solid #b0d8e3", boxSizing:"border-box" }} value={e.nom}
+                          <label style={{ fontSize:12, fontWeight:600, color:"#07a0f2", marginBottom:3, display:"block" }}>Nom</label>
+                          <input style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:13, border:"1.5px solid #b8e0f8", boxSizing:"border-box" }} value={e.nom}
                             onChange={ev=>setExtras(prev=>prev.map((x,j)=>j===i?{...x,nom:ev.target.value}:x))}/>
                         </div>
                       </div>
                       <div style={{ marginBottom:8 }}>
-                        <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Description</label>
-                        <textarea style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:12, border:"1.5px solid #b0d8e3", boxSizing:"border-box", height:60, resize:"vertical" }} value={e.description}
+                        <label style={{ fontSize:12, fontWeight:600, color:"#07a0f2", marginBottom:3, display:"block" }}>Description</label>
+                        <textarea style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:12, border:"1.5px solid #b8e0f8", boxSizing:"border-box", height:60, resize:"vertical" }} value={e.description}
                           onChange={ev=>setExtras(prev=>prev.map((x,j)=>j===i?{...x,description:ev.target.value}:x))}/>
                       </div>
                       <div style={{ marginBottom:8 }}>
-                        <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Image (optionnel, remplace l'emoji)</label>
+                        <label style={{ fontSize:12, fontWeight:600, color:"#07a0f2", marginBottom:3, display:"block" }}>Image (optionnel, remplace l'emoji)</label>
                         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                           {e.image ? (
                             <img src={e.image} alt="" style={{ width:44, height:44, borderRadius:8, objectFit:"cover" }} />
                           ) : (
-                            <div style={{ width:44, height:44, borderRadius:8, background:"#fff", border:"1.5px dashed #b0d8e3", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>{e.emoji}</div>
+                            <div style={{ width:44, height:44, borderRadius:8, background:"#fff", border:"1.5px dashed #b8e0f8", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>{e.emoji}</div>
                           )}
-                          <button onClick={()=>setChoixImageExtraId(choixImageExtraId===e.id?null:e.id)} style={{ padding:"7px 12px", borderRadius:7, background:"#e6faf8", color:"#0B6E8A", border:"1.5px solid #4ECDC4", fontWeight:600, fontSize:12, cursor:"pointer" }}>
+                          <button onClick={()=>setChoixImageExtraId(choixImageExtraId===e.id?null:e.id)} style={{ padding:"7px 12px", borderRadius:7, background:"#e8f6fe", color:"#07a0f2", border:"1.5px solid #39b8f5", fontWeight:600, fontSize:12, cursor:"pointer" }}>
                             🖼️ Choisir dans la banque
                           </button>
                           {e.image && (
@@ -4072,20 +4072,20 @@ export default function App() {
                             {banqueImages.length === 0 && <div style={{ fontSize:12, color:"#bbb" }}>Banque vide — ajoute des images dans la carte ci-dessus.</div>}
                             {banqueImages.map(img => (
                               <img key={img.id} src={img.url} alt={img.nom} title={img.nom} onClick={()=>{ setExtras(prev=>prev.map((x,j)=>j===i?{...x,image:img.url}:x)); setChoixImageExtraId(null); }}
-                                style={{ width:52, height:52, borderRadius:7, objectFit:"cover", cursor:"pointer", border: e.image===img.url ? "2px solid #0B6E8A" : "1.5px solid #ddd" }} />
+                                style={{ width:52, height:52, borderRadius:7, objectFit:"cover", cursor:"pointer", border: e.image===img.url ? "2px solid #07a0f2" : "1.5px solid #ddd" }} />
                             ))}
                           </div>
                         )}
                       </div>
                       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
                         <div>
-                          <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Tarif (€)</label>
-                          <input type="number" min={0} style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:13, border:"1.5px solid #b0d8e3", boxSizing:"border-box" }} value={e.tarif}
+                          <label style={{ fontSize:12, fontWeight:600, color:"#07a0f2", marginBottom:3, display:"block" }}>Tarif (€)</label>
+                          <input type="number" min={0} style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:13, border:"1.5px solid #b8e0f8", boxSizing:"border-box" }} value={e.tarif}
                             onChange={ev=>setExtras(prev=>prev.map((x,j)=>j===i?{...x,tarif:+ev.target.value}:x))}/>
                         </div>
                         <div>
-                          <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Type</label>
-                          <select style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:13, border:"1.5px solid #b0d8e3", boxSizing:"border-box" }} value={e.type}
+                          <label style={{ fontSize:12, fontWeight:600, color:"#07a0f2", marginBottom:3, display:"block" }}>Type</label>
+                          <select style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:13, border:"1.5px solid #b8e0f8", boxSizing:"border-box" }} value={e.type}
                             onChange={ev=>setExtras(prev=>prev.map((x,j)=>j===i?{...x,type:ev.target.value}:x))}>
                             <option value="forfait">Forfait location</option>
                             <option value="personne">Par personne</option>
@@ -4093,7 +4093,7 @@ export default function App() {
                         </div>
                       </div>
                       <div style={{ display:"flex", gap:8 }}>
-                        <button onClick={()=>setExtraEnEdition(null)} style={{ flex:1, padding:"8px", borderRadius:8, background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>✓ Valider</button>
+                        <button onClick={()=>setExtraEnEdition(null)} style={{ flex:1, padding:"8px", borderRadius:8, background:"#07a0f2", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>✓ Valider</button>
                         <button onClick={()=>{ if (window.confirm(`Supprimer définitivement l'extra "${e.nom}" ? Cette action est immédiate et irréversible.`)) { supprimerExtra(e.id); setExtras(prev=>prev.filter((_,j)=>j!==i)); setExtraEnEdition(null); } }} style={{ padding:"8px 14px", borderRadius:8, background:"#fff0f0", color:"#FF6B6B", border:"1.5px solid #FF6B6B", fontWeight:700, fontSize:13, cursor:"pointer" }}>🗑 Supprimer</button>
                       </div>
                     </div>
@@ -4103,7 +4103,7 @@ export default function App() {
                       {e.image ? <img src={e.image} alt="" style={{ width:36, height:36, borderRadius:8, objectFit:"cover", flexShrink:0 }} /> : <div style={{ fontSize:26, flexShrink:0 }}>{e.emoji}</div>}
                       <div style={{ flex:1 }}>
                         <div style={{ fontWeight:700, fontSize:14, color:"#2C3E50" }}>{e.nom}</div>
-                        <div style={{ fontSize:11, color:"#5a8a96", marginTop:1 }}>
+                        <div style={{ fontSize:11, color:"#6b7f8c", marginTop:1 }}>
                           {e.type==="personne"?`${e.tarif} €/pers`:`${e.tarif} € forfait`}
                         </div>
                         <div style={{ fontSize:11, color:"#aaa", marginTop:1, fontStyle:"italic" }}>{e.description}</div>
@@ -4111,17 +4111,17 @@ export default function App() {
                       <div style={{ display:"flex", flexDirection:"column", gap:6, alignItems:"center" }}>
                         {/* Toggle actif */}
                         <div onClick={()=>setExtras(prev=>prev.map((x,j)=>j===i?{...x,actif:!x.actif}:x))}
-                          style={{ width:42, height:24, borderRadius:12, background:e.actif?"#4ECDC4":"#ddd", cursor:"pointer", position:"relative", transition:"background .2s", flexShrink:0 }}>
+                          style={{ width:42, height:24, borderRadius:12, background:e.actif?"#39b8f5":"#ddd", cursor:"pointer", position:"relative", transition:"background .2s", flexShrink:0 }}>
                           <div style={{ position:"absolute", top:3, left:e.actif?21:3, width:18, height:18, borderRadius:"50%", background:"#fff", transition:"left .2s", boxShadow:"0 1px 3px rgba(0,0,0,.2)" }}/>
                         </div>
                         {/* Modifier */}
-                        <button onClick={()=>setExtraEnEdition(e.id)} style={{ width:30, height:30, borderRadius:7, border:"1.5px solid #0B6E8A", background:"#e8f4f7", color:"#0B6E8A", cursor:"pointer", fontSize:14, fontWeight:700 }}>✏️</button>
+                        <button onClick={()=>setExtraEnEdition(e.id)} style={{ width:30, height:30, borderRadius:7, border:"1.5px solid #07a0f2", background:"#e8f4f7", color:"#07a0f2", cursor:"pointer", fontSize:14, fontWeight:700 }}>✏️</button>
                         {/* Supprimer direct */}
                         <button onClick={()=>{ if (window.confirm(`Supprimer définitivement l'extra "${e.nom}" ? Cette action est immédiate et irréversible. Pour le désactiver temporairement sans le perdre, utilise plutôt l'interrupteur à gauche.`)) { supprimerExtra(e.id); setExtras(prev=>prev.filter((_,j)=>j!==i)); } }} style={{ width:30, height:30, borderRadius:7, border:"none", background:"#fff0f0", color:"#FF6B6B", cursor:"pointer", fontSize:14 }}>🗑</button>
                       </div>
                     </div>
                   )}
-                  <div style={{ fontSize:10, color:e.actif?"#4ECDC4":"#aaa", fontWeight:600, marginTop:6 }}>
+                  <div style={{ fontSize:10, color:e.actif?"#39b8f5":"#aaa", fontWeight:600, marginTop:6 }}>
                     {e.actif?"✓ Visible":"✗ Masqué"}
                   </div>
                 </div>
@@ -4129,38 +4129,38 @@ export default function App() {
 
               {/* Formulaire ajout */}
               {ajoutExtraMode ? (
-                <div style={{ background:"#fff", borderRadius:12, padding:"14px", border:"2px solid #4ECDC4", marginTop:8 }}>
-                  <div style={{ fontWeight:700, color:"#0B6E8A", fontSize:14, marginBottom:12 }}>Nouvel extra</div>
+                <div style={{ background:"#fff", borderRadius:12, padding:"14px", border:"2px solid #39b8f5", marginTop:8 }}>
+                  <div style={{ fontWeight:700, color:"#07a0f2", fontSize:14, marginBottom:12 }}>Nouvel extra</div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8 }}>
                     <div>
-                      <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Emoji</label>
+                      <label style={{ fontSize:12, fontWeight:600, color:"#07a0f2", marginBottom:3, display:"block" }}>Emoji</label>
                       <div style={{ display:"flex", gap:6 }}>
-                        <input style={{ flex:1, padding:"8px", borderRadius:7, fontSize:18, border:"1.5px solid #b0d8e3", textAlign:"center", boxSizing:"border-box" }} value={nouvelExtra.emoji}
+                        <input style={{ flex:1, padding:"8px", borderRadius:7, fontSize:18, border:"1.5px solid #b8e0f8", textAlign:"center", boxSizing:"border-box" }} value={nouvelExtra.emoji}
                           onChange={e=>setNouvelExtra(p=>({...p,emoji:e.target.value}))} maxLength={2}/>
-                        <button type="button" onClick={()=>setChoixEmojiExtraId(choixEmojiExtraId==="__nouveau__"?null:"__nouveau__")} style={{ padding:"0 10px", borderRadius:7, border:"1.5px solid #b0d8e3", background:"#f0fafc", cursor:"pointer", fontSize:14 }}>😀</button>
+                        <button type="button" onClick={()=>setChoixEmojiExtraId(choixEmojiExtraId==="__nouveau__"?null:"__nouveau__")} style={{ padding:"0 10px", borderRadius:7, border:"1.5px solid #b8e0f8", background:"#f0f9ff", cursor:"pointer", fontSize:14 }}>😀</button>
                       </div>
                       {choixEmojiExtraId === "__nouveau__" && <SelecteurEmoji onChoisir={em=>{ setNouvelExtra(p=>({...p,emoji:em})); setChoixEmojiExtraId(null); }} />}
                     </div>
                     <div>
-                      <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Nom</label>
-                      <input style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:13, border:"1.5px solid #b0d8e3", boxSizing:"border-box" }} value={nouvelExtra.nom} placeholder="Ex: Pétanque"
+                      <label style={{ fontSize:12, fontWeight:600, color:"#07a0f2", marginBottom:3, display:"block" }}>Nom</label>
+                      <input style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:13, border:"1.5px solid #b8e0f8", boxSizing:"border-box" }} value={nouvelExtra.nom} placeholder="Ex: Pétanque"
                         onChange={e=>setNouvelExtra(p=>({...p,nom:e.target.value}))}/>
                     </div>
                   </div>
                   <div style={{ marginBottom:8 }}>
-                    <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Description</label>
-                    <textarea style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:12, border:"1.5px solid #b0d8e3", boxSizing:"border-box", height:55, resize:"vertical" }} value={nouvelExtra.description}
+                    <label style={{ fontSize:12, fontWeight:600, color:"#07a0f2", marginBottom:3, display:"block" }}>Description</label>
+                    <textarea style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:12, border:"1.5px solid #b8e0f8", boxSizing:"border-box", height:55, resize:"vertical" }} value={nouvelExtra.description}
                       placeholder="Ce qui est inclus..." onChange={e=>setNouvelExtra(p=>({...p,description:e.target.value}))}/>
                   </div>
                   <div style={{ marginBottom:8 }}>
-                    <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Image (optionnel, remplace l'emoji)</label>
+                    <label style={{ fontSize:12, fontWeight:600, color:"#07a0f2", marginBottom:3, display:"block" }}>Image (optionnel, remplace l'emoji)</label>
                     <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                       {nouvelExtra.image ? (
                         <img src={nouvelExtra.image} alt="" style={{ width:44, height:44, borderRadius:8, objectFit:"cover" }} />
                       ) : (
-                        <div style={{ width:44, height:44, borderRadius:8, background:"#f9f9f9", border:"1.5px dashed #b0d8e3", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>{nouvelExtra.emoji}</div>
+                        <div style={{ width:44, height:44, borderRadius:8, background:"#f9f9f9", border:"1.5px dashed #b8e0f8", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>{nouvelExtra.emoji}</div>
                       )}
-                      <button onClick={()=>setChoixImageExtraId(choixImageExtraId==="__nouveau__"?null:"__nouveau__")} style={{ padding:"7px 12px", borderRadius:7, background:"#e6faf8", color:"#0B6E8A", border:"1.5px solid #4ECDC4", fontWeight:600, fontSize:12, cursor:"pointer" }}>
+                      <button onClick={()=>setChoixImageExtraId(choixImageExtraId==="__nouveau__"?null:"__nouveau__")} style={{ padding:"7px 12px", borderRadius:7, background:"#e8f6fe", color:"#07a0f2", border:"1.5px solid #39b8f5", fontWeight:600, fontSize:12, cursor:"pointer" }}>
                         🖼️ Choisir dans la banque
                       </button>
                       {nouvelExtra.image && (
@@ -4172,20 +4172,20 @@ export default function App() {
                         {banqueImages.length === 0 && <div style={{ fontSize:12, color:"#bbb" }}>Banque vide — ajoute des images dans la carte ci-dessus.</div>}
                         {banqueImages.map(img => (
                           <img key={img.id} src={img.url} alt={img.nom} title={img.nom} onClick={()=>{ setNouvelExtra(p=>({...p,image:img.url})); setChoixImageExtraId(null); }}
-                            style={{ width:52, height:52, borderRadius:7, objectFit:"cover", cursor:"pointer", border: nouvelExtra.image===img.url ? "2px solid #0B6E8A" : "1.5px solid #ddd" }} />
+                            style={{ width:52, height:52, borderRadius:7, objectFit:"cover", cursor:"pointer", border: nouvelExtra.image===img.url ? "2px solid #07a0f2" : "1.5px solid #ddd" }} />
                         ))}
                       </div>
                     )}
                   </div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
                     <div>
-                      <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Tarif (€)</label>
-                      <input type="number" min={0} style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:13, border:"1.5px solid #b0d8e3", boxSizing:"border-box" }} value={nouvelExtra.tarif}
+                      <label style={{ fontSize:12, fontWeight:600, color:"#07a0f2", marginBottom:3, display:"block" }}>Tarif (€)</label>
+                      <input type="number" min={0} style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:13, border:"1.5px solid #b8e0f8", boxSizing:"border-box" }} value={nouvelExtra.tarif}
                         onChange={e=>setNouvelExtra(p=>({...p,tarif:+e.target.value}))}/>
                     </div>
                     <div>
-                      <label style={{ fontSize:12, fontWeight:600, color:"#0B6E8A", marginBottom:3, display:"block" }}>Type</label>
-                      <select style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:13, border:"1.5px solid #b0d8e3", boxSizing:"border-box" }} value={nouvelExtra.type}
+                      <label style={{ fontSize:12, fontWeight:600, color:"#07a0f2", marginBottom:3, display:"block" }}>Type</label>
+                      <select style={{ width:"100%", padding:"8px", borderRadius:7, fontSize:13, border:"1.5px solid #b8e0f8", boxSizing:"border-box" }} value={nouvelExtra.type}
                         onChange={e=>setNouvelExtra(p=>({...p,type:e.target.value}))}>
                         <option value="forfait">Forfait location</option>
                         <option value="personne">Par personne</option>
@@ -4193,17 +4193,17 @@ export default function App() {
                     </div>
                   </div>
                   <div style={{ display:"flex", gap:8 }}>
-                    <button style={{ flex:1, padding:"9px", borderRadius:9, background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:14, cursor:"pointer" }} onClick={()=>{
+                    <button style={{ flex:1, padding:"9px", borderRadius:9, background:"#07a0f2", color:"#fff", border:"none", fontWeight:700, fontSize:14, cursor:"pointer" }} onClick={()=>{
                       if(!nouvelExtra.nom) return;
                       setExtras(prev=>[...prev,{...nouvelExtra,id:"e"+Date.now()}]);
                       setNouvelExtra({nom:"",description:"",tarif:0,type:"forfait",emoji:"✨",image:null,actif:true});
                       setAjoutExtraMode(false);
                     }}>Ajouter</button>
-                    <button style={{ padding:"9px 16px", borderRadius:9, background:"transparent", color:"#0B6E8A", border:"2px solid #0B6E8A", fontWeight:700, fontSize:14, cursor:"pointer" }} onClick={()=>setAjoutExtraMode(false)}>Annuler</button>
+                    <button style={{ padding:"9px 16px", borderRadius:9, background:"transparent", color:"#07a0f2", border:"2px solid #07a0f2", fontWeight:700, fontSize:14, cursor:"pointer" }} onClick={()=>setAjoutExtraMode(false)}>Annuler</button>
                   </div>
                 </div>
               ) : (
-                <button style={{ width:"100%", padding:"11px", borderRadius:9, background:"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:14, cursor:"pointer", marginTop:8 }} onClick={()=>setAjoutExtraMode(true)}>
+                <button style={{ width:"100%", padding:"11px", borderRadius:9, background:"#39b8f5", color:"#fff", border:"none", fontWeight:700, fontSize:14, cursor:"pointer", marginTop:8 }} onClick={()=>setAjoutExtraMode(true)}>
                   ➕ Ajouter un extra
                 </button>
               )}
@@ -4212,8 +4212,8 @@ export default function App() {
 
                     {ongletPropri === "inventaire" && (
             <div style={card}>
-              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", marginBottom: 6, fontWeight: 700 }}>🛋️ État des lieux</div>
-              <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.5 }}>
+              <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", marginBottom: 6, fontWeight: 700 }}>🛋️ État des lieux</div>
+              <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14, lineHeight: 1.5 }}>
                 Photographiez chaque élément en bon état. Ces photos serviront de <strong>référence</strong> lors des états des lieux d'entrée et de sortie des locataires. Vous pouvez ajouter ou retirer des éléments selon votre mobilier.
               </div>
               {elementsEdl.map(item => (
@@ -4232,21 +4232,21 @@ export default function App() {
               ))}
 
               {/* Ajout d'un nouvel élément */}
-              <div style={{ display: "flex", gap: 8, marginTop: 10, background: "#f0fafc", borderRadius: 9, padding: "10px", border: "1.5px dashed #4ECDC4" }}>
+              <div style={{ display: "flex", gap: 8, marginTop: 10, background: "#f0f9ff", borderRadius: 9, padding: "10px", border: "1.5px dashed #39b8f5" }}>
                 <input value={nouvelElementEdl} onChange={e => setNouvelElementEdl(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && nouvelElementEdl.trim() && (setElementsEdl(prev => [...prev, nouvelElementEdl.trim()]), setNouvelElementEdl(""))}
-                  placeholder="Ex: Plongeoir, Coussin de sol..." style={{ flex: 1, padding: "8px 10px", borderRadius: 6, fontSize: 13, border: "1px solid #b0d8e3", boxSizing: "border-box" }} />
+                  placeholder="Ex: Plongeoir, Coussin de sol..." style={{ flex: 1, padding: "8px 10px", borderRadius: 6, fontSize: 13, border: "1px solid #b8e0f8", boxSizing: "border-box" }} />
                 <button onClick={() => { if (nouvelElementEdl.trim()) { setElementsEdl(prev => [...prev, nouvelElementEdl.trim()]); setNouvelElementEdl(""); } }}
-                  style={{ padding: "8px 16px", borderRadius: 6, background: "#0B6E8A", color: "#fff", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>+ Ajouter</button>
+                  style={{ padding: "8px 16px", borderRadius: 6, background: "#07a0f2", color: "#fff", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>+ Ajouter</button>
               </div>
 
-              <div style={{ background: "#e6faf8", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#0B6E8A", fontWeight: 600, marginTop: 12 }}>✓ {Object.values(inventaire).flat().length} photos enregistrées sur {elementsEdl.length} élément{elementsEdl.length > 1 ? "s" : ""}</div>
+              <div style={{ background: "#e8f6fe", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#07a0f2", fontWeight: 600, marginTop: 12 }}>✓ {Object.values(inventaire).flat().length} photos enregistrées sur {elementsEdl.length} élément{elementsEdl.length > 1 ? "s" : ""}</div>
             </div>
           )}
 
           {ongletPropri === "reservations" && (
             <div style={card}>
-              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", marginBottom: 12, fontWeight: 700 }}>📋 Réservations</div>
+              <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", marginBottom: 12, fontWeight: 700 }}>📋 Réservations</div>
 
               {/* Demandes en attente mises en avant */}
               {reservations.filter(r => r.statut === "en_attente").length > 0 && (
@@ -4259,7 +4259,7 @@ export default function App() {
               )}
 
               {reservations.length === 0 ? (
-                <div style={{ color: "#5a8a96", fontSize: 14, textAlign: "center", padding: "16px 0" }}>Aucune réservation.</div>
+                <div style={{ color: "#6b7f8c", fontSize: 14, textAlign: "center", padding: "16px 0" }}>Aucune réservation.</div>
               ) : [...reservations].sort((a, b) => {
                   // En attente d'abord, puis par date de réservation, puis par heure de demande
                   if (a.statut === "en_attente" && b.statut !== "en_attente") return -1;
@@ -4277,14 +4277,14 @@ export default function App() {
                 const statut = r.statut || "acceptee"; // anciennes résas sans statut = acceptées par défaut
                 const badgeStatut = {
                   en_attente: { bg:"#fff8e1", color:"#a06000", border:"#f0c040", label:"⏳ En attente" },
-                  acceptee: { bg:"#e6faf8", color:"#0B6E8A", border:"#4ECDC4", label:"✓ Acceptée" },
+                  acceptee: { bg:"#e8f6fe", color:"#07a0f2", border:"#39b8f5", label:"✓ Acceptée" },
                   refusee: { bg:"#fff0f0", color:"#c0302a", border:"#FF6B6B", label:"✗ Refusée" },
                   annulee: { bg:"#f5f5f5", color:"#888", border:"#ccc", label:"🚫 Annulée" },
                 }[statut];
                 return (
-                  <div key={r.ref} style={{ background: statut==="en_attente" ? "#fffdf5" : "#f0fafc", borderRadius: 10, padding: "12px 14px", marginBottom: 12, border: statut==="en_attente" ? "2px solid #f0c040" : "1px solid #b0d8e3" }}>
+                  <div key={r.ref} style={{ background: statut==="en_attente" ? "#fffdf5" : "#f0f9ff", borderRadius: 10, padding: "12px 14px", marginBottom: 12, border: statut==="en_attente" ? "2px solid #f0c040" : "1px solid #b8e0f8" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                      <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 13 }}>{r.ref}</div>
+                      <div style={{ fontWeight: 700, color: "#07a0f2", fontSize: 13 }}>{r.ref}</div>
                       <div style={{ display:"flex", gap:4, flexWrap:"wrap", justifyContent:"flex-end" }}>
                         {/* Badge paiement */}
                         {r.paiement?.rembourse && (
@@ -4294,7 +4294,7 @@ export default function App() {
                         )}
                         {r.paiement && (
                           r.paiement.statut === "paye"
-                            ? <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#e6faf8", color:"#0B6E8A", border:"1px solid #4ECDC4" }}>💳 Payée</span>
+                            ? <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#e8f6fe", color:"#07a0f2", border:"1px solid #39b8f5" }}>💳 Payée</span>
                           : (r.paiement.url && statut === "acceptee")
                             ? <span style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#fff8e1", color:"#a06000", border:"1px solid #f0c040" }}>💳 Lien envoyé, non payée</span>
                           : null
@@ -4305,9 +4305,9 @@ export default function App() {
                       </div>
                     </div>
                     <div style={{ fontSize: 13, color: "#2C3E50", marginTop: 2 }}>{r.prenom} {r.nom} · {r.email}</div>
-                    {comptes[r.email]?.ville && <div style={{ fontSize: 11, color: "#5a8a96" }}>📍 {comptes[r.email]?.codePostal} {comptes[r.email]?.ville}</div>}
-                    <div style={{ fontSize: 12, color: "#5a8a96" }}>{r.date} · {padH(r.heureDebut ?? parseInt(r.heureDebut))} → {padH(r.heureFin ?? parseInt(r.heureFin))}</div>
-                    <div style={{ fontSize: 12, color: "#5a8a96" }}>{r.adultes} adulte{r.adultes > 1 ? "s" : ""}{r.enfants12 > 0 ? ` + ${r.enfants12} enfant` : ""} · {formatEur(r.prix)}</div>
+                    {comptes[r.email]?.ville && <div style={{ fontSize: 11, color: "#6b7f8c" }}>📍 {comptes[r.email]?.codePostal} {comptes[r.email]?.ville}</div>}
+                    <div style={{ fontSize: 12, color: "#6b7f8c" }}>{r.date} · {padH(r.heureDebut ?? parseInt(r.heureDebut))} → {padH(r.heureFin ?? parseInt(r.heureFin))}</div>
+                    <div style={{ fontSize: 12, color: "#6b7f8c" }}>{r.adultes} adulte{r.adultes > 1 ? "s" : ""}{r.enfants12 > 0 ? ` + ${r.enfants12} enfant` : ""} · {formatEur(r.prix)}</div>
                     {r.demandeISO && <div style={{ fontSize: 11, color: "#aabbc0", marginTop: 2 }}>
                       🕐 Demande reçue le {new Date(r.demandeISO).toLocaleDateString("fr-FR")} à {new Date(r.demandeISO).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                     </div>}
@@ -4331,7 +4331,7 @@ export default function App() {
                         </div>
                       ) : (
                         <div style={{ display:"flex", gap:8, marginTop:10 }}>
-                          <button style={{ flex:1, padding:"10px", borderRadius:9, background:"#4ECDC4", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}
+                          <button style={{ flex:1, padding:"10px", borderRadius:9, background:"#39b8f5", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}
                             onClick={() => accepterReservation(r.ref)}>
                             ✓ Accepter
                           </button>
@@ -4356,7 +4356,7 @@ export default function App() {
                             {!pen.impossible && pen.taux > 0 && <> Retenu : <strong>{formatEur(pen.retenu)}</strong> · Remboursé : <strong>{formatEur(pen.rembourse)}</strong></>}
                           </div>
                           <label style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8, cursor:"pointer" }}>
-                            <input type="checkbox" checked={annulationParLocataireVal} onChange={e=>setAnnulationParLocataireVal(e.target.checked)} style={{ accentColor:"#0B6E8A" }}/>
+                            <input type="checkbox" checked={annulationParLocataireVal} onChange={e=>setAnnulationParLocataireVal(e.target.checked)} style={{ accentColor:"#07a0f2" }}/>
                             <span style={{ fontSize:12, color:"#2C3E50" }}>Le locataire m'a demandé d'annuler (pénalités ci-dessus s'appliquent)</span>
                           </label>
                           <textarea value={motifAnnulVal} onChange={e=>setMotifAnnulVal(e.target.value)} placeholder="Ex: force majeure, indisponibilité imprévue..."
@@ -4409,21 +4409,21 @@ export default function App() {
                     {/* Remboursement commercial après la location */}
                     {sessionPassee && statut === "acceptee" && (
                       rembRef === r.ref ? (
-                        <div style={{ marginTop:10, background:"#f0fafc", borderRadius:10, padding:"12px", border:"1.5px solid #4ECDC4" }}>
-                          <div style={{ fontWeight:700, color:"#0B6E8A", fontSize:13, marginBottom:6 }}>💸 Remboursement commercial</div>
-                          <div style={{ fontSize:12, color:"#5a8a96", marginBottom:10, lineHeight:1.6 }}>
+                        <div style={{ marginTop:10, background:"#f0f9ff", borderRadius:10, padding:"12px", border:"1.5px solid #39b8f5" }}>
+                          <div style={{ fontWeight:700, color:"#07a0f2", fontSize:13, marginBottom:6 }}>💸 Remboursement commercial</div>
+                          <div style={{ fontSize:12, color:"#6b7f8c", marginBottom:10, lineHeight:1.6 }}>
                             Total payé : <strong>{formatEur(r.totalGeneral||r.prix)}</strong><br/>
                             Frais de gestion : <strong>25%</strong> du montant remboursé<br/>
                             {rembMontant && parseFloat(rembMontant) > 0 && (
-                              <>Net versé au locataire : <strong style={{ color:"#0B6E8A" }}>{formatEur(parseFloat(rembMontant)*0.75)}</strong> (frais : {formatEur(parseFloat(rembMontant)*0.25)})</>
+                              <>Net versé au locataire : <strong style={{ color:"#07a0f2" }}>{formatEur(parseFloat(rembMontant)*0.75)}</strong> (frais : {formatEur(parseFloat(rembMontant)*0.25)})</>
                             )}
                           </div>
-                          <label style={{ fontSize:12, color:"#5a8a96", marginBottom:4, display:"block" }}>Montant à rembourser (avant frais)</label>
+                          <label style={{ fontSize:12, color:"#6b7f8c", marginBottom:4, display:"block" }}>Montant à rembourser (avant frais)</label>
                           <input type="number" min="0" max={r.totalGeneral||r.prix} value={rembMontant} onChange={e=>setRembMontant(e.target.value)}
                             style={{ ...inp, marginBottom:10 }} placeholder="Ex: 20"/>
                           <div style={{ display:"flex", gap:8 }}>
                             <button onClick={()=>appliquerRemboursement(r.ref)}
-                              style={{ flex:1, padding:"9px", borderRadius:8, background:"#0B6E8A", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+                              style={{ flex:1, padding:"9px", borderRadius:8, background:"#07a0f2", color:"#fff", border:"none", fontWeight:700, fontSize:13, cursor:"pointer" }}>
                               ✓ Valider le remboursement
                             </button>
                             <button onClick={()=>{ setRembRef(null); setRembMontant(""); }}
@@ -4432,27 +4432,27 @@ export default function App() {
                         </div>
                       ) : !r.remboursementCommercial ? (
                         <button onClick={()=>{ setRembRef(r.ref); setRembMontant(""); }}
-                          style={{ marginTop:10, width:"100%", padding:"9px", borderRadius:8, background:"none", border:"1.5px solid #4ECDC4", color:"#0B6E8A", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+                          style={{ marginTop:10, width:"100%", padding:"9px", borderRadius:8, background:"none", border:"1.5px solid #39b8f5", color:"#07a0f2", fontSize:12, fontWeight:600, cursor:"pointer" }}>
                           💸 Effectuer un remboursement commercial
                         </button>
                       ) : (
-                        <div style={{ marginTop:10, background:"#e6faf8", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#0B6E8A" }}>
+                        <div style={{ marginTop:10, background:"#e8f6fe", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#07a0f2" }}>
                           ✅ Remboursement de {formatEur(r.remboursementCommercial.montantDemande)} effectué
                           (net versé : {formatEur(r.remboursementCommercial.netRembourse)} · frais : {formatEur(r.remboursementCommercial.fraisGestion)})
                         </div>
                       )
                     )}
                     {noteP ? (
-                      <div style={{ marginTop: 8, background: "#e6faf8", borderRadius: 8, padding: "7px 10px" }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "#0B6E8A" }}>Votre note : {"⭐".repeat(noteP.note)}{noteP.note >= 4 ? <span style={{ color: "#4ECDC4", marginLeft: 6 }}>✓ Code accordé</span> : <span style={{ color: "#FF6B6B", marginLeft: 6 }}>✗ Code refusé</span>}</div>
-                        {noteP.commentaire && <div style={{ fontSize: 11, color: "#5a8a96" }}>"{noteP.commentaire}"</div>}
+                      <div style={{ marginTop: 8, background: "#e8f6fe", borderRadius: 8, padding: "7px 10px" }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#07a0f2" }}>Votre note : {"⭐".repeat(noteP.note)}{noteP.note >= 4 ? <span style={{ color: "#39b8f5", marginLeft: 6 }}>✓ Code accordé</span> : <span style={{ color: "#FF6B6B", marginLeft: 6 }}>✗ Code refusé</span>}</div>
+                        {noteP.commentaire && <div style={{ fontSize: 11, color: "#6b7f8c" }}>"{noteP.commentaire}"</div>}
                       </div>
                     ) : sessionPassee && statut === "acceptee" && (
                       noteEnCoursRef === r.ref ? (
-                        <div style={{ marginTop: 10, background: "#f0fafc", borderRadius: 10, padding: "12px", border: "1px solid #b0d8e3" }}>
-                          <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 13, marginBottom: 8 }}>⭐ Notez ce locataire</div>
+                        <div style={{ marginTop: 10, background: "#f0f9ff", borderRadius: 10, padding: "12px", border: "1px solid #b8e0f8" }}>
+                          <div style={{ fontWeight: 700, color: "#07a0f2", fontSize: 13, marginBottom: 8 }}>⭐ Notez ce locataire</div>
                           <Stars value={noteProprioVal} onChange={setNoteProprioVal} />
-                          {noteProprioVal > 0 && <div style={{ marginTop: 6, padding: "5px 10px", borderRadius: 7, fontSize: 12, fontWeight: 600, background: noteProprioVal >= 4 ? "#e6faf8" : "#fff0f0", color: noteProprioVal >= 4 ? "#0B6E8A" : "#FF6B6B", border: `1px solid ${noteProprioVal >= 4 ? "#4ECDC4" : "#FF6B6B"}`, marginBottom: 8, textAlign: "center" }}>{noteProprioVal >= 4 ? "✓ Code promo -5% accordé" : "✗ Pas de code promo"}</div>}
+                          {noteProprioVal > 0 && <div style={{ marginTop: 6, padding: "5px 10px", borderRadius: 7, fontSize: 12, fontWeight: 600, background: noteProprioVal >= 4 ? "#e8f6fe" : "#fff0f0", color: noteProprioVal >= 4 ? "#07a0f2" : "#FF6B6B", border: `1px solid ${noteProprioVal >= 4 ? "#39b8f5" : "#FF6B6B"}`, marginBottom: 8, textAlign: "center" }}>{noteProprioVal >= 4 ? "✓ Code promo -5% accordé" : "✗ Pas de code promo"}</div>}
                           <textarea value={commentaireProprioVal} onChange={e => setCommentaireProprioVal(e.target.value)} placeholder="Commentaire..." style={{ ...inp, height: 60, resize: "vertical", fontSize: 12, marginBottom: 8 }} />
                           <div style={{ display: "flex", gap: 8 }}>
                             <button style={{ ...btnP, marginTop: 0, fontSize: 13, padding: "9px" }} onClick={() => soumettreNoteLocataire(r.ref)}>Valider</button>
@@ -4460,7 +4460,7 @@ export default function App() {
                           </div>
                         </div>
                       ) : (
-                        <button style={{ marginTop: 10, width: "100%", padding: "8px", borderRadius: 8, background: "#0B6E8A", color: "#fff", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer" }} onClick={() => { setNoteEnCoursRef(r.ref); setNoteProprioVal(0); setCommentaireProprioVal(""); }}>⭐ Noter ce locataire</button>
+                        <button style={{ marginTop: 10, width: "100%", padding: "8px", borderRadius: 8, background: "#07a0f2", color: "#fff", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer" }} onClick={() => { setNoteEnCoursRef(r.ref); setNoteProprioVal(0); setCommentaireProprioVal(""); }}>⭐ Noter ce locataire</button>
                       )
                     )}
                     <div style={{ fontSize: 11, color: "#aaa", marginTop: 5 }}>🔒 Tampon : {padH(parseFloat(r.heureDebut) - TAMPON)} – {padH(parseFloat(r.heureFin) + TAMPON)}</div>
@@ -4483,24 +4483,24 @@ export default function App() {
 
   // ── ÉTAPE 1 : Calendrier + horaires ──────────────────────────────────────
   if (mode === "locataire" && step === 1) return (
-    <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
       <Header showSteps={true} />
       <div style={{ padding: "16px 16px 32px" }}>
         {/* Infos locataire */}
         <div style={card}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, color: "#0B6E8A", marginBottom: 14, fontWeight: 700 }}>Votre réservation</div>
+          <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 19, color: "#07a0f2", marginBottom: 14, fontWeight: 700 }}>Votre réservation</div>
           {!compteConnecte && (
-            <div style={{ background: "#e8f4f7", borderRadius: 10, padding: "10px 12px", marginBottom: 12, fontSize: 13, color: "#0B6E8A" }}>
-              💡 Déjà un compte ? <a href="#" onClick={e => { e.preventDefault(); setAuthMode("login"); setMode("auth"); }} style={{ color: "#0B6E8A", fontWeight: 700 }}>Connectez-vous</a> pour retrouver vos réservations facilement.
+            <div style={{ background: "#e8f4f7", borderRadius: 10, padding: "10px 12px", marginBottom: 12, fontSize: 13, color: "#07a0f2" }}>
+              💡 Déjà un compte ? <a href="#" onClick={e => { e.preventDefault(); setAuthMode("login"); setMode("auth"); }} style={{ color: "#07a0f2", fontWeight: 700 }}>Connectez-vous</a> pour retrouver vos réservations facilement.
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-            <div><label style={lbl}>Prénom *</label><input style={{ ...inp, border: erreurs.prenom ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} value={form.prenom} onChange={e => setF("prenom", e.target.value)} />{erreurs.prenom && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.prenom}</div>}</div>
-            <div><label style={lbl}>Nom *</label><input style={{ ...inp, border: erreurs.nom ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} value={form.nom} onChange={e => setF("nom", e.target.value)} />{erreurs.nom && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.nom}</div>}</div>
+            <div><label style={lbl}>Prénom *</label><input style={{ ...inp, border: erreurs.prenom ? "2px solid #FF6B6B" : "1.5px solid #b8e0f8" }} value={form.prenom} onChange={e => setF("prenom", e.target.value)} />{erreurs.prenom && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.prenom}</div>}</div>
+            <div><label style={lbl}>Nom *</label><input style={{ ...inp, border: erreurs.nom ? "2px solid #FF6B6B" : "1.5px solid #b8e0f8" }} value={form.nom} onChange={e => setF("nom", e.target.value)} />{erreurs.nom && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.nom}</div>}</div>
           </div>
           <div style={{ marginBottom: 10 }}>
             <label style={lbl}>Email *</label>
-            <input style={{ ...inp, border: erreurs.email ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} type="email" value={form.email}
+            <input style={{ ...inp, border: erreurs.email ? "2px solid #FF6B6B" : "1.5px solid #b8e0f8" }} type="email" value={form.email}
               onChange={e => {
                 setF("email", e.target.value);
                 // Détecter si l'email correspond à un compte existant
@@ -4525,54 +4525,54 @@ export default function App() {
               /* Email déjà connu → proposer la connexion */
               <div style={{ background: "#fff8e1", border: "2px solid #f0c040", borderRadius: 12, padding: "14px 16px", marginBottom: 10 }}>
                 <div style={{ fontWeight: 700, color: "#a06000", fontSize: 14, marginBottom: 6 }}>👤 Compte existant détecté</div>
-                <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 10 }}>
+                <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 10 }}>
                   Un compte existe déjà pour <strong>{form.email}</strong>. Entrez votre mot de passe pour continuer.
                 </div>
                 <label style={lbl}>Mot de passe</label>
                 <input type="password" value={loginInlineMdp} onChange={e => { setLoginInlineMdp(e.target.value); setLoginInlineErreur(""); }}
-                  style={{ ...inp, border: erreurs.mdp ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3", marginBottom: 6 }}
+                  style={{ ...inp, border: erreurs.mdp ? "2px solid #FF6B6B" : "1.5px solid #b8e0f8", marginBottom: 6 }}
                   placeholder="Votre mot de passe" />
                 {erreurs.mdp && <div style={{ color: "#FF6B6B", fontSize: 12 }}>❌ {erreurs.mdp}</div>}
                 <button onClick={e => { e.preventDefault(); setResetEmail(form.email); ouvrirReset("locataire"); }}
-                  style={{ background: "none", border: "none", color: "#5a8a96", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0, marginTop: 4 }}>
+                  style={{ background: "none", border: "none", color: "#6b7f8c", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0, marginTop: 4 }}>
                   Mot de passe oublié ?
                 </button>
               </div>
             ) : (
               /* Nouvel email → créer le compte */
-              <div style={{ background: "#f0fafc", border: "2px solid #4ECDC4", borderRadius: 12, padding: "14px 16px", marginBottom: 10 }}>
-                <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 14, marginBottom: 4 }}>🆕 Création de votre compte</div>
-                <div style={{ fontSize: 12, color: "#5a8a96", marginBottom: 12 }}>
+              <div style={{ background: "#f0f9ff", border: "2px solid #39b8f5", borderRadius: 12, padding: "14px 16px", marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, color: "#07a0f2", fontSize: 14, marginBottom: 4 }}>🆕 Création de votre compte</div>
+                <div style={{ fontSize: 12, color: "#6b7f8c", marginBottom: 12 }}>
                   Un compte sera créé automatiquement pour retrouver vos réservations.
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
                   <div>
                     <label style={lbl}>Adresse *</label>
-                    <input style={{ ...inp, border: erreurs.adresse ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} value={form.adresse || ""} onChange={e => setF("adresse", e.target.value)} placeholder="Rue, numéro" />
+                    <input style={{ ...inp, border: erreurs.adresse ? "2px solid #FF6B6B" : "1.5px solid #b8e0f8" }} value={form.adresse || ""} onChange={e => setF("adresse", e.target.value)} placeholder="Rue, numéro" />
                     {erreurs.adresse && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.adresse}</div>}
                   </div>
                   <div>
                     <label style={lbl}>Code postal *</label>
-                    <input style={{ ...inp, border: erreurs.codePostal ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} maxLength={5} value={form.codePostal || ""} onChange={e => setF("codePostal", e.target.value)} />
+                    <input style={{ ...inp, border: erreurs.codePostal ? "2px solid #FF6B6B" : "1.5px solid #b8e0f8" }} maxLength={5} value={form.codePostal || ""} onChange={e => setF("codePostal", e.target.value)} />
                     {erreurs.codePostal && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.codePostal}</div>}
                   </div>
                 </div>
                 <div style={{ marginBottom: 10 }}>
                   <label style={lbl}>Ville *</label>
-                  <input style={{ ...inp, border: erreurs.ville ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} value={form.ville || ""} onChange={e => setF("ville", e.target.value)} />
+                  <input style={{ ...inp, border: erreurs.ville ? "2px solid #FF6B6B" : "1.5px solid #b8e0f8" }} value={form.ville || ""} onChange={e => setF("ville", e.target.value)} />
                   {erreurs.ville && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.ville}</div>}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <div>
                     <label style={lbl}>Mot de passe * <span style={{ fontWeight: 400, color: "#aaa" }}>(8 car. min.)</span></label>
                     <input type="password" value={formMdp.motdepasse} onChange={e => setFormMdp(p => ({ ...p, motdepasse: e.target.value }))}
-                      style={{ ...inp, border: erreurs.mdp ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} placeholder="••••••••" />
+                      style={{ ...inp, border: erreurs.mdp ? "2px solid #FF6B6B" : "1.5px solid #b8e0f8" }} placeholder="••••••••" />
                     {erreurs.mdp && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.mdp}</div>}
                   </div>
                   <div>
                     <label style={lbl}>Confirmer *</label>
                     <input type="password" value={formMdp.motdepasse2} onChange={e => setFormMdp(p => ({ ...p, motdepasse2: e.target.value }))}
-                      style={{ ...inp, border: erreurs.mdp2 ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} placeholder="••••••••" />
+                      style={{ ...inp, border: erreurs.mdp2 ? "2px solid #FF6B6B" : "1.5px solid #b8e0f8" }} placeholder="••••••••" />
                     {erreurs.mdp2 && <div style={{ color: "#FF6B6B", fontSize: 11 }}>{erreurs.mdp2}</div>}
                   </div>
                 </div>
@@ -4581,7 +4581,7 @@ export default function App() {
           )}
 
           {compteConnecte && (
-            <div style={{ background: "#e6faf8", borderRadius: 10, padding: "10px 12px", marginBottom: 10, fontSize: 13, color: "#0B6E8A", display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ background: "#e8f6fe", borderRadius: 10, padding: "10px 12px", marginBottom: 10, fontSize: 13, color: "#07a0f2", display: "flex", alignItems: "center", gap: 8 }}>
               ✅ Connecté en tant que <strong>{comptes[compteConnecte]?.prenom} {comptes[compteConnecte]?.nom}</strong>
             </div>
           )}
@@ -4589,7 +4589,7 @@ export default function App() {
 
         {/* Calendrier */}
         <div style={card}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, color: "#0B6E8A", marginBottom: 14, fontWeight: 700 }}>📅 Choisissez votre date</div>
+          <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 19, color: "#07a0f2", marginBottom: 14, fontWeight: 700 }}>📅 Choisissez votre date</div>
           <CalendrierDisponibilites
             disponibilites={disponibilites} reservations={reservations}
             selectedDate={form.date}
@@ -4601,7 +4601,7 @@ export default function App() {
         {/* Grille horaire */}
         {form.date && (
           <div style={card}>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, color: "#0B6E8A", marginBottom: 14, fontWeight: 700 }}>⏰ Choisissez vos horaires</div>
+            <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 19, color: "#07a0f2", marginBottom: 14, fontWeight: 700 }}>⏰ Choisissez vos horaires</div>
             <SelecteurHoraire
               disponibilites={disponibilites} reservations={reservations} date={form.date}
               creneaux={form.creneaux}
@@ -4613,14 +4613,21 @@ export default function App() {
 
         {/* Participants */}
         <div style={card}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", marginBottom: 12, fontWeight: 700 }}>Participants</div>
-          {[{ key: "adultes", label: "Adultes (12 ans et +)", tarif: `${TARIF_BASE} €/pers/h`, min: 1 }, { key: "enfants12", label: "Enfants (3–11 ans)", tarif: `${TARIF_BASE * .5} €/pers/h (-50%)`, min: 0 }, { key: "moins3", label: "Moins de 3 ans", tarif: "Gratuit", min: 0 }].map(({ key, label, tarif, min }) => (
+          <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", marginBottom: 12, fontWeight: 700 }}>Participants</div>
+          {[{ key: "adultes", label: "Adultes", sousLabel: "12 ans et plus", tarif: `${TARIF_BASE} €/pers/h`, badge: null, min: 1 }, { key: "enfants12", label: "Enfants", sousLabel: "de 3 à 11 ans", tarif: `${TARIF_BASE * .5} €/pers/h`, badge: "-50%", min: 0 }, { key: "moins3", label: "Bébés", sousLabel: "moins de 3 ans", tarif: null, badge: "Gratuit", min: 0 }].map(({ key, label, sousLabel, tarif, badge, min }) => (
             <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <div><div style={{ fontWeight: 600, fontSize: 13, color: "#2C3E50" }}>{label}</div><div style={{ fontSize: 12, color: "#4ECDC4", fontWeight: 600 }}>{tarif}</div></div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: "#2C3E50" }}>{label}</span>
+                  {/* Badge vert façon Swimmy pour les tarifs réduits/gratuits */}
+                  {badge && <span style={{ background: "#2ecc71", color: "#fff", fontSize: 11, fontWeight: 800, borderRadius: 20, padding: "2px 9px" }}>{badge}</span>}
+                </div>
+                <div style={{ fontSize: 12, color: "#6b7f8c" }}>{sousLabel}{tarif ? ` · ${tarif}` : ""}</div>
+              </div>
               <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <button onClick={() => setF(key, Math.max(min, form[key] - 1))} style={{ width: 30, height: 30, borderRadius: "50%", border: "2px solid #0B6E8A", background: "#fff", color: "#0B6E8A", fontSize: 17, fontWeight: 700, cursor: "pointer" }}>−</button>
-                <span style={{ fontWeight: 700, fontSize: 17, minWidth: 18, textAlign: "center" }}>{form[key]}</span>
-                <button onClick={() => setF(key, form[key] + 1)} style={{ width: 30, height: 30, borderRadius: "50%", border: "none", background: "#0B6E8A", color: "#fff", fontSize: 17, fontWeight: 700, cursor: "pointer" }}>+</button>
+                <button onClick={() => setF(key, Math.max(min, form[key] - 1))} style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid #d5e5f0", background: "#fff", color: "#07a0f2", fontSize: 17, fontWeight: 700, cursor: "pointer" }}>−</button>
+                <span style={{ fontWeight: 800, fontSize: 17, minWidth: 18, textAlign: "center" }}>{form[key]}</span>
+                <button onClick={() => setF(key, form[key] + 1)} style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid #07a0f2", background: "#fff", color: "#07a0f2", fontSize: 17, fontWeight: 700, cursor: "pointer" }}>+</button>
               </div>
             </div>
           ))}
@@ -4628,26 +4635,26 @@ export default function App() {
 
         {/* Formules de groupe spéciales */}
         <div style={card}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: "#0B6E8A", marginBottom: 4, fontWeight: 700 }}>👨‍👩‍👧‍👦 Formule groupe (optionnel)</div>
-          <div style={{ fontSize: 12, color: "#5a8a96", marginBottom: 12, lineHeight: 1.5 }}>
+          <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", marginBottom: 4, fontWeight: 700 }}>👨‍👩‍👧‍👦 Formule groupe (optionnel)</div>
+          <div style={{ fontSize: 12, color: "#6b7f8c", marginBottom: 12, lineHeight: 1.5 }}>
             Tarif forfaitaire pour une session de 3h. Non cumulable avec les remises fidélité, mais l'extra "Zéro vis-à-vis" reste offert.
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div onClick={() => setF("formuleGroupe", form.formuleGroupe === "groupe10" ? null : "groupe10")}
-              style={{ padding: "12px 14px", borderRadius: 12, cursor: "pointer", border: form.formuleGroupe === "groupe10" ? "2px solid #0B6E8A" : "2px solid #e0e0e0", background: form.formuleGroupe === "groupe10" ? "#f0fafc" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              style={{ padding: "12px 14px", borderRadius: 12, cursor: "pointer", border: form.formuleGroupe === "groupe10" ? "2px solid #07a0f2" : "2px solid #e0e0e0", background: form.formuleGroupe === "groupe10" ? "#f0f9ff" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 13, color: "#2C3E50" }}>Groupe 10 personnes max</div>
-                <div style={{ fontSize: 11, color: "#5a8a96" }}>3h · soit 5€/pers/h</div>
+                <div style={{ fontSize: 11, color: "#6b7f8c" }}>3h · soit 5€/pers/h</div>
               </div>
-              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: "#0B6E8A" }}>150 €</div>
+              <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 19, fontWeight: 700, color: "#07a0f2" }}>150 €</div>
             </div>
             <div onClick={() => setF("formuleGroupe", form.formuleGroupe === "groupe5" ? null : "groupe5")}
-              style={{ padding: "12px 14px", borderRadius: 12, cursor: "pointer", border: form.formuleGroupe === "groupe5" ? "2px solid #0B6E8A" : "2px solid #e0e0e0", background: form.formuleGroupe === "groupe5" ? "#f0fafc" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              style={{ padding: "12px 14px", borderRadius: 12, cursor: "pointer", border: form.formuleGroupe === "groupe5" ? "2px solid #07a0f2" : "2px solid #e0e0e0", background: form.formuleGroupe === "groupe5" ? "#f0f9ff" : "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 13, color: "#2C3E50" }}>Groupe 5 adultes max</div>
-                <div style={{ fontSize: 11, color: "#5a8a96" }}>3h · soit 5€/pers/h</div>
+                <div style={{ fontSize: 11, color: "#6b7f8c" }}>3h · soit 5€/pers/h</div>
               </div>
-              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: "#0B6E8A" }}>75 €</div>
+              <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 19, fontWeight: 700, color: "#07a0f2" }}>75 €</div>
             </div>
           </div>
           {form.formuleGroupe && (
@@ -4658,7 +4665,7 @@ export default function App() {
           {erreurs.formuleGroupe && <div style={{ color: "#FF6B6B", fontSize: 12, marginTop: 8, padding: "6px 10px", background: "#fff0f0", borderRadius: 8 }}>{erreurs.formuleGroupe}</div>}
         </div>
         {form.creneaux.length > 0 && (
-          <div style={{ background: "linear-gradient(135deg,#0B6E8A,#4ECDC4)", borderRadius: 13, padding: "13px 16px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ background: "#07a0f2", borderRadius: 13, padding: "13px 16px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <div style={{ color: "#b8e8f0", fontSize: 12 }}>{padH(heureDebut)} → {padH(heureFin)} ({formatDuree(nbSlots)})</div>
               {form.formuleGroupe ? (
@@ -4670,7 +4677,7 @@ export default function App() {
               {remiseTranches > 0 && <div style={{ color: "#ffe082", fontSize: 11, fontWeight: 700 }}>🎁 Remise fidélité -{remiseTranches}% offerte !</div>}
               {remise > 0 && <div style={{ color: "#ffe082", fontSize: 11, fontWeight: 700 }}>Code promo -{remise}% ✓</div>}
             </div>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: "#fff" }}>{formatEur(prixFinal)}</div>
+            <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 24, fontWeight: 700, color: "#fff" }}>{formatEur(prixFinal)}</div>
           </div>
         )}
         <button style={btnP} onClick={async () => { if (await validerEtape1()) setStep(2); }}>Continuer →</button>
@@ -4681,14 +4688,14 @@ export default function App() {
 
   // ── ÉTAPE 2 : Règlement ───────────────────────────────────────────────────
   if (mode === "locataire" && step === 2) return (
-    <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
       <Header showSteps={true} />
       <div style={{ padding: "16px 16px 32px" }}>
         <div style={card}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, color: "#0B6E8A", marginBottom: 12, fontWeight: 700 }}>Règlement intérieur</div>
-          <div style={{ background: "#f0fafc", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#2C3E50", lineHeight: 1.7, maxHeight: 280, overflowY: "auto", border: "1px solid #b0d8e3", whiteSpace: "pre-line" }}>{REGLEMENT}</div>
+          <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 19, color: "#07a0f2", marginBottom: 12, fontWeight: 700 }}>Règlement intérieur</div>
+          <div style={{ background: "#f0f9ff", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#2C3E50", lineHeight: 1.7, maxHeight: 280, overflowY: "auto", border: "1px solid #b8e0f8", whiteSpace: "pre-line" }}>{REGLEMENT}</div>
           <label style={{ display: "flex", alignItems: "flex-start", gap: 12, marginTop: 16, cursor: "pointer" }}>
-            <input type="checkbox" checked={form.reglementAccepte} onChange={e => setF("reglementAccepte", e.target.checked)} style={{ marginTop: 2, width: 18, height: 18, accentColor: "#0B6E8A" }} />
+            <input type="checkbox" checked={form.reglementAccepte} onChange={e => setF("reglementAccepte", e.target.checked)} style={{ marginTop: 2, width: 18, height: 18, accentColor: "#07a0f2" }} />
             <span style={{ fontSize: 14, color: "#2C3E50", lineHeight: 1.5 }}>J'ai lu et j'accepte le règlement intérieur.</span>
           </label>
         </div>
@@ -4700,12 +4707,12 @@ export default function App() {
 
   // ── ÉTAPE 3 : Extras ─────────────────────────────────────────────────────────
   if (mode === "locataire" && step === 3) return (
-    <div style={{ fontFamily:"Inter,sans-serif", background:"#F7F0E6", minHeight:"100vh" }}>
+    <div style={{ fontFamily:"Inter,sans-serif", background:"#f8f9fa", minHeight:"100vh" }}>
       <Header showSteps={true}/>
       <div style={{ padding:"16px 16px 32px" }}>
         <div style={card}>
-          <div style={{ fontFamily:"'Playfair Display',serif", fontSize:19, color:"#0B6E8A", marginBottom:6, fontWeight:700 }}>🎁 Options & extras</div>
-          <div style={{ fontSize:13, color:"#5a8a96", marginBottom:16, lineHeight:1.5 }}>
+          <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:19, color:"#07a0f2", marginBottom:6, fontWeight:700 }}>🎁 Options & extras</div>
+          <div style={{ fontSize:13, color:"#6b7f8c", marginBottom:16, lineHeight:1.5 }}>
             Personnalisez votre session. Les tarifs sont calculés selon la quantité choisie.
           </div>
 
@@ -4717,17 +4724,17 @@ export default function App() {
               : e.tarif * (qte > 0 ? 1 : 0));
             const sel = qte > 0;
             return (
-              <div key={e.id} style={{ borderRadius:13, marginBottom:12, border: offert ? "2px solid #4ECDC4" : sel ? "2px solid #0B6E8A" : "2px solid #e0e0e0", background: offert ? "#f0fffb" : sel ? "#f0fafc" : "#fff", overflow:"hidden" }}>
+              <div key={e.id} style={{ borderRadius:13, marginBottom:12, border: offert ? "2px solid #39b8f5" : sel ? "2px solid #07a0f2" : "2px solid #e0e0e0", background: offert ? "#f0fffb" : sel ? "#f0f9ff" : "#fff", overflow:"hidden" }}>
                 {/* En-tête */}
                 <div style={{ display:"flex", alignItems:"flex-start", gap:12, padding:"14px 14px 10px" }}>
                   {e.image ? <img src={e.image} alt="" style={{ width:38, height:38, borderRadius:8, objectFit:"cover", flexShrink:0 }} /> : <div style={{ fontSize:28, flexShrink:0 }}>{e.emoji}</div>}
                   <div style={{ flex:1 }}>
                     <div style={{ fontWeight:700, fontSize:14, color:"#2C3E50", display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
                       {e.nom}
-                      {offert && <span style={{ background:"#4ECDC4", color:"#fff", fontSize:10, fontWeight:700, borderRadius:20, padding:"2px 8px" }}>🎁 OFFERT</span>}
+                      {offert && <span style={{ background:"#39b8f5", color:"#fff", fontSize:10, fontWeight:700, borderRadius:20, padding:"2px 8px" }}>🎁 OFFERT</span>}
                     </div>
-                    <div style={{ fontSize:12, color:"#5a8a96", marginTop:2, lineHeight:1.4 }}>{e.description}</div>
-                    <div style={{ fontSize:12, color:"#4ECDC4", fontWeight:600, marginTop:4 }}>
+                    <div style={{ fontSize:12, color:"#6b7f8c", marginTop:2, lineHeight:1.4 }}>{e.description}</div>
+                    <div style={{ fontSize:12, color:"#39b8f5", fontWeight:600, marginTop:4 }}>
                       {offert
                         ? <><span style={{ textDecoration:"line-through", color:"#bbb" }}>{e.tarif} €</span> Offert dès 30 € de réservation !</>
                         : (e.type === "personne" ? `${e.tarif} € / personne` : `${e.tarif} € forfait`)}
@@ -4735,22 +4742,22 @@ export default function App() {
                   </div>
                 </div>
                 {/* Compteur */}
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", borderTop:"1px solid #e8f4f7", background: sel ? "#e6faf8" : "#f9f9f9" }}>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", borderTop:"1px solid #e8f4f7", background: sel ? "#e8f6fe" : "#f9f9f9" }}>
                   {e.type === "personne" ? (
                     /* Compteur quantité */
                     <div style={{ display:"flex", alignItems:"center", gap:14 }}>
                       <button onClick={() => setExtrasChoisis(prev => ({ ...prev, [e.id]: Math.max(0, (prev[e.id]||0) - 1) }))}
-                        style={{ width:32, height:32, borderRadius:"50%", border:"2px solid #0B6E8A", background:"#fff", color:"#0B6E8A", fontSize:18, fontWeight:700, cursor:"pointer" }}>−</button>
+                        style={{ width:32, height:32, borderRadius:"50%", border:"2px solid #07a0f2", background:"#fff", color:"#07a0f2", fontSize:18, fontWeight:700, cursor:"pointer" }}>−</button>
                       <span style={{ fontWeight:700, fontSize:18, minWidth:24, textAlign:"center", color:"#2C3E50" }}>{qte}</span>
                       <button onClick={() => setExtrasChoisis(prev => ({ ...prev, [e.id]: (prev[e.id]||0) + 1 }))}
-                        style={{ width:32, height:32, borderRadius:"50%", border:"none", background:"#0B6E8A", color:"#fff", fontSize:18, fontWeight:700, cursor:"pointer" }}>+</button>
-                      <span style={{ fontSize:12, color:"#5a8a96" }}>personne{qte > 1 ? "s" : ""}</span>
+                        style={{ width:32, height:32, borderRadius:"50%", border:"none", background:"#07a0f2", color:"#fff", fontSize:18, fontWeight:700, cursor:"pointer" }}>+</button>
+                      <span style={{ fontSize:12, color:"#6b7f8c" }}>personne{qte > 1 ? "s" : ""}</span>
                     </div>
                   ) : (
                     /* Toggle forfait */
                     <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                       <div onClick={() => setExtrasChoisis(prev => ({ ...prev, [e.id]: prev[e.id] ? 0 : 1 }))}
-                        style={{ width:46, height:26, borderRadius:13, background:sel?"#0B6E8A":"#ddd", cursor:"pointer", position:"relative", transition:"background .2s" }}>
+                        style={{ width:46, height:26, borderRadius:13, background:sel?"#07a0f2":"#ddd", cursor:"pointer", position:"relative", transition:"background .2s" }}>
                         <div style={{ position:"absolute", top:3, left:sel?23:3, width:20, height:20, borderRadius:"50%", background:"#fff", transition:"left .2s", boxShadow:"0 1px 3px rgba(0,0,0,.2)" }}/>
                       </div>
                       <span style={{ fontSize:13, color:"#2C3E50", fontWeight:600 }}>{sel ? "Inclus" : "Non inclus"}</span>
@@ -4760,8 +4767,8 @@ export default function App() {
                   <div style={{ textAlign:"right" }}>
                     {sel ? (
                       offert
-                        ? <div style={{ fontFamily:"'Playfair Display',serif", fontSize:16, fontWeight:700, color:"#4ECDC4" }}>Gratuit 🎁</div>
-                        : <div style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700, color:"#0B6E8A" }}>{formatEur(montant)}</div>
+                        ? <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:16, fontWeight:700, color:"#39b8f5" }}>Gratuit 🎁</div>
+                        : <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:18, fontWeight:700, color:"#07a0f2" }}>{formatEur(montant)}</div>
                     ) : (
                       <div style={{ fontSize:13, color:"#bbb" }}>0,00 €</div>
                     )}
@@ -4772,18 +4779,18 @@ export default function App() {
           })}
 
           {extras.filter(e => e.actif).length === 0 && (
-            <div style={{ color:"#5a8a96", fontSize:13, textAlign:"center", padding:"16px 0" }}>Aucun extra disponible.</div>
+            <div style={{ color:"#6b7f8c", fontSize:13, textAlign:"center", padding:"16px 0" }}>Aucun extra disponible.</div>
           )}
 
           {montantZeroVisAVisOffert > 0 && (
-            <div style={{ background:"#e6faf8", border:"1.5px solid #4ECDC4", borderRadius:10, padding:"10px 14px", marginTop:8, textAlign:"center", fontSize:13, color:"#0B6E8A", fontWeight:700 }}>
+            <div style={{ background:"#e8f6fe", border:"1.5px solid #39b8f5", borderRadius:10, padding:"10px 14px", marginTop:8, textAlign:"center", fontSize:13, color:"#07a0f2", fontWeight:700 }}>
               🎁 Vous économisez {formatEur(montantZeroVisAVisOffert)} grâce à l'offre "Zéro vis-à-vis" !
             </div>
           )}
           {totalExtras > 0 && (
-            <div style={{ background:"linear-gradient(135deg,#0B6E8A,#4ECDC4)", borderRadius:10, padding:"12px 16px", marginTop:8, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <div style={{ background:"#07a0f2", borderRadius:10, padding:"12px 16px", marginTop:8, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <span style={{ fontSize:14, fontWeight:700, color:"#fff" }}>Total extras</span>
-              <span style={{ fontSize:20, fontWeight:700, color:"#fff", fontFamily:"'Playfair Display',serif" }}>{formatEur(totalExtras)}</span>
+              <span style={{ fontSize:20, fontWeight:700, color:"#fff", fontFamily:"'Nunito',sans-serif" }}>{formatEur(totalExtras)}</span>
             </div>
           )}
         </div>
@@ -4795,41 +4802,41 @@ export default function App() {
 
   // ── ÉTAPE 4 : Paiement ────────────────────────────────────────────────────
   if (mode === "locataire" && step === 4) return (
-    <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
       <Header showSteps={true} />
       <div style={{ padding: "16px 16px 32px" }}>
         <div style={card}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, color: "#0B6E8A", marginBottom: 12, fontWeight: 700 }}>Récapitulatif & Paiement</div>
-          <div style={{ background: "#f0fafc", borderRadius: 10, padding: "12px 14px", marginBottom: 12, border: "1px solid #b0d8e3" }}>
+          <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 19, color: "#07a0f2", marginBottom: 12, fontWeight: 700 }}>Récapitulatif & Paiement</div>
+          <div style={{ background: "#f0f9ff", borderRadius: 10, padding: "12px 14px", marginBottom: 12, border: "1px solid #b8e0f8" }}>
             {[["Locataire", `${form.prenom} ${form.nom}`], ["Date", form.date], ["Créneau", `${padH(heureDebut)} → ${padH(heureFin)} (${formatDuree(nbSlots)})`], ["Participants", `${form.adultes} adulte${form.adultes > 1 ? "s" : ""}${form.enfants12 > 0 ? ` + ${form.enfants12} enfant` : ""}${form.moins3 > 0 ? ` + ${form.moins3} bébé` : ""}`]].map(([k, v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ color: "#5a8a96", fontSize: 13 }}>{k}</span><span style={{ fontWeight: 600, fontSize: 13 }}>{v}</span>
+                <span style={{ color: "#6b7f8c", fontSize: 13 }}>{k}</span><span style={{ fontWeight: 600, fontSize: 13 }}>{v}</span>
               </div>
             ))}
-            <div style={{ height: 1, background: "#b0d8e3", margin: "8px 0" }} />
-            {remiseTranches > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#0B6E8A", fontSize: 13, fontWeight: 700 }}>🎁 Remise fidélité -{remiseTranches}%</span><span style={{ color: "#0B6E8A", fontSize: 13, fontWeight: 700 }}>offerte</span></div>}
-            {remise > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#4ECDC4", fontSize: 13, fontWeight: 600 }}>Code promo -{remise}%</span><span style={{ color: "#4ECDC4", fontSize: 13, fontWeight: 600 }}>-{formatEur((prix * remise) / 100)}</span></div>}
+            <div style={{ height: 1, background: "#b8e0f8", margin: "8px 0" }} />
+            {remiseTranches > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#07a0f2", fontSize: 13, fontWeight: 700 }}>🎁 Remise fidélité -{remiseTranches}%</span><span style={{ color: "#07a0f2", fontSize: 13, fontWeight: 700 }}>offerte</span></div>}
+            {remise > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#39b8f5", fontSize: 13, fontWeight: 600 }}>Code promo -{remise}%</span><span style={{ color: "#39b8f5", fontSize: 13, fontWeight: 600 }}>-{formatEur((prix * remise) / 100)}</span></div>}
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontWeight: 700, fontSize: 15, color: "#0B6E8A" }}>Total</span>
+              <span style={{ fontWeight: 700, fontSize: 15, color: "#07a0f2" }}>Total</span>
               <div style={{ textAlign: "right" }}>
                 {remiseTotalePct > 0 && <div style={{ fontSize: 12, color: "#aaa", textDecoration: "line-through" }}>{formatEur(prix)}</div>}
-                <span style={{ fontWeight: 700, fontSize: 19, color: "#0B6E8A" }}>{formatEur(prixFinal)}</span>
+                <span style={{ fontWeight: 700, fontSize: 19, color: "#07a0f2" }}>{formatEur(prixFinal)}</span>
               </div>
             </div>
           </div>
           {/* Code promo */}
           <div style={{ background: "#f7f0e6", borderRadius: 10, padding: "12px 14px", marginBottom: 12, border: "1px solid #e0d4c0" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0B6E8A", marginBottom: 8 }}>🎁 Vous avez un code promo ?</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#07a0f2", marginBottom: 8 }}>🎁 Vous avez un code promo ?</div>
             {codePromoStatut === "ok" ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#e6faf8", borderRadius: 8, padding: "8px 12px", border: "1.5px solid #4ECDC4" }}>
-                <div><span style={{ fontWeight: 700, color: "#0B6E8A", fontFamily: "monospace", fontSize: 14 }}>{codePromoSaisi.toUpperCase()}</span><span style={{ color: "#4ECDC4", fontWeight: 600, fontSize: 13, marginLeft: 8 }}>✓ -5% appliqué</span></div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#e8f6fe", borderRadius: 8, padding: "8px 12px", border: "1.5px solid #39b8f5" }}>
+                <div><span style={{ fontWeight: 700, color: "#07a0f2", fontFamily: "monospace", fontSize: 14 }}>{codePromoSaisi.toUpperCase()}</span><span style={{ color: "#39b8f5", fontWeight: 600, fontSize: 13, marginLeft: 8 }}>✓ -5% appliqué</span></div>
                 <button onClick={annulerCode} style={{ background: "none", border: "none", color: "#FF6B6B", cursor: "pointer", fontSize: 18, fontWeight: 700 }}>×</button>
               </div>
             ) : (
               <>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input value={codePromoSaisi} onChange={e => { setCodePromoSaisi(e.target.value.toUpperCase()); setCodePromoStatut(null); }} placeholder="PISCINE-XXXXX" style={{ ...inp, flex: 1, fontSize: 14, fontFamily: "monospace", border: codePromoStatut && codePromoStatut !== "ok" ? "2px solid #FF6B6B" : "1.5px solid #b0d8e3" }} />
-                  <button onClick={verifierCode} style={{ padding: "10px 14px", borderRadius: 8, background: "#0B6E8A", color: "#fff", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>Appliquer</button>
+                  <input value={codePromoSaisi} onChange={e => { setCodePromoSaisi(e.target.value.toUpperCase()); setCodePromoStatut(null); }} placeholder="PISCINE-XXXXX" style={{ ...inp, flex: 1, fontSize: 14, fontFamily: "monospace", border: codePromoStatut && codePromoStatut !== "ok" ? "2px solid #FF6B6B" : "1.5px solid #b8e0f8" }} />
+                  <button onClick={verifierCode} style={{ padding: "10px 14px", borderRadius: 8, background: "#07a0f2", color: "#fff", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>Appliquer</button>
                 </div>
                 {codePromoStatut === "invalide" && <div style={{ color: "#FF6B6B", fontSize: 12, marginTop: 5 }}>❌ Code invalide.</div>}
                 {codePromoStatut === "utilise" && <div style={{ color: "#FF6B6B", fontSize: 12, marginTop: 5 }}>❌ Ce code a déjà été utilisé.</div>}
@@ -4839,8 +4846,8 @@ export default function App() {
           </div>
           {/* Récap extras */}
           {Object.values(extrasChoisis).some(q => q > 0) && (
-            <div style={{ background: "#f0fafc", borderRadius: 10, padding: "12px 14px", marginBottom: 12, border: "1px solid #b0d8e3" }}>
-              <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 13, marginBottom: 8 }}>🎁 Extras sélectionnés</div>
+            <div style={{ background: "#f0f9ff", borderRadius: 10, padding: "12px 14px", marginBottom: 12, border: "1px solid #b8e0f8" }}>
+              <div style={{ fontWeight: 700, color: "#07a0f2", fontSize: 13, marginBottom: 8 }}>🎁 Extras sélectionnés</div>
               {extras.filter(e => extrasChoisis[e.id] > 0).map(e => {
                 const qte = extrasChoisis[e.id] || 0;
                 const nb = e.type === "personne" ? qte : 1;
@@ -4848,36 +4855,36 @@ export default function App() {
                 return (
                   <div key={e.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
                     <span style={{ color: "#2C3E50" }}>{e.emoji} {e.nom}{e.type === "personne" ? ` ×${qte} pers.` : " (forfait)"}</span>
-                    <span style={{ fontWeight: 600, color: offert ? "#4ECDC4" : "#0B6E8A" }}>{offert ? "Gratuit 🎁" : formatEur(e.tarif * nb)}</span>
+                    <span style={{ fontWeight: 600, color: offert ? "#39b8f5" : "#07a0f2" }}>{offert ? "Gratuit 🎁" : formatEur(e.tarif * nb)}</span>
                   </div>
                 );
               })}
-              <div style={{ height: 1, background: "#b0d8e3", margin: "8px 0" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: "#0B6E8A" }}>
+              <div style={{ height: 1, background: "#b8e0f8", margin: "8px 0" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: "#07a0f2" }}>
                 <span>Total extras</span><span>{formatEur(totalExtras)}</span>
               </div>
             </div>
           )}
 
           {/* Total général */}
-          <div style={{ background: "linear-gradient(135deg,#0B6E8A,#4ECDC4)", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ background: "#07a0f2", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>Total général</span>
-            <span style={{ color: "#fff", fontWeight: 700, fontSize: 22, fontFamily: "'Playfair Display',serif" }}>{formatEur(totalGeneral)}</span>
+            <span style={{ color: "#fff", fontWeight: 700, fontSize: 22, fontFamily: "'Nunito',sans-serif" }}>{formatEur(totalGeneral)}</span>
           </div>
 
           {/* Mode de paiement */}
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0B6E8A", marginBottom: 10 }}>💳 Mode de paiement</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#07a0f2", marginBottom: 10 }}>💳 Mode de paiement</div>
             <div style={{ display: "flex", gap: 10 }}>
               {[
                 { val: "cb", emoji: "💳", label: "Carte bancaire", desc: "Paiement en ligne à l'acceptation" },
                 { val: "especes", emoji: "💵", label: "Espèces", desc: "Acompte 20% en ligne, solde le jour J" },
               ].map(({ val, emoji, label, desc }) => (
                 <div key={val} onClick={() => setModePaiement(val)}
-                  style={{ flex: 1, padding: "12px 10px", borderRadius: 12, cursor: "pointer", textAlign: "center", border: modePaiement === val ? "2px solid #0B6E8A" : "2px solid #e0e0e0", background: modePaiement === val ? "#f0fafc" : "#fff", transition: "all .15s" }}>
+                  style={{ flex: 1, padding: "12px 10px", borderRadius: 12, cursor: "pointer", textAlign: "center", border: modePaiement === val ? "2px solid #07a0f2" : "2px solid #e0e0e0", background: modePaiement === val ? "#f0f9ff" : "#fff", transition: "all .15s" }}>
                   <div style={{ fontSize: 26, marginBottom: 4 }}>{emoji}</div>
                   <div style={{ fontWeight: 700, fontSize: 13, color: "#2C3E50" }}>{label}</div>
-                  <div style={{ fontSize: 11, color: "#5a8a96", marginTop: 3, lineHeight: 1.4 }}>{desc}</div>
+                  <div style={{ fontSize: 11, color: "#6b7f8c", marginTop: 3, lineHeight: 1.4 }}>{desc}</div>
                 </div>
               ))}
             </div>
@@ -4888,11 +4895,11 @@ export default function App() {
             <div style={{ background: "#fff8e1", borderRadius: 10, padding: "12px 14px", border: "2px solid #f0c040", marginBottom: 12 }}>
               <div style={{ fontWeight: 700, color: "#a06000", fontSize: 13, marginBottom: 6 }}>💵 Détail paiement espèces</div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                <span style={{ color: "#5a8a96" }}>Acompte à régler en ligne (20%)</span>
+                <span style={{ color: "#6b7f8c" }}>Acompte à régler en ligne (20%)</span>
                 <span style={{ fontWeight: 700, color: "#a06000" }}>{formatEur(acompte)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                <span style={{ color: "#5a8a96" }}>Reste à régler le jour J (espèces)</span>
+                <span style={{ color: "#6b7f8c" }}>Reste à régler le jour J (espèces)</span>
                 <span style={{ fontWeight: 700, color: "#2C3E50" }}>{formatEur(resteARegler)}</span>
               </div>
               <div style={{ fontSize: 11, color: "#a06000", marginTop: 8, lineHeight: 1.4 }}>
@@ -4901,47 +4908,47 @@ export default function App() {
             </div>
           )}
           {modePaiement === "cb" && (
-            <div style={{ background: "#e6faf8", borderRadius: 10, padding: "10px 14px", marginBottom: 12, border: "1px solid #4ECDC4" }}>
-              <div style={{ fontSize: 13, color: "#0B6E8A" }}>✓ Aucun débit maintenant.</div>
-              <div style={{ fontSize: 11, color: "#5a8a96", marginTop: 6, lineHeight: 1.4 }}>
+            <div style={{ background: "#e8f6fe", borderRadius: 10, padding: "10px 14px", marginBottom: 12, border: "1px solid #39b8f5" }}>
+              <div style={{ fontSize: 13, color: "#07a0f2" }}>✓ Aucun débit maintenant.</div>
+              <div style={{ fontSize: 11, color: "#6b7f8c", marginTop: 6, lineHeight: 1.4 }}>
                 Si le propriétaire accepte votre demande, vous recevrez un lien de paiement sécurisé par email pour régler {formatEur(totalGeneral)}. Le créneau n'est garanti qu'une fois ce paiement effectué.
               </div>
             </div>
           )}
 
-          <div style={{ border: "2px dashed #b0d8e3", borderRadius: 10, padding: "12px", textAlign: "center", marginBottom: 16 }}>
+          <div style={{ border: "2px dashed #b8e0f8", borderRadius: 10, padding: "12px", textAlign: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 20, marginBottom: 3 }}>📩</div>
-            <div style={{ fontWeight: 600, color: "#0B6E8A", marginBottom: 2 }}>Paiement uniquement après acceptation</div>
-            <div style={{ fontSize: 12, color: "#5a8a96" }}>Aucune donnée bancaire n'est demandée à cette étape. Vous recevrez un lien de paiement sécurisé (Stripe) par email si le propriétaire accepte votre demande.</div>
+            <div style={{ fontWeight: 600, color: "#07a0f2", marginBottom: 2 }}>Paiement uniquement après acceptation</div>
+            <div style={{ fontSize: 12, color: "#6b7f8c" }}>Aucune donnée bancaire n'est demandée à cette étape. Vous recevrez un lien de paiement sécurisé (Stripe) par email si le propriétaire accepte votre demande.</div>
           </div>
 
           {/* ── Vérification téléphone par SMS ── */}
           {modePaiement && (
-            <div style={{ background: otpVerifie ? "#e6faf8" : "#f0fafc", border: `2px solid ${otpVerifie ? "#4ECDC4" : "#b0d8e3"}`, borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
+            <div style={{ background: otpVerifie ? "#e8f6fe" : "#f0f9ff", border: `2px solid ${otpVerifie ? "#39b8f5" : "#b8e0f8"}`, borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
               {otpVerifie ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ fontSize: 22 }}>✅</div>
                   <div>
-                    <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 14 }}>Téléphone vérifié</div>
-                    <div style={{ fontSize: 12, color: "#5a8a96" }}>Votre numéro a été confirmé. Vous pouvez finaliser votre réservation.</div>
+                    <div style={{ fontWeight: 700, color: "#07a0f2", fontSize: 14 }}>Téléphone vérifié</div>
+                    <div style={{ fontSize: 12, color: "#6b7f8c" }}>Votre numéro a été confirmé. Vous pouvez finaliser votre réservation.</div>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div style={{ fontWeight: 700, color: "#0B6E8A", fontSize: 14, marginBottom: 6 }}>🔐 Vérification de votre téléphone</div>
-                  <div style={{ fontSize: 12, color: "#5a8a96", marginBottom: 10 }}>
+                  <div style={{ fontWeight: 700, color: "#07a0f2", fontSize: 14, marginBottom: 6 }}>🔐 Vérification de votre téléphone</div>
+                  <div style={{ fontSize: 12, color: "#6b7f8c", marginBottom: 10 }}>
                     Pour confirmer votre réservation, nous devons vérifier votre numéro <strong>{form.telephone}</strong> par SMS.
                   </div>
                   {!otpEnvoye ? (
                     <button
                       onClick={envoyerOTP}
                       disabled={otpEnCours}
-                      style={{ width: "100%", padding: "11px", borderRadius: 9, background: "#0B6E8A", color: "#fff", border: "none", fontWeight: 700, fontSize: 14, cursor: otpEnCours ? "not-allowed" : "pointer", opacity: otpEnCours ? 0.7 : 1 }}>
+                      style={{ width: "100%", padding: "11px", borderRadius: 9, background: "#07a0f2", color: "#fff", border: "none", fontWeight: 700, fontSize: 14, cursor: otpEnCours ? "not-allowed" : "pointer", opacity: otpEnCours ? 0.7 : 1 }}>
                       {otpEnCours ? "Envoi en cours…" : "📲 Recevoir mon code par SMS"}
                     </button>
                   ) : (
                     <>
-                      <div style={{ fontSize: 12, color: "#0B6E8A", background: "#e6faf8", borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
+                      <div style={{ fontSize: 12, color: "#07a0f2", background: "#e8f6fe", borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
                         📲 Un code à 6 chiffres a été envoyé par SMS au <strong>{form.telephone}</strong>. Valable 10 minutes.
                       </div>
                       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
@@ -4952,17 +4959,17 @@ export default function App() {
                           placeholder="Code à 6 chiffres"
                           value={otpSaisi}
                           onChange={e => { setOtpSaisi(e.target.value.replace(/\D/g,"")); setOtpErreur(""); }}
-                          style={{ flex: 1, padding: "11px 14px", borderRadius: 9, border: otpErreur ? "2px solid #FF6B6B" : "2px solid #b0d8e3", fontSize: 18, fontWeight: 700, letterSpacing: 6, textAlign: "center" }}
+                          style={{ flex: 1, padding: "11px 14px", borderRadius: 9, border: otpErreur ? "2px solid #FF6B6B" : "2px solid #b8e0f8", fontSize: 18, fontWeight: 700, letterSpacing: 6, textAlign: "center" }}
                         />
                         <button
                           onClick={validerOTP}
-                          style={{ padding: "11px 18px", borderRadius: 9, background: "#0B6E8A", color: "#fff", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                          style={{ padding: "11px 18px", borderRadius: 9, background: "#07a0f2", color: "#fff", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
                           Valider
                         </button>
                       </div>
                       {otpErreur && <div style={{ fontSize: 12, color: "#FF6B6B", marginBottom: 6 }}>❌ {otpErreur}</div>}
                       <button onClick={() => { setOtpEnvoye(false); setOtpSaisi(""); setOtpErreur(""); }}
-                        style={{ fontSize: 12, color: "#5a8a96", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
+                        style={{ fontSize: 12, color: "#6b7f8c", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
                         Renvoyer le code
                       </button>
                     </>
@@ -4979,7 +4986,7 @@ export default function App() {
           </button>
           <button style={btnS} onClick={() => setStep(3)}>← Retour</button>
         </div>
-        <div style={{ textAlign:"center", fontSize:12, color:"#5a8a96", marginTop:8 }}>
+        <div style={{ textAlign:"center", fontSize:12, color:"#6b7f8c", marginTop:8 }}>
           Aucun paiement maintenant — vous serez recontacté(e) après validation par le propriétaire.
         </div>
       </div>
@@ -4988,19 +4995,19 @@ export default function App() {
 
   // ── PAGE ÉTAT DES LIEUX D'ENTRÉE (le jour J, depuis Mon compte ou la bannière) ──
   if (mode === "edlEntree") return (
-    <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
       <Header showSteps={false} />
       <div style={{ padding: "16px 16px 32px" }}>
         <div style={card}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, color: "#0B6E8A", marginBottom: 6, fontWeight: 700 }}>État des lieux — Arrivée</div>
-          <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 6 }}>Réservation {reservation?.ref}</div>
-          <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.5 }}>Photographiez chaque élément avant votre session. Les photos dorées sont les références propriétaire.</div>
+          <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 19, color: "#07a0f2", marginBottom: 6, fontWeight: 700 }}>État des lieux — Arrivée</div>
+          <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 6 }}>Réservation {reservation?.ref}</div>
+          <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14, lineHeight: 1.5 }}>Photographiez chaque élément avant votre session. Les photos dorées sont les références propriétaire.</div>
           {elementsEdl.map(item => (
             <div key={item} style={{ borderBottom: "1px solid #e8f4f7", paddingBottom: 10, marginBottom: 10 }}>
               <PhotoUploader label={item} photos={photosAvant.filter(p => p.item === item)} reference={inventaire[item] || []} onChange={photos => setPhotosAvant(prev => [...prev.filter(p => p.item !== item), ...photos.map(p => ({ ...p, item }))])} />
             </div>
           ))}
-          <div style={{ fontSize: 12, color: "#5a8a96", marginBottom: 10 }}>📷 {photosAvant.length} photo{photosAvant.length > 1 ? "s" : ""}</div>
+          <div style={{ fontSize: 12, color: "#6b7f8c", marginBottom: 10 }}>📷 {photosAvant.length} photo{photosAvant.length > 1 ? "s" : ""}</div>
           <button style={btnP} onClick={validerEdlEntree}>✓ Valider et commencer la session</button>
           <button style={btnS} onClick={() => setMode(compteConnecte ? "compte" : "accueil")}>← Retour</button>
         </div>
@@ -5015,14 +5022,14 @@ export default function App() {
     const statut = resaActuelle?.statut || "en_attente";
 
     if (statut === "en_attente") return (
-      <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+      <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
         <Header showSteps={true} />
         <div style={{ padding: "16px 16px 32px" }}>
           <div style={{ ...card, textAlign: "center" }}>
             <div style={{ fontSize: 40, marginBottom: 6 }}>⏳</div>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, color: "#0B6E8A", fontWeight: 700, marginBottom: 6 }}>Demande envoyée !</div>
+            <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 21, color: "#07a0f2", fontWeight: 700, marginBottom: 6 }}>Demande envoyée !</div>
             <div style={{ display: "inline-block", background: "#f0c040", color: "#fff", borderRadius: 8, padding: "4px 13px", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>{reservation?.ref}</div>
-            <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.7 }}>
+            <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14, lineHeight: 1.7 }}>
               Votre demande de réservation est <strong>en attente de validation</strong> par le propriétaire.<br/>
               Vous recevrez un email à <strong>{form.email}</strong> dès qu'elle sera traitée.
             </div>
@@ -5041,13 +5048,13 @@ export default function App() {
     );
 
     if (statut === "refusee") return (
-      <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+      <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
         <Header showSteps={true} />
         <div style={{ padding: "16px 16px 32px" }}>
           <div style={{ ...card, textAlign: "center" }}>
             <div style={{ fontSize: 40, marginBottom: 6 }}>😔</div>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, color: "#FF6B6B", fontWeight: 700, marginBottom: 6 }}>Demande refusée</div>
-            <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.7 }}>
+            <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 21, color: "#FF6B6B", fontWeight: 700, marginBottom: 6 }}>Demande refusée</div>
+            <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14, lineHeight: 1.7 }}>
               Le propriétaire n'a pas pu accepter votre demande pour ce créneau.
               {resaActuelle?.motifRefus && <><br/><em>"{resaActuelle.motifRefus}"</em></>}
               <br/>Vous serez remboursé(e) intégralement.
@@ -5059,13 +5066,13 @@ export default function App() {
     );
 
     if (statut === "annulee") return (
-      <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+      <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
         <Header showSteps={true} />
         <div style={{ padding: "16px 16px 32px" }}>
           <div style={{ ...card, textAlign: "center" }}>
             <div style={{ fontSize: 40, marginBottom: 6 }}>🚫</div>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, color: "#FF6B6B", fontWeight: 700, marginBottom: 6 }}>Réservation annulée</div>
-            <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.7 }}>
+            <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 21, color: "#FF6B6B", fontWeight: 700, marginBottom: 6 }}>Réservation annulée</div>
+            <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14, lineHeight: 1.7 }}>
               Votre réservation pourtant confirmée a été annulée.
               {resaActuelle?.motifAnnulation && <><br/><em>"{resaActuelle.motifAnnulation}"</em></>}
               <br/>Vous serez remboursé(e) intégralement.
@@ -5080,16 +5087,16 @@ export default function App() {
 
     // statut === "acceptee"
     return (
-      <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+      <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
         <Header showSteps={true} />
         <div style={{ padding: "16px 16px 32px" }}>
           <div style={{ ...card, textAlign: "center" }}>
             <div style={{ fontSize: 40, marginBottom: 6 }}>🎉</div>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, color: "#0B6E8A", fontWeight: 700, marginBottom: 6 }}>Réservation confirmée !</div>
-            <div style={{ display: "inline-block", background: "#4ECDC4", color: "#fff", borderRadius: 8, padding: "4px 13px", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>{reservation?.ref}</div>
-            <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14, lineHeight: 1.7 }}>Confirmation envoyée à <strong>{form.email}</strong>.<br />Profitez bien ! 🌊</div>
-            <div style={{ background: "#e6faf8", borderRadius: 10, padding: "11px 13px", border: "2px solid #4ECDC4", marginBottom: 12, textAlign: "left" }}>
-              <div style={{ fontWeight: 700, color: "#0B6E8A", marginBottom: 4 }}>📅 Le jour de votre venue</div>
+            <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 21, color: "#07a0f2", fontWeight: 700, marginBottom: 6 }}>Réservation confirmée !</div>
+            <div style={{ display: "inline-block", background: "#39b8f5", color: "#fff", borderRadius: 8, padding: "4px 13px", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>{reservation?.ref}</div>
+            <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14, lineHeight: 1.7 }}>Confirmation envoyée à <strong>{form.email}</strong>.<br />Profitez bien ! 🌊</div>
+            <div style={{ background: "#e8f6fe", borderRadius: 10, padding: "11px 13px", border: "2px solid #39b8f5", marginBottom: 12, textAlign: "left" }}>
+              <div style={{ fontWeight: 700, color: "#07a0f2", marginBottom: 4 }}>📅 Le jour de votre venue</div>
               <div style={{ fontSize: 13, color: "#2C3E50", lineHeight: 1.6 }}>À l'heure de votre créneau, vous pourrez réaliser l'état des lieux d'entrée et de sortie directement depuis votre espace "Mon compte".</div>
             </div>
             <button style={btnP} onClick={() => { resetSession(); setMode(compteConnecte?"compte":"accueil"); }}>
@@ -5103,13 +5110,13 @@ export default function App() {
 
   // ── PAGE ÉTAT DES LIEUX DE SORTIE (le jour J, depuis Mon compte ou la bannière) ──
   if (mode === "edlSortie") return (
-    <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
       <Header showSteps={false} />
       <div style={{ padding: "16px 16px 32px" }}>
         <div style={card}>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, color: "#0B6E8A", marginBottom: 6, fontWeight: 700 }}>État des lieux — Départ</div>
-          <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 6 }}>Réservation {reservation?.ref}</div>
-          <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14 }}>Photographiez chaque élément dans l'état où vous le laissez.</div>
+          <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 19, color: "#07a0f2", marginBottom: 6, fontWeight: 700 }}>État des lieux — Départ</div>
+          <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 6 }}>Réservation {reservation?.ref}</div>
+          <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14 }}>Photographiez chaque élément dans l'état où vous le laissez.</div>
           {elementsEdl.map(item => (
             <div key={item} style={{ borderBottom: "1px solid #e8f4f7", paddingBottom: 10, marginBottom: 10 }}>
               <PhotoUploader label={item} photos={photosApres.filter(p => p.item === item)} reference={inventaire[item] || []} onChange={photos => setPhotosApres(prev => [...prev.filter(p => p.item !== item), ...photos.map(p => ({ ...p, item }))])} />
@@ -5136,18 +5143,18 @@ export default function App() {
 
   // ── ÉTAPE 7 : Avis ────────────────────────────────────────────────────────
   if (mode === "locataire" && step === 7) return (
-    <div style={{ fontFamily: "Inter,sans-serif", background: "#F7F0E6", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
       <Header showSteps={false} />
       <div style={{ padding: "16px 16px 32px" }}>
         <div style={{ ...card, textAlign: "center" }}>
           <div style={{ fontSize: 40, marginBottom: 6 }}>✅</div>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, color: "#0B6E8A", fontWeight: 700, marginBottom: 6 }}>Session clôturée !</div>
-          <div style={{ fontSize: 13, color: "#5a8a96" }}>Merci pour votre visite 🌊</div>
+          <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 21, color: "#07a0f2", fontWeight: 700, marginBottom: 6 }}>Session clôturée !</div>
+          <div style={{ fontSize: 13, color: "#6b7f8c" }}>Merci pour votre visite 🌊</div>
         </div>
         {!avisEnvoye ? (
           <div style={card}>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, color: "#0B6E8A", marginBottom: 6, fontWeight: 700, textAlign: "center" }}>Votre avis nous est précieux</div>
-            <div style={{ fontSize: 13, color: "#5a8a96", textAlign: "center", marginBottom: 10 }}>Si vous avez été un locataire exemplaire, vous pourriez recevoir un <strong>code -5%</strong> valable 1 mois !</div>
+            <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 17, color: "#07a0f2", marginBottom: 6, fontWeight: 700, textAlign: "center" }}>Votre avis nous est précieux</div>
+            <div style={{ fontSize: 13, color: "#6b7f8c", textAlign: "center", marginBottom: 10 }}>Si vous avez été un locataire exemplaire, vous pourriez recevoir un <strong>code -5%</strong> valable 1 mois !</div>
             <Stars value={note} onChange={setNote} />
             <div style={{ marginTop: 10 }}><label style={lbl}>Commentaire (optionnel)</label><textarea value={commentaire} onChange={e => setCommentaire(e.target.value)} placeholder="Partagez votre expérience..." style={{ ...inp, height: 80, resize: "vertical", fontSize: 13 }} /></div>
             <button style={{ ...btnP, opacity: note === 0 ? .5 : 1 }} onClick={soumettreAvis}>Envoyer mon avis</button>
@@ -5161,8 +5168,8 @@ export default function App() {
             <div style={card}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 34, marginBottom: 8 }}>⏳</div>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, color: "#0B6E8A", fontWeight: 700, marginBottom: 8 }}>Merci pour votre avis !</div>
-                <div style={{ fontSize: 13, color: "#5a8a96", lineHeight: 1.7 }}>{"⭐".repeat(note)} — votre retour a bien été enregistré.<br />Si le propriétaire vous attribue 4 étoiles ou plus, vous recevrez un <strong>code -5%</strong>.</div>
+                <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 17, color: "#07a0f2", fontWeight: 700, marginBottom: 8 }}>Merci pour votre avis !</div>
+                <div style={{ fontSize: 13, color: "#6b7f8c", lineHeight: 1.7 }}>{"⭐".repeat(note)} — votre retour a bien été enregistré.<br />Si le propriétaire vous attribue 4 étoiles ou plus, vous recevrez un <strong>code -5%</strong>.</div>
               </div>
             </div>
           );
@@ -5170,13 +5177,13 @@ export default function App() {
             <div style={card}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 34, marginBottom: 8 }}>🎁</div>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, color: "#0B6E8A", fontWeight: 700, marginBottom: 6 }}>Bravo, vous méritez une réduction !</div>
-                <div style={{ fontSize: 13, color: "#5a8a96", marginBottom: 14 }}>Le propriétaire vous a attribué <strong>{"⭐".repeat(noteP.note)}</strong>.<br />Code <strong>-5%</strong> valable jusqu'au <strong>{promoRecue?.expiration}</strong> :</div>
-                <div style={{ background: "linear-gradient(135deg,#0B6E8A,#4ECDC4)", borderRadius: 12, padding: "14px 18px", display: "inline-block", marginBottom: 12 }}>
+                <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 17, color: "#07a0f2", fontWeight: 700, marginBottom: 6 }}>Bravo, vous méritez une réduction !</div>
+                <div style={{ fontSize: 13, color: "#6b7f8c", marginBottom: 14 }}>Le propriétaire vous a attribué <strong>{"⭐".repeat(noteP.note)}</strong>.<br />Code <strong>-5%</strong> valable jusqu'au <strong>{promoRecue?.expiration}</strong> :</div>
+                <div style={{ background: "#07a0f2", borderRadius: 12, padding: "14px 18px", display: "inline-block", marginBottom: 12 }}>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: 2, fontFamily: "monospace" }}>{promoRecue?.code}</div>
                   <div style={{ fontSize: 11, color: "#b8e8f0", marginTop: 2 }}>-5% · usage unique · 1 mois</div>
                 </div>
-                <div style={{ fontSize: 12, color: "#5a8a96" }}>📋 Copiez ce code pour votre prochaine réservation.</div>
+                <div style={{ fontSize: 12, color: "#6b7f8c" }}>📋 Copiez ce code pour votre prochaine réservation.</div>
               </div>
             </div>
           );
@@ -5184,8 +5191,8 @@ export default function App() {
             <div style={card}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 34, marginBottom: 8 }}>⏳</div>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, color: "#0B6E8A", fontWeight: 700, marginBottom: 8 }}>Super note reçue !</div>
-                <div style={{ fontSize: 13, color: "#5a8a96", lineHeight: 1.7 }}>{"⭐".repeat(noteP.note)} — votre code -5% est en cours de génération.<br />Revenez dans quelques instants ou rafraîchissez la page.</div>
+                <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 17, color: "#07a0f2", fontWeight: 700, marginBottom: 8 }}>Super note reçue !</div>
+                <div style={{ fontSize: 13, color: "#6b7f8c", lineHeight: 1.7 }}>{"⭐".repeat(noteP.note)} — votre code -5% est en cours de génération.<br />Revenez dans quelques instants ou rafraîchissez la page.</div>
               </div>
             </div>
           );
@@ -5193,8 +5200,8 @@ export default function App() {
             <div style={card}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 34, marginBottom: 8 }}>🌊</div>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, color: "#0B6E8A", fontWeight: 700, marginBottom: 8 }}>Merci pour votre visite !</div>
-                <div style={{ fontSize: 13, color: "#5a8a96", lineHeight: 1.7 }}>Votre avis a bien été pris en compte.<br />Nous espérons vous revoir bientôt ! 😊</div>
+                <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 17, color: "#07a0f2", fontWeight: 700, marginBottom: 8 }}>Merci pour votre visite !</div>
+                <div style={{ fontSize: 13, color: "#6b7f8c", lineHeight: 1.7 }}>Votre avis a bien été pris en compte.<br />Nous espérons vous revoir bientôt ! 😊</div>
               </div>
             </div>
           );

@@ -52,10 +52,10 @@ export async function envoyerSmsNouvelleDemande(reservation) {
 // ─── Templates ──────────────────────────────────────────────────────────────
 function enveloppe(contenu) {
   return `
-    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #F7F0E6; padding: 24px;">
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #f8f9fa; padding: 24px;">
       <div style="text-align: center; margin-bottom: 20px;">
         <div style="font-size: 32px;">🏊</div>
-        <div style="font-size: 20px; font-weight: 700; color: #0B6E8A; margin-top: 4px;">My Piscine Privée</div>
+        <div style="font-size: 20px; font-weight: 700; color: #07a0f2; margin-top: 4px;">My Piscine Privée</div>
         <div style="font-size: 13px; color: #5a8a96;">Écouflant • Maine-et-Loire</div>
       </div>
       <div style="background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(11,110,138,.08);">
@@ -85,7 +85,7 @@ function formatHeureEmail(h) {
 // ─── Email : nouvelle demande de réservation (au propriétaire) ──────────────
 export async function envoyerEmailNouvelleDemande(reservation, emailProprietaire) {
   const html = enveloppe(`
-    <h2 style="color: #0B6E8A; margin-top: 0;">🔔 Nouvelle demande de réservation</h2>
+    <h2 style="color: #07a0f2; margin-top: 0;">🔔 Nouvelle demande de réservation</h2>
     <p style="color: #2C3E50; font-size: 14px;">Une nouvelle demande de réservation est en attente de votre validation.</p>
     <table style="width: 100%; margin: 16px 0;">
       ${ligneInfo('Référence', reservation.ref)}
@@ -107,8 +107,8 @@ export async function envoyerEmailAcceptation(reservation) {
   if (p?.statut === "paye") {
     // Cas rare : paiement déjà confirmé au moment de l'envoi de cet email
     blocPaiement = `
-    <div style="background: #e6faf8; border: 1.5px solid #4ECDC4; border-radius: 10px; padding: 14px 16px; margin: 16px 0;">
-      <div style="font-size: 14px; font-weight: 700; color: #0B6E8A; margin-bottom: 4px;">💳 Paiement effectué</div>
+    <div style="background: #e6faf8; border: 1.5px solid #39b8f5; border-radius: 10px; padding: 14px 16px; margin: 16px 0;">
+      <div style="font-size: 14px; font-weight: 700; color: #07a0f2; margin-bottom: 4px;">💳 Paiement effectué</div>
       <div style="font-size: 13px; color: #2C3E50;">
         Votre règlement de <strong>${formatEurEmail(p.montantPaye ?? p.montant)}</strong> a bien été reçu.
         ${reservation.modePaiement === "especes"
@@ -119,14 +119,14 @@ export async function envoyerEmailAcceptation(reservation) {
   } else if (p?.url) {
     // Cas nominal : lien de paiement envoyé à l'acceptation
     blocPaiement = `
-    <div style="background: #f0fafc; border: 1.5px solid #4ECDC4; border-radius: 10px; padding: 16px; margin: 16px 0; text-align: center;">
-      <div style="font-size: 14px; font-weight: 700; color: #0B6E8A; margin-bottom: 6px;">💳 Dernière étape : le règlement</div>
+    <div style="background: #f0fafc; border: 1.5px solid #39b8f5; border-radius: 10px; padding: 16px; margin: 16px 0; text-align: center;">
+      <div style="font-size: 14px; font-weight: 700; color: #07a0f2; margin-bottom: 6px;">💳 Dernière étape : le règlement</div>
       <div style="font-size: 13px; color: #2C3E50; margin-bottom: 12px;">
         ${reservation.modePaiement === "especes"
           ? `Réglez l'acompte de <strong>${formatEurEmail(p.montant)}</strong> pour confirmer définitivement votre réservation. Le solde de ${formatEurEmail((reservation.totalGeneral || reservation.prix || 0) - p.montant)} sera à régler en espèces sur place.`
           : `Réglez <strong>${formatEurEmail(p.montant)}</strong> pour confirmer définitivement votre réservation.`}
       </div>
-      <a href="${p.url}" style="display: inline-block; background: #0B6E8A; color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; padding: 12px 28px; border-radius: 8px;">
+      <a href="${p.url}" style="display: inline-block; background: #07a0f2; color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; padding: 12px 28px; border-radius: 8px;">
         Payer ${formatEurEmail(p.montant)} en ligne
       </a>
       <div style="font-size: 11px; color: #5a8a96; margin-top: 10px;">Paiement sécurisé par Stripe. Vous retrouverez aussi ce lien dans votre espace "Mon compte".</div>
@@ -136,7 +136,7 @@ export async function envoyerEmailAcceptation(reservation) {
     </p>`;
   }
   const html = enveloppe(`
-    <h2 style="color: #0B6E8A; margin-top: 0;">🎉 Réservation acceptée !</h2>
+    <h2 style="color: #07a0f2; margin-top: 0;">🎉 Réservation acceptée !</h2>
     <p style="color: #2C3E50; font-size: 14px;">Bonne nouvelle ${reservation.prenom}, votre demande de réservation a été acceptée !</p>
     <table style="width: 100%; margin: 16px 0;">
       ${ligneInfo('Référence', reservation.ref)}
