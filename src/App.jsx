@@ -1516,20 +1516,16 @@ export default function App() {
         else { await sauvegarderElementsEdl(MOBILIER); }
 
         if (extrasData) {
-          // Complète silencieusement avec les extras par défaut et Swimmy
-          // manquants — aucun clic requis, aucune confirmation. La propriétaire
-          // supprime elle-même ceux dont elle ne veut pas garder.
+          // Complète l'affichage avec les extras par défaut et Swimmy manquants
+          // pour TOUS les visiteurs (aucune écriture en base ici — ce chargement
+          // initial tourne pour n'importe quel client anonyme, pas seulement la
+          // propriétaire). L'écriture réelle, si besoin, est gérée plus bas par
+          // l'effet de sauvegarde, qui vérifie lui la session propriétaire/admin.
           const manquantsDefaut = EXTRAS_DEFAUT.filter(def => !extrasData.some(e => e.id === def.id));
           const manquantsSwimmy = EXTRAS_SWIMMY.filter(sw => !extrasData.some(e => e.id === sw.id) && !manquantsDefaut.some(d => d.id === sw.id));
-          const extrasComplets = [...extrasData, ...manquantsDefaut, ...manquantsSwimmy];
-          setExtras(extrasComplets);
-          if (manquantsDefaut.length || manquantsSwimmy.length) {
-            await sauvegarderExtras(extrasComplets);
-          }
+          setExtras([...extrasData, ...manquantsDefaut, ...manquantsSwimmy]);
         } else {
-          const extrasInitiaux = [...EXTRAS_DEFAUT, ...EXTRAS_SWIMMY];
-          setExtras(extrasInitiaux);
-          await sauvegarderExtras(extrasInitiaux);
+          setExtras([...EXTRAS_DEFAUT, ...EXTRAS_SWIMMY]);
         }
 
         setRegistreCodes(codesData || {});
@@ -1609,10 +1605,11 @@ export default function App() {
 
   useEffect(() => {
     if (chargementInitial) return;
+    if (!proprioConnecte && !adminConnecte) return; // un visiteur anonyme ne peut/doit jamais tenter cette écriture
     sauvegarderExtras(extras).then(ok => {
       if (!ok) alert("⚠️ Erreur lors de l'enregistrement des extras — probablement une session expirée. Reconnecte-toi (Se déconnecter, puis reconnexion) et réessaie, sinon tes changements ne seront pas conservés.");
     });
-  }, [extras, chargementInitial]);
+  }, [extras, chargementInitial, proprioConnecte, adminConnecte]);
 
   useEffect(() => {
     if (chargementInitial) return;
