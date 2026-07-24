@@ -63,6 +63,39 @@ function normaliserTelephoneFR(tel) {
   return chiffres ? '+' + chiffres : null;
 }
 
+// Informations d'accès envoyées au client dès que son paiement est confirmé :
+// itinéraire précis, repères sur place et consignes pratiques.
+// Envoyées à la fois par SMS (immédiat, lisible en route) et par email (plus
+// complet, facile à retrouver le jour J). Si l'un des deux canaux échoue,
+// l'autre assure quand même la transmission de l'information.
+const TEXTE_ACCES = [
+  "Il faudra prendre la 2eme entrée sur la GAUCHE après le radar, si vous allez en Direction de Briollay-Tierce.",
+  "Le GPS va vous emmener à proximité du chemin « Bois SENE », il faut entrer et vous arriverez devant un portail rouge. Si vous ne voyez pas de portail rouge, c'est que vous n'êtes pas au bon endroit !",
+  "Il y a un toilette extérieur. La chasse d'eau se trouve au sol. Il faut l'actionner avec le pied 🦶 pour pomper. Merci de le faire délicatement pour ne pas abîmer la pompe.",
+  "Merci également de faire l'état des lieux d'entrée et de sortie. Vous avez les instructions depuis votre téléphone.",
+];
+const LIEN_PLAN = "https://maps.app.goo.gl/qFNt1Ns2zswQzspc8?g_st=ic";
+
+async function envoyerEmailAcces(r) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; background: #f8f9fa; padding: 24px;">
+      <div style="text-align:center; margin-bottom:18px;">
+        <div style="font-size:30px;">🏊</div>
+        <div style="font-size:20px; font-weight:700; color:#07a0f2;">My Piscine Privée</div>
+      </div>
+      <div style="background:#fff; border-radius:14px; padding:22px;">
+        <h2 style="color:#07a0f2; margin-top:0;">📍 Comment venir à la piscine</h2>
+        <p style="color:#2C3E50; font-size:14px;">Bonjour ${r.prenom || ""}, votre réservation <strong>${r.ref}</strong> du <strong>${r.date}</strong> de ${formatHeure(r.heureDebut)} à ${formatHeure(r.heureFin)} est confirmée. Voici tout ce qu'il faut savoir pour nous rejoindre.</p>
+        <div style="text-align:center; margin:20px 0;">
+          <a href="${LIEN_PLAN}" style="display:inline-block; background:#07a0f2; color:#fff; text-decoration:none; padding:12px 24px; border-radius:50px; font-weight:700;">Ouvrir l'itinéraire</a>
+        </div>
+        ${TEXTE_ACCES.map(p => `<p style="color:#2C3E50; font-size:14px; line-height:1.6;">${p}</p>`).join("")}
+        <p style="color:#2C3E50; font-size:14px; margin-top:18px;">Bien cordialement,<br>Aurélie</p>
+      </div>
+    </div>`;
+  return envoyerEmailDirect(r.email, `📍 Votre accès à la piscine — ${r.ref}`, html);
+}
+
 // SMS de bienvenue : itinéraire et consignes pratiques, envoyé au client dès
 // que son paiement confirme la réservation. Ne bloque jamais le webhook si
 // Twilio n'est pas configuré ou si l'envoi échoue.
@@ -71,9 +104,16 @@ async function envoyerSmsBienvenue(r) {
   const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
   const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
   const TWILIO_SENDER_ID = process.env.TWILIO_SENDER_ID;
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) return;
+  // Journalisation explicite : sans elle, un SMS non parti reste invisible
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+    console.error(`SMS accès NON envoyé (${r.ref}) : variables Twilio absentes dans Vercel.`);
+    return;
+  }
   const destinataire = normaliserTelephoneFR(r.telephone);
-  if (!destinataire) return;
+  if (!destinataire) {
+    console.error(`SMS accès NON envoyé (${r.ref}) : numéro de téléphone absent ou invalide sur la réservation (valeur reçue : "${r.telephone}").`);
+    return;
+  }
   const message = `Bonjour,
 Vous avez effectué une réservation sur My Piscine Privée pour une piscine.
 L'adresse :
@@ -93,9 +133,14 @@ Aurélie`;
       headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ To: destinataire, From: expediteur, Body: message }),
     });
-    if (!rep.ok) console.error('SMS bienvenue échoué:', await rep.json().catch(() => ({})));
+    if (!rep.ok) {
+      const err = await rep.json().catch(() => ({}));
+      console.error(`SMS accès NON envoyé (${r.ref}) vers ${destinataire} — Twilio code ${err.code || "?"} : ${err.message || "erreur inconnue"}`);
+    } else {
+      console.log(`SMS accès envoyé (${r.ref}) vers ${destinataire}.`);
+    }
   } catch (e) {
-    console.error('Erreur réseau SMS bienvenue:', e);
+    console.error(`SMS accès NON envoyé (${r.ref}) : erreur réseau`, e);
   }
 }
 
@@ -240,9 +285,12 @@ export default async function handler(req, res) {
       }).catch(e => console.error('Désactivation lien échouée:', e));
     }
 
-    // 4. SMS de bienvenue au client : itinéraire précis et consignes pratiques.
-    //    Envoyé une seule fois, au moment exact où le paiement confirme la réservation.
-    await envoyerSmsBienvenue(data);
+    // 4. Informations d'accès au client : SMS (immédiat) ET email (complet).
+    //    Les deux canaux sont indépendants : si l'un échoue, l'autre passe quand même.
+    await Promise.allSettled([
+      envoyerSmsBienvenue(data),
+      envoyerEmailAcces(data),
+    ]);
 
     return res.status(200).json({ received: true });
   } catch (e) {
