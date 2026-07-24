@@ -350,7 +350,11 @@ const SOCIETE_IMMATRICULATION = "22/07/2026";
 const SOCIETE_ADRESSE = "Lieu-dit le Bois Séné, 49000 Écouflant";
 const SOCIETE_DIRECTEUR_PUBLICATION = "Aurélie BRIAND, Présidente";
 const EMAIL_CONTACT = "contact@mypiscineprivee.com";
-const TELEPHONE_CONTACT = "06 79 41 91 14";
+// Numéro volontairement non publié sur le site. Le contact se fait par email
+// (et par WhatsApp via le bouton flottant). Voir la note de conformité :
+// l'article L111-1 du Code de la consommation demande un numéro de téléphone
+// pour la vente à distance — à réactiver ici si un numéro pro est ouvert.
+const TELEPHONE_CONTACT = "";
 
 // Médiateur de la consommation — OBLIGATOIRE pour toute activité B2C en France
 // (art. L612-1 du Code de la consommation). Renseigner dès l'adhésion à un
@@ -379,7 +383,7 @@ Numéro SIREN : ${SOCIETE_SIREN}
 Identifiant européen (EUID) : ${SOCIETE_EUID}
 
 Directrice de la publication : ${SOCIETE_DIRECTEUR_PUBLICATION}
-Contact : ${EMAIL_CONTACT} — ${TELEPHONE_CONTACT}
+Contact : ${EMAIL_CONTACT}${TELEPHONE_CONTACT ? " — " + TELEPHONE_CONTACT : ""}
 
 2. HÉBERGEUR
 
@@ -511,7 +515,7 @@ ${SOCIETE_NOM} — ${SOCIETE_FORME}
 Capital social : ${SOCIETE_CAPITAL}
 Siège social : ${SOCIETE_ADRESSE}
 ${SOCIETE_RCS}
-Email : ${EMAIL_CONTACT} — Téléphone : ${TELEPHONE_CONTACT}
+Email : ${EMAIL_CONTACT}${TELEPHONE_CONTACT ? " — Téléphone : " + TELEPHONE_CONTACT : ""}
 
 2. OBJET
 
@@ -609,7 +613,7 @@ Limitations connues à ce jour :
 
 4. RETOUR ET CONTACT
 
-Si vous rencontrez une difficulté d'accès à un contenu ou à un service de ce site, contactez-nous à ${EMAIL_CONTACT} ou au ${TELEPHONE_CONTACT}. Nous vous répondrons dans les meilleurs délais et vous proposerons une alternative adaptée pour accéder à l'information ou finaliser votre réservation.
+Si vous rencontrez une difficulté d'accès à un contenu ou à un service de ce site, contactez-nous à ${EMAIL_CONTACT}${TELEPHONE_CONTACT ? " ou au " + TELEPHONE_CONTACT : ""}. Nous vous répondrons dans les meilleurs délais et vous proposerons une alternative adaptée pour accéder à l'information ou finaliser votre réservation.
 
 5. VOIE DE RECOURS
 
@@ -617,6 +621,103 @@ Si vous constatez un défaut d'accessibilité vous empêchant d'accéder à un c
 • Formulaire en ligne : www.defenseurdesdroits.fr
 • Par téléphone : 09 69 39 00 00
 • Par courrier (gratuit, sans timbre) : Défenseur des droits, Libre réponse 71120, 75342 Paris CEDEX 07`;
+// ─── Récapitulatif PDF de l'état des lieux ───────────────────────────────────
+// Ouvre une fenêtre d'impression contenant le document complet (entrée + sortie,
+// coches, commentaires, signatures, dégâts, validation). Le navigateur permet
+// alors de l'imprimer ou de l'enregistrer en PDF. Aucune bibliothèque externe
+// n'est nécessaire, et les photos/signatures sont incluses directement.
+function imprimerEtatDesLieux(r) {
+  const dateFR = iso => iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" }) : "—";
+  const echapper = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  // Construit le tableau des éléments vérifiés pour un état des lieux donné
+  const tableauElements = edl => {
+    const lignes = Object.entries(edl?.reponses || {});
+    if (!lignes.length) return `<p class="vide">Aucun élément enregistré.</p>`;
+    return `<table>
+      <thead><tr><th>Élément</th><th>Présent</th><th>Fonctionnel</th></tr></thead>
+      <tbody>${lignes.map(([item, rep]) => {
+        const anomalie = !rep.present || !rep.fonctionnel;
+        return `<tr class="${anomalie ? "anomalie" : ""}">
+          <td>${echapper(item)}</td>
+          <td class="c">${rep.present ? "Oui" : "<strong>NON</strong>"}</td>
+          <td class="c">${rep.fonctionnel ? "Oui" : "<strong>NON</strong>"}</td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table>`;
+  };
+
+  const blocEdl = (titre, edl) => {
+    if (!edl) return `<h2>${titre}</h2><p class="vide">Non réalisé.</p>`;
+    return `<h2>${titre}</h2>
+      <p class="meta">Réalisé le ${dateFR(edl.date)}</p>
+      ${tableauElements(edl)}
+      ${edl.commentaire ? `<p class="commentaire"><strong>Commentaire du locataire :</strong><br>${echapper(edl.commentaire)}</p>` : ""}
+      ${edl.signature ? `<div class="signature"><span>Signature du locataire :</span><br><img src="${edl.signature}" alt="Signature du locataire"></div>` : `<p class="vide">Aucune signature enregistrée.</p>`}`;
+  };
+
+  const blocDegats = r.descriptionCasse || (r.photosCasse || []).length
+    ? `<h2>Dégâts signalés</h2>
+       ${r.descriptionCasse ? `<p class="commentaire">${echapper(r.descriptionCasse)}</p>` : ""}
+       ${(r.photosCasse || []).length ? `<div class="photos">${r.photosCasse.map((p, i) => `<img src="${p.url || p.data || p}" alt="Photo du dégât ${i + 1}">`).join("")}</div>` : ""}`
+    : "";
+
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<title>État des lieux ${echapper(r.ref)}</title>
+<style>
+  @page { margin: 15mm; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #222; font-size: 12px; line-height: 1.5; }
+  header { border-bottom: 3px solid #07a0f2; padding-bottom: 10px; margin-bottom: 16px; }
+  .titre { font-size: 20px; font-weight: bold; color: #07a0f2; }
+  .soc { font-size: 10px; color: #666; margin-top: 4px; }
+  h2 { font-size: 14px; color: #07a0f2; margin: 20px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  .infos { background: #f4faff; border-radius: 6px; padding: 10px 12px; }
+  .infos div { margin-bottom: 3px; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+  th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: left; }
+  th { background: #eaf6ff; font-size: 11px; }
+  td.c { text-align: center; width: 80px; }
+  tr.anomalie td { background: #fff2f2; color: #b02020; }
+  .commentaire { background: #fafafa; border-left: 3px solid #07a0f2; padding: 8px 10px; margin: 8px 0; }
+  .signature { margin-top: 10px; }
+  .signature img { height: 70px; border: 1px solid #ddd; padding: 4px; background: #fff; display: block; margin-top: 4px; }
+  .photos img { height: 110px; margin: 4px 6px 4px 0; border: 1px solid #ddd; border-radius: 4px; }
+  .vide { color: #888; font-style: italic; }
+  .meta { color: #666; font-size: 11px; }
+  .valide { background: #eafaf0; border: 1px solid #7fd6a2; border-radius: 6px; padding: 10px 12px; margin-top: 16px; }
+  footer { margin-top: 24px; border-top: 1px solid #ddd; padding-top: 8px; font-size: 9px; color: #888; text-align: center; }
+  @media print { button { display: none; } }
+</style></head><body>
+<header>
+  <div class="titre">État des lieux — My Piscine Privée</div>
+  <div class="soc">${SOCIETE_NOM} — ${SOCIETE_FORME} au capital de ${SOCIETE_CAPITAL}<br>${SOCIETE_ADRESSE} — ${SOCIETE_RCS}</div>
+</header>
+
+<div class="infos">
+  <div><strong>Référence :</strong> ${echapper(r.ref)}</div>
+  <div><strong>Locataire :</strong> ${echapper(r.prenom)} ${echapper(r.nom)}</div>
+  <div><strong>Date de la prestation :</strong> ${echapper(r.date)} de ${padH(r.heureDebut)} à ${padH(r.heureFin)}</div>
+  <div><strong>Participants :</strong> ${echapper(r.adultes ?? "—")} adulte(s)${r.enfants ? `, ${echapper(r.enfants)} enfant(s)` : ""}${r.bebes ? `, ${echapper(r.bebes)} bébé(s)` : ""}</div>
+</div>
+
+${blocEdl("État des lieux d'entrée", r.edlEntree)}
+${blocEdl("État des lieux de sortie", r.edlSortie)}
+${blocDegats}
+
+${r.edlValideProprio
+  ? `<div class="valide"><strong>✓ État des lieux validé par le propriétaire</strong><br>Validation effectuée le ${dateFR(r.edlValideDate)} par ${SOCIETE_DIRECTEUR_PUBLICATION}.</div>`
+  : `<div class="valide" style="background:#fffaf0;border-color:#f0c040;"><strong>En attente de validation par le propriétaire</strong></div>`}
+
+<footer>Document généré le ${new Date().toLocaleString("fr-FR")} depuis mypiscineprivee.com</footer>
+<script>window.onload = function () { window.print(); };<\/script>
+</body></html>`;
+
+  const fenetre = window.open("", "_blank");
+  if (!fenetre) { alert("Le navigateur a bloqué l'ouverture de la fenêtre. Autorisez les fenêtres surgissantes pour ce site, puis réessayez."); return; }
+  fenetre.document.write(html);
+  fenetre.document.close();
+}
+
 // ─── SVG Vagues ───────────────────────────────────────────────────────────────
 function Waves() {
   return (
@@ -4730,11 +4831,19 @@ export default function App() {
                         }} style={{ width: "100%", padding: "9px", borderRadius: 8, background: "#2ecc71", color: "#fff", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                           ✓ J'ai fait le tour, je valide l'état des lieux
                         </button>
+                        <button onClick={() => imprimerEtatDesLieux(r)} style={{ width: "100%", marginTop: 6, padding: "8px", borderRadius: 8, background: "#fff", color: "#07a0f2", border: "1.5px solid #07a0f2", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                          📄 Récapitulatif PDF
+                        </button>
                       </div>
                     )}
                     {r.edlValideProprio && (
-                      <div style={{ marginTop: 8, fontSize: 12, color: "#1a9850", background: "#e8faf0", borderRadius: 8, padding: "6px 10px" }}>
-                        ✅ État des lieux validé{r.edlValideDate ? ` le ${new Date(r.edlValideDate).toLocaleDateString("fr-FR")}` : ""}
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ fontSize: 12, color: "#1a9850", background: "#e8faf0", borderRadius: 8, padding: "6px 10px" }}>
+                          ✅ État des lieux validé{r.edlValideDate ? ` le ${new Date(r.edlValideDate).toLocaleDateString("fr-FR")}` : ""}
+                        </div>
+                        <button onClick={() => imprimerEtatDesLieux(r)} style={{ width: "100%", marginTop: 6, padding: "8px", borderRadius: 8, background: "#fff", color: "#07a0f2", border: "1.5px solid #07a0f2", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                          📄 Récapitulatif PDF
+                        </button>
                       </div>
                     )}
                     {r.note && <div style={{ fontSize: 12, color: "#f0a500", marginTop: 4 }}>💬 {"⭐".repeat(r.note)}{r.commentaire && ` — "${r.commentaire}"`}</div>}
