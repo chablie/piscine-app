@@ -1881,6 +1881,7 @@ export default function App() {
   const [erreurChargement, setErreurChargement] = useState(false);
   const [photoAffichee, setPhotoAffichee] = useState(0);
   const [galerieOuverte, setGalerieOuverte] = useState(false);
+  const [photoPleinEcran, setPhotoPleinEcran] = useState(null); // index de la photo affichée en grand, null = fermé
   const [step, setStep] = useState(1);
 
   // Remonter en haut de la page à chaque changement de mode ou d'étape
@@ -2064,6 +2065,26 @@ export default function App() {
     });
     return () => { stopResa(); stopAnnonce(); };
   }, []);
+
+  // Navigation au clavier dans la visionneuse : flèches pour changer de photo,
+  // Échap pour fermer. Indispensable pour l'accessibilité et confortable sur ordinateur.
+  useEffect(() => {
+    if (photoPleinEcran === null && !galerieOuverte) return;
+    function auClavier(e) {
+      if (e.key === "Escape") {
+        if (photoPleinEcran !== null) setPhotoPleinEcran(null);
+        else setGalerieOuverte(false);
+        return;
+      }
+      if (photoPleinEcran === null) return;
+      const total = annonce.photos.length;
+      if (!total) return;
+      if (e.key === "ArrowRight") setPhotoPleinEcran(i => (i + 1) % total);
+      if (e.key === "ArrowLeft") setPhotoPleinEcran(i => (i - 1 + total) % total);
+    }
+    window.addEventListener("keydown", auClavier);
+    return () => window.removeEventListener("keydown", auClavier);
+  }, [photoPleinEcran, galerieOuverte, annonce.photos.length]);
 
   // ── Sauvegarde automatique vers Supabase à chaque changement (après le chargement initial) ──
   // On compare avec le dernier état confirmé enregistré pour n'écrire que les
@@ -3247,15 +3268,17 @@ export default function App() {
         {/* Galerie photos */}
         {annonce.photos.length > 0 ? (
           <div style={{ position:"relative", height:240, overflow:"hidden", background:"#07a0f2" }}>
-            <img src={annonce.photos[photoAffichee] || annonce.photos[0]} alt="piscine"
-              style={{ width:"100%", height:"100%", objectFit:"cover", opacity:.9 }}/>
+            {/* Un clic sur la photo l'ouvre en grand, comme sur Swimmy */}
+            <img src={annonce.photos[photoAffichee] || annonce.photos[0]} alt="Vue de la piscine"
+              onClick={() => setPhotoPleinEcran(photoAffichee)}
+              style={{ width:"100%", height:"100%", objectFit:"cover", opacity:.9, cursor:"zoom-in" }}/>
             {annonce.photos.length > 1 && (
               <>
                 {/* Flèche gauche */}
-                <button onClick={() => setPhotoAffichee(i => (i - 1 + annonce.photos.length) % annonce.photos.length)}
+                <button aria-label="Photo précédente" onClick={() => setPhotoAffichee(i => (i - 1 + annonce.photos.length) % annonce.photos.length)}
                   style={{ position:"absolute", left:8, top:"50%", transform:"translateY(-50%)", background:"rgba(0,0,0,.4)", color:"#fff", border:"none", borderRadius:"50%", width:36, height:36, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>‹</button>
                 {/* Flèche droite */}
-                <button onClick={() => setPhotoAffichee(i => (i + 1) % annonce.photos.length)}
+                <button aria-label="Photo suivante" onClick={() => setPhotoAffichee(i => (i + 1) % annonce.photos.length)}
                   style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", background:"rgba(0,0,0,.4)", color:"#fff", border:"none", borderRadius:"50%", width:36, height:36, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>›</button>
                 {/* Points de pagination */}
                 <div style={{ position:"absolute", bottom:12, left:0, right:0, display:"flex", justifyContent:"center", gap:6 }}>
@@ -3264,13 +3287,13 @@ export default function App() {
                       style={{ width:7, height:7, borderRadius:"50%", background: i===photoAffichee ? "#fff" : "rgba(255,255,255,.4)", cursor:"pointer" }}/>
                   ))}
                 </div>
-                {/* Badge nombre de photos, cliquable pour la grille complète */}
-                <div onClick={() => setGalerieOuverte(true)}
-                  style={{ position:"absolute", bottom:10, right:10, background:"rgba(0,0,0,.5)", color:"#fff", borderRadius:20, padding:"4px 12px", fontSize:12, cursor:"pointer" }}>
-                  📷 {photoAffichee + 1}/{annonce.photos.length}
-                </div>
               </>
             )}
+            {/* Bouton d'accès à la grille complète, façon « Voir les images » de Swimmy */}
+            <button onClick={() => setGalerieOuverte(true)}
+              style={{ position:"absolute", bottom:10, right:10, background:"rgba(255,255,255,.95)", color:"#2C3E50", border:"none", borderRadius:20, padding:"7px 14px", fontSize:12, fontWeight:700, cursor:"pointer", boxShadow:"0 2px 8px rgba(0,0,0,.2)" }}>
+              📷 Voir les {annonce.photos.length} photos
+            </button>
           </div>
         ) : (
           <div style={{ height:180, background:"#07a0f2", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column" }}>
@@ -3279,19 +3302,45 @@ export default function App() {
           </div>
         )}
 
-        {/* Galerie plein écran (grille de toutes les photos) */}
+        {/* Grille de toutes les photos — miniatures entières, jamais rognées */}
         {galerieOuverte && (
-          <div onClick={() => setGalerieOuverte(false)}
-            style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.92)", zIndex:1000, display:"flex", flexDirection:"column", padding:"16px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.94)", zIndex:1000, display:"flex", flexDirection:"column", padding:"14px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12, flexShrink:0 }}>
               <span style={{ color:"#fff", fontWeight:700, fontSize:15 }}>📷 {annonce.photos.length} photos</span>
-              <button onClick={() => setGalerieOuverte(false)} style={{ background:"rgba(255,255,255,.15)", color:"#fff", border:"none", borderRadius:"50%", width:34, height:34, fontSize:18, cursor:"pointer" }}>×</button>
+              <button aria-label="Fermer la galerie" onClick={() => setGalerieOuverte(false)} style={{ background:"rgba(255,255,255,.15)", color:"#fff", border:"none", borderRadius:"50%", width:34, height:34, fontSize:18, cursor:"pointer" }}>×</button>
             </div>
-            <div style={{ flex:1, overflowY:"auto", display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:8 }} onClick={e => e.stopPropagation()}>
+            <div style={{ flex:1, overflowY:"auto", display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:10, alignContent:"start", paddingBottom:10 }}>
               {annonce.photos.map((url, i) => (
-                <img key={i} src={url} alt="" onClick={() => { setPhotoAffichee(i); setGalerieOuverte(false); }}
-                  style={{ width:"100%", height:140, objectFit:"cover", borderRadius:10, cursor:"pointer", border: i===photoAffichee ? "3px solid #39b8f5" : "none" }}/>
+                <button key={i} onClick={() => setPhotoPleinEcran(i)} aria-label={`Agrandir la photo ${i+1}`}
+                  style={{ padding:0, border:"none", background:"#141414", borderRadius:10, cursor:"zoom-in", overflow:"hidden", aspectRatio:"4 / 3" }}>
+                  {/* objectFit contain : la photo entière reste visible dans la miniature */}
+                  <img src={url} alt={`Photo ${i+1} de la piscine`} style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }}/>
+                </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Visionneuse plein écran : une seule photo, entière, avec navigation */}
+        {photoPleinEcran !== null && annonce.photos[photoPleinEcran] && (
+          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.97)", zIndex:1100, display:"flex", flexDirection:"column" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 16px", flexShrink:0 }}>
+              <span style={{ color:"#fff", fontSize:14, fontWeight:700 }}>{photoPleinEcran + 1} / {annonce.photos.length}</span>
+              <button aria-label="Fermer la photo" onClick={() => setPhotoPleinEcran(null)}
+                style={{ background:"rgba(255,255,255,.15)", color:"#fff", border:"none", borderRadius:"50%", width:38, height:38, fontSize:20, cursor:"pointer" }}>×</button>
+            </div>
+            <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", position:"relative", minHeight:0, padding:"0 8px 16px" }}>
+              {annonce.photos.length > 1 && (
+                <button aria-label="Photo précédente" onClick={() => setPhotoPleinEcran(i => (i - 1 + annonce.photos.length) % annonce.photos.length)}
+                  style={{ position:"absolute", left:10, background:"rgba(255,255,255,.18)", color:"#fff", border:"none", borderRadius:"50%", width:44, height:44, fontSize:24, cursor:"pointer", zIndex:2 }}>‹</button>
+              )}
+              {/* objectFit contain : la photo est affichée en entier, jamais coupée */}
+              <img src={annonce.photos[photoPleinEcran]} alt={`Photo ${photoPleinEcran+1} de la piscine en grand format`}
+                style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:8 }}/>
+              {annonce.photos.length > 1 && (
+                <button aria-label="Photo suivante" onClick={() => setPhotoPleinEcran(i => (i + 1) % annonce.photos.length)}
+                  style={{ position:"absolute", right:10, background:"rgba(255,255,255,.18)", color:"#fff", border:"none", borderRadius:"50%", width:44, height:44, fontSize:24, cursor:"pointer", zIndex:2 }}>›</button>
+              )}
             </div>
           </div>
         )}
