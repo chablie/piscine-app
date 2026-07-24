@@ -796,6 +796,73 @@ ${photosDegats}
   fenetre.document.close();
 }
 
+// ─── Bannière « Installer l'application » ────────────────────────────────────
+// Sur Android/Chrome, le navigateur propose un vrai bouton d'installation via
+// l'événement beforeinstallprompt. Sur iPhone, Apple ne fournit pas cette API :
+// on affiche donc la marche à suivre manuelle (Partager → Sur l'écran d'accueil).
+// La bannière disparaît définitivement si l'utilisateur la ferme ou si
+// l'application est déjà installée.
+function BanniereInstallation() {
+  const [invite, setInvite] = useState(null);   // événement différé (Android)
+  const [visible, setVisible] = useState(false);
+  const [iOS, setIOS] = useState(false);
+
+  useEffect(() => {
+    // Déjà installée : rien à proposer
+    const dejaInstallee = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    if (dejaInstallee) return;
+    try { if (localStorage.getItem("sp_install_masquee") === "1") return; } catch (e) { /* stockage indisponible */ }
+
+    const estIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+    const estSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(window.navigator.userAgent);
+    if (estIOS && estSafari) { setIOS(true); setVisible(true); return; }
+
+    function surInvite(e) {
+      e.preventDefault();          // on garde la main sur le moment de l'affichage
+      setInvite(e);
+      setVisible(true);
+    }
+    window.addEventListener("beforeinstallprompt", surInvite);
+    return () => window.removeEventListener("beforeinstallprompt", surInvite);
+  }, []);
+
+  function masquer() {
+    setVisible(false);
+    try { localStorage.setItem("sp_install_masquee", "1"); } catch (e) { /* ignoré */ }
+  }
+
+  async function installer() {
+    if (!invite) return;
+    invite.prompt();
+    await invite.userChoice;       // accepté ou refusé, on ne réaffiche pas
+    setInvite(null);
+    masquer();
+  }
+
+  if (!visible) return null;
+
+  return (
+    <div style={{ background:"#e8f6fe", border:"1.5px solid #b8e0f8", borderRadius:14, padding:"12px 14px", marginBottom:14, display:"flex", gap:12, alignItems:"center" }}>
+      <div style={{ fontSize:26, flexShrink:0 }}>📲</div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontWeight:700, color:"#07a0f2", fontSize:14 }}>Installer l'application</div>
+        <div style={{ fontSize:12, color:"#6b7f8c", lineHeight:1.5 }}>
+          {iOS
+            ? <>Touchez <strong>Partager</strong> <span aria-hidden="true">⬆️</span> en bas de Safari, puis <strong>« Sur l'écran d'accueil »</strong>.</>
+            : "Accédez à vos réservations en un geste, depuis votre écran d'accueil."}
+        </div>
+        {!iOS && (
+          <button onClick={installer} style={{ marginTop:8, padding:"8px 18px", borderRadius:50, background:"#07a0f2", color:"#fff", border:"none", fontWeight:800, fontSize:13, cursor:"pointer" }}>
+            Installer
+          </button>
+        )}
+      </div>
+      <button onClick={masquer} aria-label="Masquer cette proposition"
+        style={{ background:"none", border:"none", color:"#6b7f8c", fontSize:18, cursor:"pointer", padding:4, alignSelf:"flex-start" }}>×</button>
+    </div>
+  );
+}
+
 // ─── SVG Vagues ───────────────────────────────────────────────────────────────
 function Waves() {
   return (
@@ -2209,6 +2276,8 @@ export default function App() {
   const [propriDebut, setPropriDebut] = useState(9);
   const [propriFin, setProprieFin] = useState(20);
   const [ongletPropri, setOngletPropri] = useState("dispo");
+  // Filtre de l'onglet Réservations : attente / avenir / passees / autres
+  const [filtreResas, setFiltreResas] = useState("attente");
   // Persiste l'onglet propriétaire actif pour le retrouver après un F5 (même
   // logique que pour "mode" : on ignore le tout premier rendu pour laisser le
   // temps à la restauration de session de lire la valeur sauvegardée)
@@ -3569,6 +3638,7 @@ export default function App() {
               ) : (
                 <div style={{ color: "#6b7f8c", fontSize: 13, margin: "12px 0" }}>Vous n'avez pas de réservation à venir.</div>
               )}
+              <BanniereInstallation />
               <button style={{ ...btnP, marginBottom: 10 }} onClick={() => setMode("annonce")}>🏊 Réserver un créneau</button>
               <button style={{ ...btnS }} onClick={() => setMode("compte")}>📋 Mes réservations</button>
               <button style={{ ...btnS, marginTop: 10, color: "#c0302a", borderColor: "#c0302a", fontSize: 12, padding: "8px 20px" }} onClick={() => { setCompteConnecte(null); }}>
@@ -3579,6 +3649,7 @@ export default function App() {
             // ── Accueil visiteur ──
             <>
               <div style={{ fontSize: 14, color: "#6b7f8c", marginBottom: 18, lineHeight: 1.6 }}>Bienvenue ! Réservez notre piscine privée ou accédez à votre espace.</div>
+              <BanniereInstallation />
               <button style={btnP} onClick={() => setMode("annonce")}>🏊 Voir l'annonce & Réserver</button>
               <button style={{ ...btnS, marginTop: 10 }} onClick={() => { setAuthMode("login"); setMode("auth"); }}>👤 Se connecter / Créer un compte</button>
             </>
@@ -4894,34 +4965,85 @@ export default function App() {
             </div>
           )}
 
-          {ongletPropri === "reservations" && (
+          {ongletPropri === "reservations" && (() => {
+            // ── Répartition des réservations par catégorie, façon Swimmy ──
+            const aujourdhui = today();
+            const categorie = r => {
+              const st = r.statut || "acceptee"; // anciennes résas sans statut = acceptées
+              if (st === "en_attente") return "attente";
+              if (st === "refusee" || st === "annulee") return "autres";
+              return r.date >= aujourdhui ? "avenir" : "passees";
+            };
+            const parCategorie = { attente: [], avenir: [], passees: [], autres: [] };
+            reservations.forEach(r => parCategorie[categorie(r)].push(r));
+
+            const onglets = [
+              ["attente", "En attente", parCategorie.attente.length],
+              ["avenir", "À venir", parCategorie.avenir.length],
+              ["passees", "Passées", parCategorie.passees.length],
+              ["autres", "Autres", parCategorie.autres.length],
+            ];
+
+            // Les passées et les annulées se lisent de la plus récente à la plus
+            // ancienne ; les demandes en attente et les venues à venir dans l'ordre
+            // chronologique, pour traiter d'abord ce qui arrive le plus tôt.
+            const ordreDecroissant = filtreResas === "passees" || filtreResas === "autres";
+            const liste = [...parCategorie[filtreResas]].sort((a, b) => {
+              const cmpDate = a.date.localeCompare(b.date);
+              if (cmpDate !== 0) return ordreDecroissant ? -cmpDate : cmpDate;
+              return (a.heureDebut || 0) - (b.heureDebut || 0);
+            });
+
+            // Regroupement par date : une seule barre d'en-tête par journée
+            const groupes = [];
+            liste.forEach(r => {
+              const dernier = groupes[groupes.length - 1];
+              if (dernier && dernier[0] === r.date) dernier[1].push(r);
+              else groupes.push([r.date, [r]]);
+            });
+
+            const dateLongue = iso => {
+              const [a, m, j] = iso.split("-");
+              return new Date(+a, +m - 1, +j).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+            };
+            const messageVide = {
+              attente: "Aucune demande en attente. 🎉",
+              avenir: "Aucune réservation à venir pour le moment.",
+              passees: "Aucune réservation passée.",
+              autres: "Aucune réservation refusée ou annulée.",
+            }[filtreResas];
+
+            return (
             <div style={card}>
               <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", marginBottom: 12, fontWeight: 700 }}>📋 Réservations</div>
 
-              {/* Demandes en attente mises en avant */}
-              {reservations.filter(r => r.statut === "en_attente").length > 0 && (
-                <div style={{ background:"#fff8e1", border:"2px solid #f0c040", borderRadius:12, padding:"12px 14px", marginBottom:16 }}>
-                  <div style={{ fontWeight:700, color:"#a06000", fontSize:14, marginBottom:4 }}>
-                    🔔 {reservations.filter(r => r.statut === "en_attente").length} demande{reservations.filter(r => r.statut === "en_attente").length>1?"s":""} en attente de votre validation
-                  </div>
-                  <div style={{ fontSize:12, color:"#a06000" }}>Voir ci-dessous, mises en évidence.</div>
-                </div>
-              )}
+              {/* Filtres par catégorie, avec le nombre de réservations concernées */}
+              <div role="tablist" aria-label="Filtrer les réservations" style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 16 }}>
+                {onglets.map(([cle, libelle, nombre]) => {
+                  const actif = filtreResas === cle;
+                  const alerte = cle === "attente" && nombre > 0;
+                  return (
+                    <button key={cle} role="tab" aria-selected={actif} onClick={() => setFiltreResas(cle)}
+                      style={{ padding: "7px 15px", borderRadius: 50, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                        border: `1.5px solid ${actif ? "#07a0f2" : alerte ? "#f0c040" : "#b8e0f8"}`,
+                        background: actif ? "#07a0f2" : alerte ? "#fff8e1" : "#fff",
+                        color: actif ? "#fff" : alerte ? "#a06000" : "#07a0f2" }}>
+                      {alerte && !actif ? "🔔 " : ""}{libelle}
+                      <span style={{ marginLeft: 6, fontSize: 11, opacity: actif ? 0.85 : 0.7 }}>({nombre})</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-              {reservations.length === 0 ? (
-                <div style={{ color: "#6b7f8c", fontSize: 14, textAlign: "center", padding: "16px 0" }}>Aucune réservation.</div>
-              ) : [...reservations].sort((a, b) => {
-                  // En attente d'abord, puis par date de réservation, puis par heure de demande
-                  if (a.statut === "en_attente" && b.statut !== "en_attente") return -1;
-                  if (b.statut === "en_attente" && a.statut !== "en_attente") return 1;
-                  const dateCmp = a.date.localeCompare(b.date);
-                  if (dateCmp !== 0) return dateCmp;
-                  // Même date de réservation : trier par heure de début
-                  const haCmp = (a.heureDebut || 0) - (b.heureDebut || 0);
-                  if (haCmp !== 0) return haCmp;
-                  // Même créneau : trier par heure de la demande (la plus récente en premier)
-                  return (b.demandeISO || "").localeCompare(a.demandeISO || "");
-                }).map(r => {
+              {groupes.length === 0 ? (
+                <div style={{ color: "#6b7f8c", fontSize: 14, textAlign: "center", padding: "24px 0" }}>{messageVide}</div>
+              ) : groupes.map(([dateGroupe, resasDuJour]) => (
+                <div key={dateGroupe} style={{ marginBottom: 18 }}>
+                  {/* Barre de date façon Swimmy */}
+                  <div style={{ background: "#07a0f2", color: "#fff", borderRadius: 10, padding: "8px 14px", fontWeight: 800, fontSize: 14, marginBottom: 10 }}>
+                    {dateLongue(dateGroupe)}
+                  </div>
+                  {resasDuJour.map(r => {
                 const noteP = notesLocataires[r.ref];
                 const sessionPassee = r.date <= today();
                 const statut = r.statut || "acceptee"; // anciennes résas sans statut = acceptées par défaut
@@ -5178,9 +5300,12 @@ export default function App() {
                     <div style={{ fontSize: 11, color: "#aaa", marginTop: 5 }}>🔒 Tampon : {padH(parseFloat(r.heureDebut) - TAMPON)} – {padH(parseFloat(r.heureFin) + TAMPON)}</div>
                   </div>
                 );
-              })}
+                  })}
+                </div>
+              ))}
             </div>
-          )}
+            );
+          })()}
 
           {ongletPropri === "stats" && <StatsAvancees reservations={reservations} comptes={comptes} extras={extras} />}
 

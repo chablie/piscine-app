@@ -1,0 +1,48 @@
+{
+  "name": "My Piscine Privée",
+  "short_name": "My Piscine",
+  "description": "Réservez à l'heure une piscine privée chauffée et couverte à Écouflant, près d'Angers.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8f9fa",
+  "theme_color": "#07a0f2",
+  "categories": ["lifestyle", "travel", "sports"],
+  "icons": [
+    {
+      "src": "/icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icone-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Réserver un créneau",
+      "short_name": "Réserver",
+      "url": "/?raccourci=reserver",
+      "icons": [{ "src": "/icone-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mes réservations",
+      "short_name": "Mes résas",
+      "url": "/?raccourci=mes-reservations",
+      "icons": [{ "src": "/icone-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
