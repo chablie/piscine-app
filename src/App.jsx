@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   chargerAnnonce, sauvegarderAnnonce,
-  chargerDisponibilites, sauvegarderDisponibilites, supprimerDateDisponibilite,
+  chargerDisponibilites, sauvegarderDisponibilites, sauvegarderDisponibilitesPartiel, supprimerDateDisponibilite,
   chargerReservations, sauvegarderReservation,
   chargerComptes, sauvegarderCompte,
   chargerInventaire, sauvegarderInventaireItem, supprimerInventaireItem,
@@ -181,6 +181,41 @@ function detailPrix(adultes, enfants12, creneaux) {
   return { normal: normal.length * PAS, soir: soir.length * PAS };
 }
 function formatEur(n) { return (n || 0).toFixed(2).replace(".", ",") + " €"; }
+
+// ─── Compression d'image ─────────────────────────────────────────────────────
+// Les photos de téléphone pèsent 3 à 10 Mo. Encodées en base64 pour être
+// stockées, elles dépassent les limites de la base de données et l'enregistrement
+// échoue silencieusement. On les redimensionne donc avant tout enregistrement :
+// 1600 px sur le plus grand côté en JPEG qualité 0,82 suffit largement pour un
+// affichage web et ramène le poids autour de 200 à 400 Ko.
+function compresserImage(file, maxDimension = 1600, qualite = 0.82) {
+  return new Promise((resolve, reject) => {
+    const lecteur = new FileReader();
+    lecteur.onerror = () => reject(new Error("Lecture du fichier impossible"));
+    lecteur.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Image illisible"));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          const ratio = Math.min(maxDimension / width, maxDimension / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        // Fond blanc : évite qu'un PNG transparent devienne noir en JPEG
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", qualite));
+      };
+      img.src = lecteur.result;
+    };
+    lecteur.readAsDataURL(file);
+  });
+}
 function today() { return new Date().toISOString().split("T")[0]; }
 function padH(h) {
   const n = parseFloat(h);
@@ -622,93 +657,136 @@ Si vous constatez un défaut d'accessibilité vous empêchant d'accéder à un c
 • Par téléphone : 09 69 39 00 00
 • Par courrier (gratuit, sans timbre) : Défenseur des droits, Libre réponse 71120, 75342 Paris CEDEX 07`;
 // ─── Récapitulatif PDF de l'état des lieux ───────────────────────────────────
-// Ouvre une fenêtre d'impression contenant le document complet (entrée + sortie,
-// coches, commentaires, signatures, dégâts, validation). Le navigateur permet
-// alors de l'imprimer ou de l'enregistrer en PDF. Aucune bibliothèque externe
-// n'est nécessaire, et les photos/signatures sont incluses directement.
+// Reprend la présentation du formulaire Swimmy : un tableau unique où chaque
+// équipement est suivi sur quatre colonnes (présent/fonctionnel en début, puis
+// en fin de location). Ouvre la fenêtre d'impression du navigateur, qui permet
+// d'imprimer ou d'enregistrer en PDF. Aucune bibliothèque externe nécessaire.
 function imprimerEtatDesLieux(r) {
-  const dateFR = iso => iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" }) : "—";
+  const dateFR = iso => iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—";
   const echapper = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-  // Construit le tableau des éléments vérifiés pour un état des lieux donné
-  const tableauElements = edl => {
-    const lignes = Object.entries(edl?.reponses || {});
-    if (!lignes.length) return `<p class="vide">Aucun élément enregistré.</p>`;
-    return `<table>
-      <thead><tr><th>Élément</th><th>Présent</th><th>Fonctionnel</th></tr></thead>
-      <tbody>${lignes.map(([item, rep]) => {
-        const anomalie = !rep.present || !rep.fonctionnel;
+  const repEntree = r.edlEntree?.reponses || {};
+  const repSortie = r.edlSortie?.reponses || {};
+  // Union des éléments présents dans l'un ou l'autre des états des lieux
+  const elements = [...new Set([...Object.keys(repEntree), ...Object.keys(repSortie)])];
+
+  // Une case vide plutôt que "—" quand l'état des lieux n'a pas encore été fait
+  const cellule = (rep, cle) => {
+    if (!rep) return `<td class="c vide"></td>`;
+    const val = rep[cle];
+    return val ? `<td class="c">oui</td>` : `<td class="c ko"><strong>non</strong></td>`;
+  };
+
+  const lignes = elements.length
+    ? elements.map(item => {
+        const e = repEntree[item], s = repSortie[item];
+        const anomalie = (e && (!e.present || !e.fonctionnel)) || (s && (!s.present || !s.fonctionnel));
         return `<tr class="${anomalie ? "anomalie" : ""}">
-          <td>${echapper(item)}</td>
-          <td class="c">${rep.present ? "Oui" : "<strong>NON</strong>"}</td>
-          <td class="c">${rep.fonctionnel ? "Oui" : "<strong>NON</strong>"}</td>
+          <td class="equip">${echapper(item)}</td>
+          ${cellule(e, "present")}${cellule(e, "fonctionnel")}
+          ${cellule(s, "present")}${cellule(s, "fonctionnel")}
         </tr>`;
-      }).join("")}</tbody>
-    </table>`;
-  };
+      }).join("")
+    : `<tr><td colspan="5" class="vide">Aucun état des lieux enregistré.</td></tr>`;
 
-  const blocEdl = (titre, edl) => {
-    if (!edl) return `<h2>${titre}</h2><p class="vide">Non réalisé.</p>`;
-    return `<h2>${titre}</h2>
-      <p class="meta">Réalisé le ${dateFR(edl.date)}</p>
-      ${tableauElements(edl)}
-      ${edl.commentaire ? `<p class="commentaire"><strong>Commentaire du locataire :</strong><br>${echapper(edl.commentaire)}</p>` : ""}
-      ${edl.signature ? `<div class="signature"><span>Signature du locataire :</span><br><img src="${edl.signature}" alt="Signature du locataire"></div>` : `<p class="vide">Aucune signature enregistrée.</p>`}`;
-  };
+  const commentaires = [
+    r.edlEntree?.commentaire ? `<strong>À l'arrivée :</strong> ${echapper(r.edlEntree.commentaire)}` : "",
+    r.edlSortie?.commentaire ? `<strong>Au départ :</strong> ${echapper(r.edlSortie.commentaire)}` : "",
+    r.descriptionCasse ? `<strong>Dégât signalé :</strong> ${echapper(r.descriptionCasse)}` : "",
+  ].filter(Boolean).join("<br>") || "<span class='vide'>Aucun commentaire.</span>";
 
-  const blocDegats = r.descriptionCasse || (r.photosCasse || []).length
-    ? `<h2>Dégâts signalés</h2>
-       ${r.descriptionCasse ? `<p class="commentaire">${echapper(r.descriptionCasse)}</p>` : ""}
-       ${(r.photosCasse || []).length ? `<div class="photos">${r.photosCasse.map((p, i) => `<img src="${p.url || p.data || p}" alt="Photo du dégât ${i + 1}">`).join("")}</div>` : ""}`
+  const caseSignature = (titre, moment, img, mention) =>
+    `<td class="sign">
+      <div class="sign-moment">${moment}</div>
+      ${img ? `<img src="${img}" alt="Signature ${titre} ${moment}">` : `<div class="sign-vide">${mention || "—"}</div>`}
+    </td>`;
+
+  const mentionValidation = r.edlValideProprio ? `Validé le ${dateFR(r.edlValideDate)}` : "En attente";
+
+  const photosDegats = (r.photosCasse || []).length
+    ? `<h2>Photos des dégâts signalés</h2><div class="photos">${r.photosCasse.map((p, i) => `<img src="${p.url || p.data || p}" alt="Photo du dégât ${i + 1}">`).join("")}</div>`
     : "";
 
   const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
-<title>État des lieux ${echapper(r.ref)}</title>
+<title>Etat des lieux ${echapper(r.ref)}</title>
 <style>
-  @page { margin: 15mm; }
-  body { font-family: Arial, Helvetica, sans-serif; color: #222; font-size: 12px; line-height: 1.5; }
-  header { border-bottom: 3px solid #07a0f2; padding-bottom: 10px; margin-bottom: 16px; }
-  .titre { font-size: 20px; font-weight: bold; color: #07a0f2; }
-  .soc { font-size: 10px; color: #666; margin-top: 4px; }
-  h2 { font-size: 14px; color: #07a0f2; margin: 20px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
-  .infos { background: #f4faff; border-radius: 6px; padding: 10px 12px; }
-  .infos div { margin-bottom: 3px; }
-  table { width: 100%; border-collapse: collapse; margin: 8px 0; }
-  th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: left; }
-  th { background: #eaf6ff; font-size: 11px; }
-  td.c { text-align: center; width: 80px; }
-  tr.anomalie td { background: #fff2f2; color: #b02020; }
-  .commentaire { background: #fafafa; border-left: 3px solid #07a0f2; padding: 8px 10px; margin: 8px 0; }
-  .signature { margin-top: 10px; }
-  .signature img { height: 70px; border: 1px solid #ddd; padding: 4px; background: #fff; display: block; margin-top: 4px; }
-  .photos img { height: 110px; margin: 4px 6px 4px 0; border: 1px solid #ddd; border-radius: 4px; }
+  @page { margin: 12mm; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #222; font-size: 11px; line-height: 1.45; }
+  .entete { text-align: center; margin-bottom: 14px; }
+  .marque { font-size: 22px; font-weight: bold; color: #07a0f2; }
+  .soc { font-size: 9px; color: #666; margin-top: 3px; }
+  h1 { font-size: 17px; text-align: center; letter-spacing: 1px; margin: 12px 0; color: #333; }
+  h2 { font-size: 12px; color: #07a0f2; margin: 14px 0 6px; }
+  table { width: 100%; border-collapse: collapse; }
+  .infos td { border: 1px solid #999; padding: 6px 8px; }
+  .infos .lib { background: #eef6fb; font-weight: bold; width: 34%; }
+  .elems { margin-top: 12px; }
+  .elems th { background: #07a0f2; color: #fff; border: 1px solid #999; padding: 6px 4px; font-size: 10px; }
+  .elems td { border: 1px solid #999; padding: 6px 8px; }
+  .elems td.equip { width: 34%; }
+  .elems td.c { text-align: center; width: 16.5%; }
+  .elems td.ko { color: #b02020; }
+  tr.anomalie td.equip { background: #fff4f4; }
+  .commentaires { border: 1px solid #999; border-top: none; padding: 8px; min-height: 34px; }
+  .commentaires .lib { background: #07a0f2; color: #fff; font-weight: bold; padding: 5px 8px; margin: -8px -8px 8px; font-size: 10px; }
+  .signatures { margin-top: 12px; }
+  .signatures th { background: #07a0f2; color: #fff; border: 1px solid #999; padding: 5px; font-size: 11px; }
+  .sign { border: 1px solid #999; width: 25%; height: 78px; vertical-align: top; padding: 4px; }
+  .sign-moment { font-size: 8px; font-style: italic; color: #666; }
+  .sign img { max-height: 52px; max-width: 100%; display: block; margin: 2px auto 0; }
+  .sign-vide { font-size: 9px; color: #666; text-align: center; padding-top: 18px; }
   .vide { color: #888; font-style: italic; }
-  .meta { color: #666; font-size: 11px; }
-  .valide { background: #eafaf0; border: 1px solid #7fd6a2; border-radius: 6px; padding: 10px 12px; margin-top: 16px; }
-  footer { margin-top: 24px; border-top: 1px solid #ddd; padding-top: 8px; font-size: 9px; color: #888; text-align: center; }
-  @media print { button { display: none; } }
+  .photos img { height: 100px; margin: 4px 6px 0 0; border: 1px solid #ccc; }
+  footer { margin-top: 16px; border-top: 1px solid #ddd; padding-top: 6px; font-size: 8px; color: #888; text-align: center; }
 </style></head><body>
-<header>
-  <div class="titre">État des lieux — My Piscine Privée</div>
-  <div class="soc">${SOCIETE_NOM} — ${SOCIETE_FORME} au capital de ${SOCIETE_CAPITAL}<br>${SOCIETE_ADRESSE} — ${SOCIETE_RCS}</div>
-</header>
 
-<div class="infos">
-  <div><strong>Référence :</strong> ${echapper(r.ref)}</div>
-  <div><strong>Locataire :</strong> ${echapper(r.prenom)} ${echapper(r.nom)}</div>
-  <div><strong>Date de la prestation :</strong> ${echapper(r.date)} de ${padH(r.heureDebut)} à ${padH(r.heureFin)}</div>
-  <div><strong>Participants :</strong> ${echapper(r.adultes ?? "—")} adulte(s)${r.enfants ? `, ${echapper(r.enfants)} enfant(s)` : ""}${r.bebes ? `, ${echapper(r.bebes)} bébé(s)` : ""}</div>
+<div class="entete">
+  <div class="marque">My Piscine Privée</div>
+  <div class="soc">${SOCIETE_NOM} — ${SOCIETE_FORME} au capital de ${SOCIETE_CAPITAL} · ${SOCIETE_ADRESSE} · ${SOCIETE_RCS}</div>
 </div>
 
-${blocEdl("État des lieux d'entrée", r.edlEntree)}
-${blocEdl("État des lieux de sortie", r.edlSortie)}
-${blocDegats}
+<h1>ÉTAT DES LIEUX</h1>
 
-${r.edlValideProprio
-  ? `<div class="valide"><strong>✓ État des lieux validé par le propriétaire</strong><br>Validation effectuée le ${dateFR(r.edlValideDate)} par ${SOCIETE_DIRECTEUR_PUBLICATION}.</div>`
-  : `<div class="valide" style="background:#fffaf0;border-color:#f0c040;"><strong>En attente de validation par le propriétaire</strong></div>`}
+<table class="infos">
+  <tr><td class="lib">Adresse de la réservation</td><td>${SOCIETE_ADRESSE}</td></tr>
+  <tr><td class="lib">Date de la réservation</td><td>${echapper(r.date)} — de ${padH(r.heureDebut)} à ${padH(r.heureFin)}</td></tr>
+  <tr><td class="lib">Référence</td><td>${echapper(r.ref)}</td></tr>
+  <tr><td class="lib">Identité du propriétaire</td><td>${SOCIETE_DIRECTEUR_PUBLICATION}</td></tr>
+  <tr><td class="lib">Identité du locataire</td><td>${echapper(r.nom)}, ${echapper(r.prenom)}${r.telephone ? " — " + echapper(r.telephone) : ""}</td></tr>
+</table>
 
-<footer>Document généré le ${new Date().toLocaleString("fr-FR")} depuis mypiscineprivee.com</footer>
+<table class="elems">
+  <thead><tr>
+    <th>Équipements</th>
+    <th>Présents en début de location ?</th>
+    <th>Fonctionnel en début de location ?</th>
+    <th>Présents en fin de location ?</th>
+    <th>Fonctionnel en fin de location ?</th>
+  </tr></thead>
+  <tbody>${lignes}</tbody>
+</table>
+
+<div class="commentaires">
+  <div class="lib">Autres commentaires</div>
+  ${commentaires}
+</div>
+
+<table class="signatures">
+  <thead><tr><th colspan="2">Signature du propriétaire</th><th colspan="2">Signature du locataire</th></tr></thead>
+  <tbody><tr>
+    ${caseSignature("propriétaire", "En début de location", null, "Mise à disposition")}
+    ${caseSignature("propriétaire", "En fin de location", null, mentionValidation)}
+    ${caseSignature("locataire", "En début de location", r.edlEntree?.signature, null)}
+    ${caseSignature("locataire", "En fin de location", r.edlSortie?.signature, null)}
+  </tr></tbody>
+</table>
+
+${photosDegats}
+
+<footer>
+  État des lieux d'entrée signé le ${dateFR(r.edlEntree?.date)} · État des lieux de sortie signé le ${dateFR(r.edlSortie?.date)}<br>
+  Document généré le ${new Date().toLocaleString("fr-FR")} depuis mypiscineprivee.com
+</footer>
 <script>window.onload = function () { window.print(); };<\/script>
 </body></html>`;
 
@@ -762,7 +840,16 @@ function PhotoUploader({ label, photos, onChange, reference = null }) {
 
   function handleFiles(e) {
     const files = Array.from(e.target.files);
-    Promise.all(files.map(f => new Promise(res => { const r = new FileReader(); r.onload = () => res({ name: f.name, url: r.result }); r.readAsDataURL(f); }))).then(nw => onChange([...photos, ...nw]));
+    if (!files.length) return;
+    // Compression indispensable : les photos d'état des lieux sont nombreuses
+    // et étaient enregistrées en pleine résolution, ce qui faisait échouer la sauvegarde.
+    Promise.all(files.map(f => compresserImage(f).then(url => ({ name: f.name, url }))))
+      .then(nw => onChange([...photos, ...nw]))
+      .catch(err => {
+        console.error("Compression photo échouée:", err);
+        alert("Une des images n'a pas pu être traitée. Réessaie avec une autre photo.");
+      });
+    e.target.value = "";
   }
 
   function validerRenommage(i) {
@@ -811,9 +898,10 @@ function PhotoUploader({ label, photos, onChange, reference = null }) {
                   <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
                     const f = e.target.files[0];
                     if (!f) return;
-                    const rd = new FileReader();
-                    rd.onload = () => onChange(photos.map((x, j) => j === i ? { ...x, url: rd.result, name: f.name } : x));
-                    rd.readAsDataURL(f);
+                    compresserImage(f)
+                      .then(url => onChange(photos.map((x, j) => j === i ? { ...x, url, name: f.name } : x)))
+                      .catch(() => alert("Cette image n'a pas pu être traitée."));
+                    e.target.value = "";
                   }} />
                 </label>
               </div>
@@ -1229,9 +1317,16 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
             📷 Ajouter des photos
             <input type="file" multiple accept="image/*" style={{ display:"none" }} onChange={e=>{
               const files=Array.from(e.target.files);
-              Promise.all(files.map(f=>new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(f);}))).then(urls=>{
+              if (!files.length) return;
+              // Compression avant enregistrement : sans elle, les photos brutes
+              // dépassent la taille acceptée par la base et rien n'est conservé.
+              Promise.all(files.map(f=>compresserImage(f))).then(urls=>{
                 setBrouillon(a=>({...a,photos:[...a.photos,...urls],photoUne:a.photoUne??0}));
+              }).catch(err=>{
+                console.error("Compression photo échouée:", err);
+                alert("Une des images n'a pas pu être traitée. Vérifie qu'il s'agit bien d'une photo (JPEG, PNG ou HEIC converti).");
               });
+              e.target.value = ""; // permet de re-sélectionner le même fichier
             }}/>
           </label>
           {brouillon.photos.length===0 ? (
@@ -1830,6 +1925,8 @@ export default function App() {
 
   // ── Base de données simulée ──
   // Disponibilités initialisées : 7h→00h00 par défaut pour les 90 prochains jours
+  const dispoDerniereSauvegarde = useRef(null); // dernier état confirmé enregistré en base
+  const [dispoStatut, setDispoStatut] = useState(null); // null / "encours" / "ok" / "erreur"
   const [disponibilites, setDisponibilites] = useState(() => {
     const defs = {};
     const d = new Date();
@@ -1969,10 +2066,34 @@ export default function App() {
   }, []);
 
   // ── Sauvegarde automatique vers Supabase à chaque changement (après le chargement initial) ──
+  // On compare avec le dernier état confirmé enregistré pour n'écrire que les
+  // dates réellement modifiées : c'est immédiat, et si l'écriture échoue on le
+  // signale au lieu de laisser croire que c'est enregistré.
   useEffect(() => {
     if (chargementInitial) return;
-    sauvegarderDisponibilites(disponibilites);
-  }, [disponibilites, chargementInitial]);
+    if (dispoDerniereSauvegarde.current === null) { dispoDerniereSauvegarde.current = disponibilites; return; }
+    const precedent = dispoDerniereSauvegarde.current;
+    if (precedent === disponibilites) return;
+    if (!proprioConnecte && !adminConnecte) { dispoDerniereSauvegarde.current = disponibilites; return; }
+
+    const memePlages = (a, b) => JSON.stringify(a || []) === JSON.stringify(b || []);
+    const datesModifiees = Object.keys(disponibilites).filter(d => !memePlages(disponibilites[d], precedent[d]));
+    const datesSupprimees = Object.keys(precedent).filter(d => !(d in disponibilites));
+    if (!datesModifiees.length && !datesSupprimees.length) { dispoDerniereSauvegarde.current = disponibilites; return; }
+
+    setDispoStatut("encours");
+    sauvegarderDisponibilitesPartiel(datesModifiees.map(d => [d, disponibilites[d]]), datesSupprimees)
+      .then(({ ok, error }) => {
+        if (ok) {
+          // Référence mise à jour uniquement en cas de succès : un échec sera réessayé
+          dispoDerniereSauvegarde.current = disponibilites;
+          setDispoStatut("ok");
+        } else {
+          setDispoStatut("erreur");
+          alert(`⚠️ Tes créneaux n'ont PAS été enregistrés : ${error || "cause inconnue"}.\n\nReconnecte-toi (Se déconnecter puis reconnexion) et refais la modification.`);
+        }
+      });
+  }, [disponibilites, chargementInitial, proprioConnecte, adminConnecte]);
 
   useEffect(() => {
     if (chargementInitial) return;
@@ -4312,7 +4433,14 @@ export default function App() {
 
           {ongletPropri === "dispo" && (
             <div style={card}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}><div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", fontWeight: 700 }}>🗓 Disponibilités</div><span style={{ fontSize:11, color:"#1a9850", background:"#e8faf0", borderRadius:20, padding:"3px 10px", fontWeight:600 }}>✓ Enregistrement automatique</span></div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}><div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", fontWeight: 700 }}>🗓 Disponibilités</div>
+                {/* Indicateur d'état réel : reflète le résultat de l'écriture en base,
+                    et non une simple promesse d'enregistrement automatique. */}
+                <span aria-live="polite" style={{ fontSize:11, borderRadius:20, padding:"3px 10px", fontWeight:600,
+                  color: dispoStatut==="erreur" ? "#c0302a" : dispoStatut==="encours" ? "#a06000" : "#1a9850",
+                  background: dispoStatut==="erreur" ? "#fff0f0" : dispoStatut==="encours" ? "#fff8e1" : "#e8faf0" }}>
+                  {dispoStatut==="encours" ? "⏳ Enregistrement…" : dispoStatut==="erreur" ? "⚠️ Non enregistré" : dispoStatut==="ok" ? "✓ Enregistré" : "✓ Enregistrement automatique"}
+                </span></div>
 
               {/* Sélecteur de date */}
               <label style={lbl}>Date</label>
@@ -4468,9 +4596,9 @@ export default function App() {
                 <input type="file" accept="image/*" style={{ display:"none" }} onChange={e => {
                   const file = e.target.files[0];
                   if (!file) return;
-                  const r = new FileReader();
-                  r.onload = () => setNouvelleImageBanque({ url: r.result, nom: file.name.replace(/\.[^.]+$/, "") });
-                  r.readAsDataURL(file);
+                  compresserImage(file)
+                    .then(url => setNouvelleImageBanque({ url, nom: file.name.replace(/\.[^.]+$/, "") }))
+                    .catch(() => alert("Cette image n'a pas pu être traitée."));
                   e.target.value = "";
                 }} />
               </label>

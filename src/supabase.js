@@ -68,6 +68,39 @@ export async function supprimerDateDisponibilite(date) {
   return proprioAction('disponibilites', 'delete', { cle: 'date', cleValeur: date });
 }
 
+// Sauvegarde ciblée : n'écrit QUE les dates réellement modifiées ou supprimées,
+// et remonte le vrai message d'erreur. L'ancienne version réécrivait toutes les
+// dates à chaque changement et ignorait les échecs, d'où des créneaux ouverts
+// qui semblaient enregistrés mais disparaissaient au rechargement.
+export async function sauvegarderDisponibilitesPartiel(datesModifiees, datesSupprimees) {
+  let derniereErreur = null;
+
+  async function appeler(corps) {
+    const rep = await fetch('/api/proprio-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(corps),
+    });
+    if (!rep.ok) {
+      const err = await rep.json().catch(() => ({}));
+      derniereErreur = err.error || `Erreur ${rep.status}`;
+      console.error('sauvegarderDisponibilitesPartiel', corps, derniereErreur);
+      return false;
+    }
+    return true;
+  }
+
+  let ok = true;
+  for (const date of datesSupprimees) {
+    ok = (await appeler({ table: 'disponibilites', action: 'delete', cle: 'date', cleValeur: date })) && ok;
+  }
+  for (const [date, plages] of datesModifiees) {
+    ok = (await appeler({ table: 'disponibilites', action: 'upsert', ligne: { date, plages, updated_at: new Date().toISOString() } })) && ok;
+  }
+  return { ok, error: derniereErreur };
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // RÉSERVATIONS
 // ═══════════════════════════════════════════════════════════════════════
