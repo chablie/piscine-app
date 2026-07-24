@@ -18,7 +18,7 @@ import {
   envoyerEmailNouvelleDemande, envoyerEmailAcceptation,
   envoyerEmailRefus, envoyerEmailAnnulation,
   envoyerSmsNouvelleDemande, envoyerEmailCodePromo, envoyerEmailRemboursementCommercial,
-  envoyerEmailEdlAValider, envoyerSmsEdlAValider,
+  envoyerEmailEdlAValider, envoyerSmsEdlAValider, envoyerSmsInvitationPaiement,
 } from "./emails.js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -2250,6 +2250,9 @@ export default function App() {
 
   // ── Vérification téléphone OTP ──
   const [otpEnvoye, setOtpEnvoye] = useState(false);
+  // Canal réellement utilisé pour le code : "sms" (vérifie aussi le numéro)
+  // ou "email" (recours quand le SMS n'arrive pas)
+  const [otpCanal, setOtpCanal] = useState("sms");
   const [otpCode, setOtpCode] = useState("");
   const [otpSaisi, setOtpSaisi] = useState("");
   const [otpErreur, setOtpErreur] = useState("");
@@ -2278,6 +2281,8 @@ export default function App() {
   const [ongletPropri, setOngletPropri] = useState("dispo");
   // Filtre de l'onglet Réservations : attente / avenir / passees / autres
   const [filtreResas, setFiltreResas] = useState("attente");
+  // Même filtre côté locataire, dans son espace « Mes réservations »
+  const [filtreMesResas, setFiltreMesResas] = useState("avenir");
   // Persiste l'onglet propriétaire actif pour le retrouver après un F5 (même
   // logique que pour "mode" : on ignore le tout premier rendu pour laisser le
   // temps à la restauration de session de lire la valeur sauvegardée)
@@ -2852,27 +2857,67 @@ export default function App() {
     return "+" + chiffres; // repli : on suppose que l'indicatif est déjà inclus
   }
 
-  async function envoyerOTP() {
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    const exp = Date.now() + 10 * 60 * 1000; // 10 minutes
+  // Envoi du code de vérification. Deux canaux possibles : SMS (par défaut, il
+  // vérifie en prime que le numéro fourni est joignable) et email en recours,
+  // pour ne jamais bloquer un client qui ne reçoit pas le SMS (pas de réseau,
+  // numéro mal saisi, opérateur capricieux…).
+  async function envoyerOTP(canal = "sms") {
+    // Un code déjà en cours reste valable : on ne le régénère que si besoin,
+    // ainsi un client qui bascule sur l'email peut aussi saisir le code du SMS
+    // s'il finit par arriver.
+    const code = otpCode || String(Math.floor(100000 + Math.random() * 900000));
     setOtpCode(code);
-    setOtpExpiration(exp);
+    setOtpExpiration(Date.now() + 10 * 60 * 1000); // 10 minutes
     setOtpErreur("");
     setOtpEnCours(true);
-    const message = `🏊 My Piscine Privée : votre code de vérification est ${code} (valable 10 minutes).`;
+    setOtpCanal(canal);
+
     try {
-      const rep = await fetch('/api/envoyer-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ destinataire: normaliserTelephoneFR(form.telephone), message }),
-      });
+      let rep;
+      if (canal === "email") {
+        const html = `
+          <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #f8f9fa; padding: 24px;">
+            <div style="text-align:center; margin-bottom:20px;">
+              <div style="font-size:32px;">🏊</div>
+              <div style="font-size:20px; font-weight:700; color:#07a0f2;">My Piscine Privée</div>
+            </div>
+            <div style="background:#fff; border-radius:14px; padding:24px;">
+              <h2 style="color:#07a0f2; margin-top:0;">🔐 Votre code de vérification</h2>
+              <p style="color:#2C3E50; font-size:14px;">Saisissez ce code dans l'application pour confirmer votre réservation :</p>
+              <div style="text-align:center; font-size:40px; font-weight:900; letter-spacing:10px; color:#07a0f2; margin:24px 0; font-family:monospace;">${code}</div>
+              <p style="color:#888; font-size:12px; text-align:center;">Ce code est valable 10 minutes.</p>
+            </div>
+          </div>`;
+        rep = await fetch('/api/envoyer-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ destinataire: form.email, sujet: `🔐 Code de vérification : ${code}`, html }),
+        });
+      } else {
+        rep = await fetch('/api/envoyer-sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            destinataire: normaliserTelephoneFR(form.telephone),
+            message: `🏊 My Piscine Privée : votre code de vérification est ${code} (valable 10 minutes).`,
+          }),
+        });
+      }
+
       if (rep.ok) {
         setOtpEnvoye(true);
       } else {
         const d = await rep.json().catch(() => ({}));
-        setOtpErreur(d.error || "Erreur lors de l'envoi du SMS. Vérifiez votre numéro.");
+        if (canal === "sms") {
+          // Échec du SMS : on bascule tout de suite sur l'email plutôt que de
+          // laisser le client devant un message d'erreur sans solution.
+          setOtpEnCours(false);
+          return envoyerOTP("email");
+        }
+        setOtpErreur(d.error || "Erreur lors de l'envoi du code. Vérifiez vos coordonnées.");
       }
-    } catch(e) {
+    } catch (e) {
+      if (canal === "sms") { setOtpEnCours(false); return envoyerOTP("email"); }
       setOtpErreur("Erreur lors de l'envoi. Vérifiez votre connexion.");
     }
     setOtpEnCours(false);
@@ -2880,12 +2925,12 @@ export default function App() {
 
   function validerOTP() {
     if (!otpCode) { setOtpErreur("Code non généré, renvoyez-le."); return; }
-    if (Date.now() > otpExpiration) { setOtpErreur("Ce code a expiré. Cliquez sur « Renvoyer le code »."); setOtpEnvoye(false); return; }
+    if (Date.now() > otpExpiration) { setOtpErreur("Ce code a expiré. Demandez-en un nouveau."); setOtpEnvoye(false); return; }
     if (otpSaisi.trim() === otpCode) {
       setOtpVerifie(true);
       setOtpErreur("");
     } else {
-      setOtpErreur("Code incorrect. Vérifiez votre SMS et réessayez.");
+      setOtpErreur(`Code incorrect. Vérifiez ${otpCanal === "email" ? "votre email" : "votre SMS"} et réessayez.`);
     }
   }
 
@@ -2902,6 +2947,9 @@ export default function App() {
           body: JSON.stringify({
             action: 'creer-compte',
             prenom: form.prenom, nom: form.nom, email: emailRes, telephone: form.telephone,
+            // Trace du canal de vérification : si le code est passé par email, le
+            // numéro n'a PAS été confirmé joignable — utile à savoir côté propriétaire.
+            verificationCanal: otpCanal,
             adresse: form.adresse || "", codePostal: form.codePostal || "", ville: form.ville || "",
             motdepasse: formMdp.motdepasse,
           }),
@@ -2982,6 +3030,10 @@ export default function App() {
     setReservations(prev => prev.map(r => r.ref === ref ? updated : r));
     sauvegarderReservation(updated);
     envoyerEmailAcceptation(updated);
+    // SMS d'invitation à payer : le client reçoit le lien directement sur son
+    // téléphone, cliquable, sans avoir à ouvrir sa boîte mail. C'est le moment
+    // le plus sensible du parcours — le créneau n'est bloqué qu'une fois payé.
+    if (paiement?.url) envoyerSmsInvitationPaiement(updated, paiement);
   }
 
   function refuserReservation(ref, motif) {
@@ -3828,15 +3880,42 @@ export default function App() {
   // ── PAGE COMPTE LOCATAIRE ─────────────────────────────────────────────────
   if (mode === "compte") {
     const compte = comptes[compteConnecte];
-    const mesRes = reservations
-      .filter(r => r.email && r.email.toLowerCase() === (compteConnecte || "").toLowerCase())
-      .sort((a, b) => {
-        const aAvenir = a.date >= today();
-        const bAvenir = b.date >= today();
-        if (aAvenir && !bAvenir) return -1;
-        if (!aAvenir && bAvenir) return 1;
-        return aAvenir ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date);
-      });
+    const aujourdhuiCompte = today();
+    // Même classement que côté propriétaire, pour que le client s'y retrouve
+    const categorieResa = r => {
+      const st = r.statut || "acceptee";
+      if (st === "en_attente") return "attente";
+      if (st === "refusee" || st === "annulee") return "autres";
+      return r.date >= aujourdhuiCompte ? "avenir" : "passees";
+    };
+    const mesResToutes = reservations.filter(r => r.email && r.email.toLowerCase() === (compteConnecte || "").toLowerCase());
+    const parCat = { attente: [], avenir: [], passees: [], autres: [] };
+    mesResToutes.forEach(r => parCat[categorieResa(r)].push(r));
+
+    const ongletsClient = [
+      ["attente", "En attente", parCat.attente.length],
+      ["avenir", "À venir", parCat.avenir.length],
+      ["passees", "Passées", parCat.passees.length],
+      ["autres", "Autres", parCat.autres.length],
+    ];
+    // À l'ouverture, on montre la première catégorie non vide en partant des
+    // plus utiles : ce qui arrive bientôt, puis ce qui attend une réponse.
+    const filtreEffectif = parCat[filtreMesResas].length > 0
+      ? filtreMesResas
+      : (["avenir", "attente", "passees", "autres"].find(c => parCat[c].length > 0) || "avenir");
+
+    const decroissant = filtreEffectif === "passees" || filtreEffectif === "autres";
+    const mesRes = [...parCat[filtreEffectif]].sort((a, b) => {
+      const c = a.date.localeCompare(b.date);
+      if (c !== 0) return decroissant ? -c : c;
+      return (a.heureDebut || 0) - (b.heureDebut || 0);
+    });
+    const messageVideClient = {
+      attente: "Aucune demande en attente de réponse.",
+      avenir: "Aucune réservation à venir. À bientôt à la piscine ! 🏊",
+      passees: "Aucune réservation passée.",
+      autres: "Aucune réservation refusée ou annulée.",
+    }[filtreEffectif];
     return (
       <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
         <Header showSteps={false} />
@@ -3857,8 +3936,27 @@ export default function App() {
           </div>
           <div style={card}>
             <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", fontWeight: 700, marginBottom: 12 }}>📋 Mes réservations</div>
-            {mesRes.length === 0 ? (
+            {mesResToutes.length > 0 && (
+              <div role="tablist" aria-label="Filtrer mes réservations" style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:14 }}>
+                {ongletsClient.map(([cle, libelle, nombre]) => {
+                  const actif = filtreEffectif === cle;
+                  return (
+                    <button key={cle} role="tab" aria-selected={actif} onClick={() => setFiltreMesResas(cle)}
+                      style={{ padding:"6px 14px", borderRadius:50, fontSize:12.5, fontWeight:700, cursor:"pointer",
+                        border:`1.5px solid ${actif ? "#07a0f2" : "#b8e0f8"}`,
+                        background: actif ? "#07a0f2" : "#fff",
+                        color: actif ? "#fff" : "#07a0f2",
+                        opacity: nombre === 0 && !actif ? 0.5 : 1 }}>
+                      {libelle} <span style={{ fontSize:11, opacity:.8 }}>({nombre})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {mesResToutes.length === 0 ? (
               <div style={{ color: "#6b7f8c", fontSize: 14, textAlign: "center", padding: "16px 0" }}>Aucune réservation pour l'instant.</div>
+            ) : mesRes.length === 0 ? (
+              <div style={{ color: "#6b7f8c", fontSize: 14, textAlign: "center", padding: "20px 0" }}>{messageVideClient}</div>
             ) : mesRes.map(r => {
               const noteP = notesLocataires[r.ref];
               const showFacture = factureOuverte === r.ref;
@@ -5059,6 +5157,11 @@ export default function App() {
                       <div style={{ fontWeight: 700, color: "#07a0f2", fontSize: 13 }}>{r.ref}</div>
                       <div style={{ display:"flex", gap:4, flexWrap:"wrap", justifyContent:"flex-end" }}>
                         {/* Badge paiement */}
+                        {r.verificationCanal === "email" && (
+                          <span title="Le code a été envoyé par email : le numéro de téléphone n'a pas été confirmé joignable." style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#fff8e1", color:"#a06000", border:"1px solid #f0c040" }}>
+                            📧 Tél. non vérifié
+                          </span>
+                        )}
                         {r.note && (
                           <span title={r.commentaire || ""} style={{ fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:20, background:"#fff8e1", color:"#a06000", border:"1px solid #f0c040" }}>
                             {"⭐".repeat(r.note)} avis client
@@ -5777,16 +5880,24 @@ export default function App() {
                     Pour confirmer votre réservation, nous devons vérifier votre numéro <strong>{form.telephone}</strong> par SMS.
                   </div>
                   {!otpEnvoye ? (
-                    <button
-                      onClick={envoyerOTP}
-                      disabled={otpEnCours}
-                      style={{ width: "100%", padding: "11px", borderRadius: 9, background: "#07a0f2", color: "#fff", border: "none", fontWeight: 700, fontSize: 14, cursor: otpEnCours ? "not-allowed" : "pointer", opacity: otpEnCours ? 0.7 : 1 }}>
-                      {otpEnCours ? "Envoi en cours…" : "📲 Recevoir mon code par SMS"}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => envoyerOTP("sms")}
+                        disabled={otpEnCours}
+                        style={{ width: "100%", padding: "11px", borderRadius: 9, background: "#07a0f2", color: "#fff", border: "none", fontWeight: 700, fontSize: 14, cursor: otpEnCours ? "not-allowed" : "pointer", opacity: otpEnCours ? 0.7 : 1 }}>
+                        {otpEnCours ? "Envoi en cours…" : "📲 Recevoir mon code par SMS"}
+                      </button>
+                      <button onClick={() => envoyerOTP("email")} disabled={otpEnCours}
+                        style={{ width: "100%", marginTop: 8, background: "none", border: "none", color: "#0480c4", fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
+                        Je préfère recevoir le code par email
+                      </button>
+                    </>
                   ) : (
                     <>
                       <div style={{ fontSize: 12, color: "#07a0f2", background: "#e8f6fe", borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
-                        📲 Un code à 6 chiffres a été envoyé par SMS au <strong>{form.telephone}</strong>. Valable 10 minutes.
+                        {otpCanal === "email"
+                          ? <>📧 Un code à 6 chiffres a été envoyé par email à <strong>{form.email}</strong>. Valable 10 minutes — pensez à vérifier vos spams.</>
+                          : <>📲 Un code à 6 chiffres a été envoyé par SMS au <strong>{form.telephone}</strong>. Valable 10 minutes.</>}
                       </div>
                       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                         <input
@@ -5805,9 +5916,19 @@ export default function App() {
                         </button>
                       </div>
                       {otpErreur && <div style={{ fontSize: 12, color: "#FF6B6B", marginBottom: 6 }}>❌ {otpErreur}</div>}
-                      <button onClick={() => { setOtpEnvoye(false); setOtpSaisi(""); setOtpErreur(""); }}
+                      {/* Recours toujours visible : personne ne doit rester bloqué faute de SMS */}
+                      {otpCanal === "sms" && (
+                        <div style={{ background: "#fff8e1", border: "1px solid #f0c040", borderRadius: 8, padding: "9px 11px", marginBottom: 8 }}>
+                          <div style={{ fontSize: 12, color: "#a06000", marginBottom: 6 }}>Vous ne recevez pas le SMS ?</div>
+                          <button onClick={() => envoyerOTP("email")} disabled={otpEnCours}
+                            style={{ padding: "7px 14px", borderRadius: 50, background: "#fff", color: "#a06000", border: "1.5px solid #f0c040", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                            📧 Recevoir le code par email
+                          </button>
+                        </div>
+                      )}
+                      <button onClick={() => envoyerOTP(otpCanal)} disabled={otpEnCours}
                         style={{ fontSize: 12, color: "#6b7f8c", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
-                        Renvoyer le code
+                        Renvoyer le code {otpCanal === "email" ? "par email" : "par SMS"}
                       </button>
                     </>
                   )}

@@ -23,6 +23,15 @@ async function envoyerEmail(destinataire, sujet, html) {
   }
 }
 
+// Convertit un numéro français saisi localement (ex : "06 12 34 56 78") au
+// format international attendu par Twilio (ex : "+33612345678")
+function normaliserTelephoneFR(tel) {
+  const chiffres = (tel || "").replace(/\D/g, "");
+  if (chiffres.startsWith("33") && chiffres.length === 11) return "+" + chiffres;
+  if (chiffres.startsWith("0") && chiffres.length === 10) return "+33" + chiffres.slice(1);
+  return chiffres ? "+" + chiffres : null;
+}
+
 async function envoyerSms(destinataire, message) {
   try {
     const reponse = await fetch('/api/envoyer-sms', {
@@ -47,6 +56,17 @@ export async function envoyerSmsNouvelleDemande(reservation) {
   const montant = reservation.totalGeneral ?? reservation.prix ?? 0;
   const message = `🔔 My Piscine Privée : nouvelle demande de ${reservation.prenom} ${reservation.nom} le ${reservation.date} de ${formatHeureEmail(reservation.heureDebut)} à ${formatHeureEmail(reservation.heureFin)} — ${formatEurEmail(montant)}. Réf ${reservation.ref}.`;
   return envoyerSms(TELEPHONE_PROPRIO, message);
+}
+
+// ─── SMS : demande acceptée, invitation à payer ──────────────────────────────
+// Envoyé au client dès que la propriétaire valide sa demande. Le lien de
+// paiement est directement cliquable depuis le téléphone : c'est l'étape où
+// l'on perd le plus de clients si l'information reste enfouie dans un email.
+export async function envoyerSmsInvitationPaiement(reservation, paiement) {
+  const destinataire = normaliserTelephoneFR(reservation.telephone);
+  if (!destinataire) return false;
+  const message = `🏊 My Piscine Privée : bonne nouvelle, votre demande du ${reservation.date} de ${formatHeureEmail(reservation.heureDebut)} à ${formatHeureEmail(reservation.heureFin)} est acceptée ! Réglez ${formatEurEmail(paiement.montant)} ici pour garantir votre créneau : ${paiement.url} (le créneau reste ouvert aux autres tant qu'il n'est pas réglé). Réf ${reservation.ref}`;
+  return envoyerSms(destinataire, message);
 }
 
 // ─── Email : code promo reçu suite à une bonne note ──────────────────────────
