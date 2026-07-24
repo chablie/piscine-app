@@ -182,6 +182,19 @@ function detailPrix(adultes, enfants12, creneaux) {
 }
 function formatEur(n) { return (n || 0).toFixed(2).replace(".", ",") + " €"; }
 
+// L'état des lieux de sortie n'a de sens qu'en toute fin de session : on
+// l'ouvre 30 minutes avant l'heure de fin, et il reste accessible ensuite
+// (un locataire qui traîne un peu doit toujours pouvoir le remplir).
+const MINUTES_AVANT_SORTIE = 30;
+function sortieAutorisee(reservation, maintenant = new Date()) {
+  if (!reservation) return false;
+  const aujourdhuiISO = maintenant.toISOString().split("T")[0];
+  if (reservation.date < aujourdhuiISO) return true;   // session déjà passée
+  if (reservation.date > aujourdhuiISO) return false;  // pas encore le jour J
+  const heureActuelle = maintenant.getHours() + maintenant.getMinutes() / 60;
+  return heureActuelle >= parseFloat(reservation.heureFin) - MINUTES_AVANT_SORTIE / 60;
+}
+
 // ─── Compression d'image ─────────────────────────────────────────────────────
 // Les photos de téléphone pèsent 3 à 10 Mo. Encodées en base64 pour être
 // stockées, elles dépassent les limites de la base de données et l'enregistrement
@@ -3668,10 +3681,19 @@ export default function App() {
                       📷 Faire l'état des lieux d'entrée
                     </button>
                   ) : !sessionEnCours.edlSortieFait ? (
-                    <button onClick={() => { setReservation(sessionEnCours); setMode("edlSortie"); }}
-                      style={{ width: "100%", padding: "11px", borderRadius: 10, background: "#fff", color: "#07a0f2", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-                      📷 Faire l'état des lieux de sortie
-                    </button>
+                    sortieAutorisee(sessionEnCours) ? (
+                      <button onClick={() => { setReservation(sessionEnCours); setMode("edlSortie"); }}
+                        style={{ width: "100%", padding: "11px", borderRadius: 10, background: "#fff", color: "#07a0f2", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                        📷 Faire l'état des lieux de sortie
+                      </button>
+                    ) : (
+                      // Avant les 30 dernières minutes, la sortie n'a pas de sens :
+                      // le locataire profite encore de la piscine.
+                      <div style={{ background: "rgba(255,255,255,.2)", borderRadius: 10, padding: "11px", textAlign: "center", fontSize: 13, lineHeight: 1.5 }}>
+                        🔒 L'état des lieux de sortie sera accessible à partir de <strong>{padH(parseFloat(sessionEnCours.heureFin) - 0.5)}</strong><br />
+                        <span style={{ fontSize: 12, opacity: 0.9 }}>Profitez bien de votre session !</span>
+                      </div>
+                    )
                   ) : (
                     <div style={{ background: "rgba(255,255,255,.2)", borderRadius: 10, padding: "10px", textAlign: "center", fontSize: 13 }}>
                       ✅ États des lieux complétés
@@ -4088,10 +4110,16 @@ export default function App() {
                         </button>
                       )}
                       {r.edlEntreeFait && !r.edlSortieFait && (
-                        <button onClick={() => { setReservation(r); setMode("edlSortie"); }}
-                          style={{ flex:1, padding:"9px", borderRadius:8, background:"#FF6B6B", color:"#fff", border:"none", fontWeight:700, fontSize:12, cursor:"pointer" }}>
-                          📷 État des lieux de sortie
-                        </button>
+                        sortieAutorisee(r) ? (
+                          <button onClick={() => { setReservation(r); setMode("edlSortie"); }}
+                            style={{ flex:1, padding:"9px", borderRadius:8, background:"#FF6B6B", color:"#fff", border:"none", fontWeight:700, fontSize:12, cursor:"pointer" }}>
+                            📷 État des lieux de sortie
+                          </button>
+                        ) : (
+                          <div style={{ flex:1, padding:"9px", borderRadius:8, background:"#f5f5f5", color:"#888", textAlign:"center", fontWeight:600, fontSize:12 }}>
+                            🔒 Sortie accessible dès {padH(parseFloat(r.heureFin) - 0.5)}
+                          </div>
+                        )
                       )}
                       {r.edlEntreeFait && r.edlSortieFait && (
                         <div style={{ flex:1, padding:"9px", borderRadius:8, background:"#e8f6fe", color:"#07a0f2", textAlign:"center", fontWeight:600, fontSize:12 }}>
@@ -5970,7 +5998,7 @@ export default function App() {
                 <div style={{ fontWeight: 700, fontSize: 14, color: "#2C3E50", marginBottom: 6 }}>{item}</div>
                 {refPhotos.length > 0 && (
                   <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-                    {refPhotos.map((p, i) => <img key={i} src={p.data || p} alt={item} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "2px solid #f0c040" }} />)}
+                    {refPhotos.map((p, i) => <img key={i} src={p.url || p.data || p} alt={`Photo de référence : ${item}`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "2px solid #f0c040" }} />)}
                   </div>
                 )}
                 <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
@@ -6101,7 +6129,27 @@ export default function App() {
   }
 
   // ── PAGE ÉTAT DES LIEUX DE SORTIE (le jour J, depuis Mon compte ou la bannière) ──
-  if (mode === "edlSortie") return (
+  if (mode === "edlSortie") {
+    // Garde-fou : même en arrivant directement sur cet écran (retour arrière,
+    // lien mémorisé), la sortie reste verrouillée avant les 30 dernières minutes.
+    if (!sortieAutorisee(reservation)) return (
+      <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
+        <Header showSteps={false} />
+        <div style={{ padding: "16px 16px 32px" }}>
+          <div style={{ ...card, textAlign: "center" }}>
+            <div style={{ fontSize: 34, marginBottom: 8 }}>🔒</div>
+            <div style={{ fontFamily: "'Nunito',sans-serif", fontSize: 18, color: "#07a0f2", fontWeight: 700, marginBottom: 8 }}>Pas encore l'heure</div>
+            <div style={{ fontSize: 13, color: "#6b7f8c", lineHeight: 1.6, marginBottom: 14 }}>
+              L'état des lieux de sortie s'ouvrira <strong>30 minutes avant la fin</strong> de votre session,
+              {reservation?.heureFin != null && <> soit à partir de <strong>{padH(parseFloat(reservation.heureFin) - 0.5)}</strong></>}.
+              <br />Profitez bien de la piscine ! 🏊
+            </div>
+            <button style={btnS} onClick={() => setMode(compteConnecte ? "compte" : "accueil")}>← Retour</button>
+          </div>
+        </div>
+      </div>
+    );
+    return (
     <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
       <Header showSteps={false} />
       <div style={{ padding: "16px 16px 32px" }}>
@@ -6119,7 +6167,7 @@ export default function App() {
                 <div style={{ fontWeight: 700, fontSize: 14, color: "#2C3E50", marginBottom: 6 }}>{item}</div>
                 {refPhotos.length > 0 && (
                   <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-                    {refPhotos.map((p, i) => <img key={i} src={p.data || p} alt={item} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "2px solid #f0c040" }} />)}
+                    {refPhotos.map((p, i) => <img key={i} src={p.url || p.data || p} alt={`Photo de référence : ${item}`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "2px solid #f0c040" }} />)}
                   </div>
                 )}
                 <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
@@ -6166,7 +6214,8 @@ export default function App() {
         </div>
       </div>
     </div>
-  );
+    );
+  }
 
   // ── ÉTAPE 7 : Avis ────────────────────────────────────────────────────────
   if (mode === "locataire" && step === 7) return (
