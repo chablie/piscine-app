@@ -337,9 +337,69 @@ const EQUIPEMENTS_LABELS = {
 };
 
 // ─── Textes légaux (RGPD) ───────────────────────────────────────────────────
-const RESPONSABLE_TRAITEMENT = "BRIAND Aurélie";
-const ADRESSE_RESPONSABLE = "Lieu-dit Le Bois Sené, 49000 Écouflant";
-const EMAIL_CONTACT_RGPD = "aurelie.briand@yahoo.fr";
+// ─── Identité légale de l'entreprise ─────────────────────────────────────────
+// Ces constantes alimentent les mentions légales, les CGV et la politique de
+// confidentialité. Une seule source de vérité : modifier ici met tout à jour.
+const SOCIETE_NOM = "AB KAIZEN";
+const SOCIETE_FORME = "Société par actions simplifiée à associé unique (SASU)";
+const SOCIETE_CAPITAL = "1 000,00 €";
+const SOCIETE_RCS = "107 413 965 R.C.S. Angers";
+const SOCIETE_SIREN = "107 413 965";
+const SOCIETE_EUID = "FR4901.107413965";
+const SOCIETE_IMMATRICULATION = "22/07/2026";
+const SOCIETE_ADRESSE = "Lieu-dit le Bois Séné, 49000 Écouflant";
+const SOCIETE_DIRECTEUR_PUBLICATION = "Aurélie BRIAND, Présidente";
+const EMAIL_CONTACT = "contact@mypiscineprivee.com";
+const TELEPHONE_CONTACT = "06 79 41 91 14";
+
+// Médiateur de la consommation — OBLIGATOIRE pour toute activité B2C en France
+// (art. L612-1 du Code de la consommation). Renseigner dès l'adhésion à un
+// médiateur agréé, puis les coordonnées s'affichent automatiquement dans les CGV.
+const MEDIATEUR_NOM = "";       // ex : "CM2C"
+const MEDIATEUR_ADRESSE = "";   // ex : "14 rue Saint Jean, 75017 Paris"
+const MEDIATEUR_SITE = "";      // ex : "https://www.cm2c.net"
+
+// Conservés pour compatibilité avec le reste du code
+const RESPONSABLE_TRAITEMENT = SOCIETE_NOM;
+const ADRESSE_RESPONSABLE = SOCIETE_ADRESSE;
+const EMAIL_CONTACT_RGPD = EMAIL_CONTACT;
+
+const MENTIONS_LEGALES = `MENTIONS LÉGALES
+
+Dernière mise à jour : ${new Date().toLocaleDateString("fr-FR")}
+
+1. ÉDITEUR DU SITE
+
+Dénomination sociale : ${SOCIETE_NOM}
+Forme juridique : ${SOCIETE_FORME}
+Capital social : ${SOCIETE_CAPITAL}
+Siège social : ${SOCIETE_ADRESSE}
+Immatriculation : ${SOCIETE_RCS}, le ${SOCIETE_IMMATRICULATION}
+Numéro SIREN : ${SOCIETE_SIREN}
+Identifiant européen (EUID) : ${SOCIETE_EUID}
+
+Directrice de la publication : ${SOCIETE_DIRECTEUR_PUBLICATION}
+Contact : ${EMAIL_CONTACT} — ${TELEPHONE_CONTACT}
+
+2. HÉBERGEUR
+
+Le site est hébergé par Vercel Inc.
+340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis
+https://vercel.com
+
+La base de données est hébergée par Supabase (infrastructure située dans l'Union européenne).
+
+3. ACTIVITÉ
+
+Le site mypiscineprivee.com propose la réservation en ligne de créneaux de location d'une piscine privée située à Écouflant (49000), à destination de particuliers.
+
+4. PROPRIÉTÉ INTELLECTUELLE
+
+L'ensemble des contenus présents sur ce site (textes, photographies, éléments graphiques, structure) est la propriété exclusive de ${SOCIETE_NOM}, sauf mention contraire. Toute reproduction ou représentation, totale ou partielle, sans autorisation écrite préalable est interdite.
+
+5. SIGNALER UN CONTENU
+
+Pour toute question, réclamation ou signalement relatif au site : ${EMAIL_CONTACT}`;
 
 const POLITIQUE_CONFIDENTIALITE = `POLITIQUE DE CONFIDENTIALITÉ
 
@@ -347,100 +407,216 @@ Dernière mise à jour : ${new Date().toLocaleDateString("fr-FR")}
 
 1. RESPONSABLE DU TRAITEMENT
 
-Le responsable du traitement des données collectées sur cette application est :
-${RESPONSABLE_TRAITEMENT}
-${ADRESSE_RESPONSABLE}
-Email : ${EMAIL_CONTACT_RGPD}
+Le responsable du traitement des données collectées sur ce site est :
+${SOCIETE_NOM} — ${SOCIETE_FORME}
+${SOCIETE_ADRESSE}
+${SOCIETE_RCS}
+Email : ${EMAIL_CONTACT}
 
 2. DONNÉES COLLECTÉES
 
-Dans le cadre de l'utilisation de cette application de réservation de piscine privée, les données suivantes sont collectées :
+Dans le cadre de l'utilisation de ce service de réservation de piscine privée, les données suivantes sont collectées :
 • Identité : prénom, nom
 • Coordonnées : email, téléphone, adresse postale
-• Données de réservation : dates, horaires, nombre de participants, montants payés
-• Photos : état des lieux (mobilier, en cas de dégât signalé)
+• Données de connexion : mot de passe (stocké sous forme chiffrée et irréversible), historique de connexion
+• Données de réservation : dates, horaires, nombre de participants, options choisies, montants payés
+• Photos : état des lieux d'entrée et de sortie, signalement de dégâts
+• Signature électronique apposée sur les états des lieux
 • Avis et commentaires laissés sur la prestation
 
-Aucune donnée bancaire (numéro de carte) n'est collectée ni stockée par cette application — les paiements sont traités par un prestataire de paiement sécurisé tiers (Stripe), qui dispose de sa propre politique de confidentialité.
+Aucune donnée bancaire (numéro de carte) n'est collectée ni stockée par ce site — les paiements sont traités directement par Stripe, prestataire de paiement certifié PCI-DSS.
 
-3. FINALITÉS DU TRAITEMENT
+3. FINALITÉS ET BASES LÉGALES
 
-Ces données sont utilisées pour :
-• Gérer les réservations et leur suivi (validation, refus, annulation)
-• Établir les factures
-• Assurer le suivi de la relation client (avis, codes promo)
-• Réaliser des statistiques anonymisées sur l'activité
+Chaque traitement repose sur une base légale précise :
 
-4. BASE LÉGALE
+• Gestion des réservations, des paiements et des états des lieux
+  → Exécution du contrat de location (art. 6.1.b du RGPD)
 
-Le traitement de vos données repose sur l'exécution du contrat de location conclu avec vous lors de votre réservation, ainsi que sur votre consentement pour les éléments facultatifs (avis, photos).
+• Envoi des emails et SMS liés à la réservation (confirmation, code de vérification, itinéraire d'accès, annulation)
+  → Exécution du contrat (art. 6.1.b du RGPD)
 
-5. DESTINATAIRES DES DONNÉES
+• Établissement et conservation des factures
+  → Obligation légale comptable (art. 6.1.c du RGPD)
 
-Vos données sont accessibles uniquement par le responsable du traitement mentionné ci-dessus. Elles ne sont jamais vendues ni cédées à des tiers à des fins commerciales. Elles peuvent être transmises à des sous-traitants techniques strictement nécessaires au fonctionnement du service (hébergement de la base de données, traitement des paiements), qui sont tenus aux mêmes obligations de confidentialité.
+• Avis, notation et attribution de codes promotionnels
+  → Intérêt légitime à améliorer le service et fidéliser la clientèle (art. 6.1.f du RGPD)
+
+• Sécurisation des accès (limitation des tentatives de connexion)
+  → Intérêt légitime à protéger les comptes contre les accès frauduleux (art. 6.1.f du RGPD)
+
+4. DESTINATAIRES ET SOUS-TRAITANTS
+
+Vos données ne sont jamais vendues, louées ni cédées à des tiers à des fins commerciales.
+
+Elles sont accessibles au responsable du traitement, et transmises aux sous-traitants techniques strictement nécessaires au fonctionnement du service, tous liés par un contrat conforme à l'article 28 du RGPD :
+
+• Supabase — hébergement de la base de données (Union européenne)
+• Vercel Inc. — hébergement du site (États-Unis, encadré par les clauses contractuelles types de la Commission européenne et le Data Privacy Framework)
+• Stripe Payments Europe Ltd. — traitement des paiements (Irlande)
+• Resend — acheminement des emails transactionnels
+• Twilio Inc. — acheminement des SMS transactionnels (États-Unis, encadré par les clauses contractuelles types)
+
+5. TRANSFERTS HORS UNION EUROPÉENNE
+
+Certains sous-traitants (Vercel, Twilio) sont établis aux États-Unis. Ces transferts sont encadrés par les clauses contractuelles types adoptées par la Commission européenne et, le cas échéant, par la certification au Data Privacy Framework, garantissant un niveau de protection adéquat.
 
 6. DURÉE DE CONSERVATION
 
-Vos données sont conservées pendant la durée nécessaire à la gestion de votre dossier, et au maximum 3 ans après votre dernière réservation, sauf obligation légale de conservation plus longue (comptabilité, litiges).
+• Compte client et données de réservation : 3 ans à compter de la dernière réservation
+• Factures et pièces comptables : 10 ans (obligation légale, art. L123-22 du Code de commerce)
+• États des lieux, photos et signatures : 1 an après la prestation, ou jusqu'à la résolution d'un litige en cours
+• Tentatives de connexion échouées : 30 jours
+• Avis et commentaires : jusqu'à leur suppression à votre demande
+
+Au terme de ces durées, les données sont supprimées ou anonymisées.
 
 7. VOS DROITS
 
-Conformément au Règlement Général sur la Protection des Données (RGPD), vous disposez des droits suivants sur vos données personnelles :
+Conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi Informatique et Libertés, vous disposez des droits suivants :
 • Droit d'accès : obtenir une copie des données vous concernant
 • Droit de rectification : corriger des données inexactes
 • Droit à l'effacement : demander la suppression de vos données
 • Droit à la limitation du traitement
-• Droit d'opposition
-• Droit à la portabilité de vos données
+• Droit d'opposition, notamment aux traitements fondés sur l'intérêt légitime
+• Droit à la portabilité : recevoir vos données dans un format structuré
+• Droit de définir des directives sur le sort de vos données après votre décès
 
-Vous pouvez exercer ces droits directement depuis votre espace "Mon compte" (suppression) ou en nous contactant à l'adresse : ${EMAIL_CONTACT_RGPD}
+Vous pouvez exercer ces droits directement depuis votre espace "Mon compte" (consultation, modification, suppression de votre compte) ou en écrivant à ${EMAIL_CONTACT}. Une réponse vous sera apportée dans un délai maximum d'un mois.
 
-Vous disposez également du droit d'introduire une réclamation auprès de la Commission Nationale de l'Informatique et des Libertés (CNIL) — www.cnil.fr
+Vous disposez également du droit d'introduire une réclamation auprès de la Commission Nationale de l'Informatique et des Libertés (CNIL) :
+3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07 — www.cnil.fr
 
 8. SÉCURITÉ
 
-Des mesures techniques sont mises en place pour protéger vos données contre tout accès non autorisé, perte ou divulgation (hébergement sécurisé, accès restreint).
+Les mesures suivantes protègent vos données : chiffrement des échanges (HTTPS), mots de passe stockés de façon chiffrée et irréversible, sessions signées côté serveur, restriction des accès à la base de données par politiques de sécurité, limitation automatique des tentatives de connexion, et absence totale de stockage de données bancaires.
 
 9. COOKIES ET STOCKAGE LOCAL
 
-Cette application utilise uniquement les cookies et le stockage technique strictement nécessaires à son fonctionnement (maintien de votre connexion, mémorisation de vos préférences de réservation en cours). Aucun cookie publicitaire ou de traçage tiers n'est utilisé.`;
+Ce site n'utilise aucun cookie publicitaire, aucun traceur tiers et aucun outil de mesure d'audience.
 
-const CGU_TEXTE = `CONDITIONS GÉNÉRALES D'UTILISATION
+Seuls sont utilisés les cookies et le stockage local strictement nécessaires au fonctionnement du service :
+• Cookie de session : maintien de votre connexion pendant votre visite
+• Stockage local : mémorisation de votre réservation en cours et de vos préférences d'affichage
+
+Ces éléments sont exemptés de consentement préalable au titre de l'article 82 de la loi Informatique et Libertés et des recommandations de la CNIL, car strictement nécessaires à la fourniture du service que vous demandez. Aucun bandeau cookies n'est donc affiché.`;
+
+const CGU_TEXTE = `CONDITIONS GÉNÉRALES DE VENTE ET D'UTILISATION
 
 Dernière mise à jour : ${new Date().toLocaleDateString("fr-FR")}
 
-1. OBJET
+1. IDENTIFICATION DU PRESTATAIRE
 
-Les présentes conditions générales régissent l'utilisation de l'application de réservation de la piscine privée gérée par ${RESPONSABLE_TRAITEMENT}, et l'ensemble des réservations effectuées par son intermédiaire.
+${SOCIETE_NOM} — ${SOCIETE_FORME}
+Capital social : ${SOCIETE_CAPITAL}
+Siège social : ${SOCIETE_ADRESSE}
+${SOCIETE_RCS}
+Email : ${EMAIL_CONTACT} — Téléphone : ${TELEPHONE_CONTACT}
 
-2. RÉSERVATION
+2. OBJET
 
-Toute réservation implique l'acceptation pleine et entière des présentes conditions ainsi que du règlement intérieur de la piscine. Les réservations sont soumises à validation manuelle par le propriétaire ; elles ne sont définitivement confirmées qu'après cette validation.
+Les présentes conditions régissent l'utilisation du site mypiscineprivee.com et l'ensemble des réservations de créneaux de location de la piscine privée située à Écouflant (49000), conclues par son intermédiaire entre ${SOCIETE_NOM} et le client, personne physique non professionnelle.
 
-3. PAIEMENT
+3. RÉSERVATION
 
-Le paiement s'effectue en ligne par carte bancaire (intégralité du montant) ou, sur option, par un acompte de 20% en ligne avec solde en espèces le jour de la prestation. Toute réservation confirmée et non honorée par le locataire sans annulation préalable reste due intégralement.
+Toute réservation implique l'acceptation pleine et entière des présentes conditions ainsi que du règlement intérieur de la piscine, communiqué avant validation.
 
-4. ANNULATION
+Le processus est le suivant : le client soumet une demande de réservation sans paiement ; le prestataire l'accepte ou la refuse ; en cas d'acceptation, un lien de paiement sécurisé est envoyé par email. Le créneau n'est définitivement réservé qu'après règlement effectif. En cas de demandes concurrentes sur un même créneau, le premier paiement reçu emporte la réservation, les autres demandes étant automatiquement annulées sans frais et leurs auteurs informés par email.
 
-En cas de refus de la demande par le propriétaire, le client est intégralement remboursé. En cas d'annulation d'une réservation déjà acceptée (initiative du propriétaire ou demande du locataire), un remboursement intégral est également effectué, sauf circonstance particulière communiquée au client.
+4. PRIX ET PAIEMENT
 
-5. RESPONSABILITÉ
+Les prix sont indiqués en euros toutes taxes comprises. Le tarif applicable est celui affiché au moment de la réservation.
 
-Le propriétaire ne pourra être tenu responsable des accidents corporels survenus dans l'enceinte de la piscine en cas de non-respect du règlement intérieur communiqué lors de la réservation. Chaque locataire reste responsable de la sécurité des personnes qu'il accompagne, notamment des enfants et personnes ne sachant pas nager.
+Le paiement s'effectue en ligne par carte bancaire via Stripe, prestataire certifié PCI-DSS : l'intégralité du montant, ou sur option un acompte de 20 % en ligne avec solde en espèces le jour de la prestation.
 
-6. ÉTAT DES LIEUX
+Les remises éventuelles (fidélité, code promotionnel, extras offerts) sont appliquées automatiquement selon les conditions affichées lors de la réservation. Les codes promotionnels sont nominatifs, à usage unique, non cumulables entre eux et valables un mois à compter de leur attribution.
 
-Un état des lieux photographique est réalisé par le locataire à l'arrivée et au départ. Tout dégât constaté et non signalé pourra être facturé.
+5. DROIT DE RÉTRACTATION
 
-7. DONNÉES PERSONNELLES
+Conformément à l'article L221-28 12° du Code de la consommation, le droit de rétractation de quatorze jours ne s'applique pas aux prestations de services de loisirs fournies à une date ou selon une périodicité déterminée. La réservation d'un créneau de piscine à une date et une heure précises entre dans ce cadre : le client ne dispose donc pas de droit de rétractation.
 
-Le traitement des données personnelles collectées dans le cadre de l'utilisation de cette application est décrit dans la Politique de confidentialité, consultable depuis l'application.
+Les conditions d'annulation prévues à l'article 6 s'appliquent en lieu et place.
 
-8. DROIT APPLICABLE
+6. ANNULATION ET REMBOURSEMENT
 
-Les présentes conditions sont soumises au droit français. Tout litige relève des juridictions compétentes.`;
+• Refus de la demande par le prestataire : aucune somme n'est prélevée, ou remboursement intégral si un paiement a déjà été effectué.
+• Annulation à l'initiative du prestataire : remboursement intégral automatique.
+• Annulation à la demande du client : remboursement selon le barème de pénalités affiché au moment de l'annulation, calculé en fonction du délai de prévenance.
+• Réservation confirmée et non honorée sans annulation préalable : la prestation reste due intégralement.
 
+Les remboursements sont effectués automatiquement sur le moyen de paiement d'origine. Le délai de mise à disposition des fonds dépend de l'établissement bancaire du client (généralement 5 à 10 jours ouvrés).
+
+7. RESPONSABILITÉ ET SÉCURITÉ
+
+La piscine est mise à disposition sans surveillance ni maître-nageur. Le client est seul responsable de la sécurité des personnes qu'il accompagne, en particulier des enfants mineurs et des personnes ne sachant pas nager, qui doivent faire l'objet d'une surveillance constante et rapprochée d'un adulte.
+
+Le client s'engage à respecter le règlement intérieur, le nombre maximum de baigneurs indiqué et les consignes de sécurité communiquées. Le prestataire ne saurait être tenu responsable des dommages résultant du non-respect de ces règles.
+
+8. ÉTAT DES LIEUX
+
+Un état des lieux contradictoire est réalisé par le client à l'arrivée et au départ, via le site, avec signature électronique. Il porte sur la présence et le bon fonctionnement des équipements mis à disposition.
+
+Tout dégât constaté au départ et non signalé par le client lors de l'état des lieux de sortie pourra lui être facturé sur justificatif.
+
+9. DONNÉES PERSONNELLES
+
+Le traitement des données personnelles est décrit dans la Politique de confidentialité, accessible depuis le pied de page du site.
+
+10. RÉCLAMATIONS ET MÉDIATION
+
+Toute réclamation doit être adressée en priorité à ${EMAIL_CONTACT}, afin de rechercher une solution amiable.
+
+${MEDIATEUR_NOM
+  ? `Conformément à l'article L612-1 du Code de la consommation, le client peut recourir gratuitement au médiateur de la consommation dont relève le prestataire :\n${MEDIATEUR_NOM}\n${MEDIATEUR_ADRESSE}\n${MEDIATEUR_SITE}`
+  : `Conformément à l'article L612-1 du Code de la consommation, le client peut recourir gratuitement à un médiateur de la consommation en vue de la résolution amiable de tout litige. Les coordonnées du médiateur compétent sont communiquées sur demande à ${EMAIL_CONTACT}.`}
+
+La Commission européenne met également à disposition une plateforme de règlement en ligne des litiges : https://ec.europa.eu/consumers/odr
+
+11. DROIT APPLICABLE
+
+Les présentes conditions sont soumises au droit français. À défaut de résolution amiable, tout litige relève de la compétence des juridictions françaises, dans les conditions prévues par le Code de la consommation pour les consommateurs.`;
+
+const DECLARATION_ACCESSIBILITE = `DÉCLARATION D'ACCESSIBILITÉ
+
+Dernière mise à jour : ${new Date().toLocaleDateString("fr-FR")}
+
+1. ENGAGEMENT
+
+${SOCIETE_NOM} s'engage à rendre le site mypiscineprivee.com accessible au plus grand nombre, y compris aux personnes en situation de handicap, conformément à l'esprit du Référentiel Général d'Amélioration de l'Accessibilité (RGAA) et des recommandations internationales WCAG 2.1 niveau AA.
+
+2. MESURES MISES EN ŒUVRE
+
+• Navigation complète au clavier : tous les boutons, champs, cases à cocher et systèmes de notation sont accessibles et activables sans souris (touches Tabulation, Entrée et Espace)
+• Indicateur visuel de focus clairement visible sur chaque élément interactif
+• Lien d'évitement permettant d'accéder directement au contenu principal
+• Libellés explicites associés à chaque champ de formulaire
+• Descriptions alternatives sur les images porteuses d'information
+• Boutons à icône dotés d'un intitulé lisible par les lecteurs d'écran
+• Contrastes de couleurs conformes au ratio minimal de 4,5:1 pour le texte
+• Information jamais transmise par la couleur seule (un texte ou un symbole accompagne systématiquement les codes couleur)
+• Structure de titres hiérarchisée et zones de page identifiées (en-tête, navigation, contenu principal, pied de page)
+• Zones de clic suffisamment grandes sur mobile
+• Compatibilité avec l'agrandissement du texte jusqu'à 200 %
+• Respect du réglage système de réduction des animations
+
+3. ÉTAT DE CONFORMITÉ
+
+Ce site n'a pas fait l'objet d'un audit d'accessibilité externe certifié. Il est déclaré partiellement conforme aux recommandations WCAG 2.1 niveau AA, cette déclaration reposant sur une auto-évaluation.
+
+Limitations connues à ce jour :
+• La signature manuscrite de l'état des lieux nécessite l'usage d'un dispositif de pointage (doigt ou souris). Une alternative est disponible : contactez-nous pour réaliser l'état des lieux par un autre moyen.
+• Certaines photographies téléversées par les utilisateurs ne disposent pas de description alternative détaillée.
+
+4. RETOUR ET CONTACT
+
+Si vous rencontrez une difficulté d'accès à un contenu ou à un service de ce site, contactez-nous à ${EMAIL_CONTACT} ou au ${TELEPHONE_CONTACT}. Nous vous répondrons dans les meilleurs délais et vous proposerons une alternative adaptée pour accéder à l'information ou finaliser votre réservation.
+
+5. VOIE DE RECOURS
+
+Si vous constatez un défaut d'accessibilité vous empêchant d'accéder à un contenu ou à une fonctionnalité et que vous n'obtenez pas de réponse satisfaisante de notre part, vous êtes en droit de saisir le Défenseur des droits :
+• Formulaire en ligne : www.defenseurdesdroits.fr
+• Par téléphone : 09 69 39 00 00
+• Par courrier (gratuit, sans timbre) : Défenseur des droits, Libre réponse 71120, 75342 Paris CEDEX 07`;
 // ─── SVG Vagues ───────────────────────────────────────────────────────────────
 function Waves() {
   return (
@@ -458,11 +634,22 @@ function StepDot({ n, active, done }) {
   );
 }
 
+// Notation par étoiles — de vrais boutons radio accessibles : navigables au
+// clavier (Tabulation + Entrée/Espace) et annoncés par les lecteurs d'écran.
 function Stars({ value, onChange }) {
   return (
-    <div style={{ display: "flex", gap: 8, justifyContent: "center", margin: "8px 0" }}>
+    <div role="radiogroup" aria-label="Note de 1 à 5 étoiles" style={{ display: "flex", gap: 8, justifyContent: "center", margin: "8px 0" }}>
       {[1, 2, 3, 4, 5].map(s => (
-        <span key={s} onClick={() => onChange(s)} style={{ fontSize: 34, cursor: "pointer", filter: s <= value ? "none" : "grayscale(1) opacity(.35)", transition: "filter .2s" }}>⭐</span>
+        <button
+          key={s}
+          type="button"
+          role="radio"
+          aria-checked={s === value}
+          aria-label={`${s} étoile${s > 1 ? "s" : ""} sur 5`}
+          onClick={() => onChange(s)}
+          style={{ fontSize: 34, cursor: "pointer", background: "none", border: "none", padding: 2, lineHeight: 1, filter: s <= value ? "none" : "grayscale(1) opacity(.35)", transition: "filter .2s" }}>
+          <span aria-hidden="true">⭐</span>
+        </button>
       ))}
     </div>
   );
@@ -960,7 +1147,7 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
                 <button title="Photo principale" onClick={()=>setBrouillon(a=>({...a,photoUne:i}))} style={{ width:30,height:30,borderRadius:7,border:"none",background:brouillon.photoUne===i?"#f0c040":"#e8f4f7",cursor:"pointer",fontSize:14 }}>⭐</button>
                 <button title="Monter" onClick={()=>setBrouillon(a=>{if(i===0)return a;const p=[...a.photos];[p[i-1],p[i]]=[p[i],p[i-1]];return{...a,photos:p,photoUne:a.photoUne===i?i-1:a.photoUne===i-1?i:a.photoUne};})} disabled={i===0} style={{ width:30,height:30,borderRadius:7,border:"none",background:"#e8f4f7",cursor:i===0?"not-allowed":"pointer",fontSize:12,opacity:i===0?.4:1 }}>▲</button>
                 <button title="Descendre" onClick={()=>setBrouillon(a=>{if(i===a.photos.length-1)return a;const p=[...a.photos];[p[i],p[i+1]]=[p[i+1],p[i]];return{...a,photos:p,photoUne:a.photoUne===i?i+1:a.photoUne===i+1?i:a.photoUne};})} disabled={i===brouillon.photos.length-1} style={{ width:30,height:30,borderRadius:7,border:"none",background:"#e8f4f7",cursor:i===brouillon.photos.length-1?"not-allowed":"pointer",fontSize:12,opacity:i===brouillon.photos.length-1?.4:1 }}>▼</button>
-                <button title="Supprimer" onClick={()=>setBrouillon(a=>{const p=a.photos.filter((_,j)=>j!==i);return{...a,photos:p,photoUne:p.length===0?null:a.photoUne===i?0:a.photoUne>i?a.photoUne-1:a.photoUne};})} style={{ width:30,height:30,borderRadius:7,border:"none",background:"#fff0f0",color:"#FF6B6B",cursor:"pointer",fontSize:14 }}>🗑</button>
+                <button title="Supprimer" onClick={()=>setBrouillon(a=>{const p=a.photos.filter((_,j)=>j!==i);return{...a,photos:p,photoUne:p.length===0?null:a.photoUne===i?0:a.photoUne>i?a.photoUne-1:a.photoUne};})} style={{ width:30,height:30,borderRadius:7,border:"none",background:"#fff0f0",color:"#FF6B6B",cursor:"pointer",fontSize:14 }}aria-label={`Supprimer la photo ${i+1}`}>🗑</button>
               </div>
             </div>
           ))}
@@ -997,7 +1184,7 @@ function GestionAnnonce({ annonce, setAnnonce, onVoir }) {
                 <textarea value={p.texte} onChange={e=>setBrouillon(a=>({...a, precisions:a.precisions.map((x,j)=>j===i?{...x,texte:e.target.value}:x)}))}
                   style={{ flex:1, padding:"6px 8px", borderRadius:6, fontSize:12, border:"1px solid #d8d8d8", outline:"none", background:"#fff", boxSizing:"border-box", resize:"vertical", minHeight:36, lineHeight:1.5 }}/>
                 <button onClick={()=>setBrouillon(a=>({...a, precisions:a.precisions.filter((_,j)=>j!==i)}))}
-                  style={{ width:28, height:28, borderRadius:6, border:"none", background:"#fff0f0", color:"#FF6B6B", cursor:"pointer", fontSize:13, flexShrink:0 }}>🗑</button>
+                  style={{ width:28, height:28, borderRadius:6, border:"none", background:"#fff0f0", color:"#FF6B6B", cursor:"pointer", fontSize:13, flexShrink:0 }}aria-label={`Supprimer la précision ${i+1}`}>🗑</button>
               </div>
             ))}
             {/* Ajout nouvelle règle */}
@@ -2799,6 +2986,10 @@ export default function App() {
       </div>
       {/* Bouton flottant WhatsApp — uniquement côté client, pas sur le tableau de bord propriétaire/admin */}
       {mode !== "proprio" && <BoutonWhatsApp />}
+      {/* Cible du lien d'évitement « Aller au contenu principal » (voir index.html).
+          Placée ici, elle existe sur toutes les pages puisque toutes affichent le Header.
+          tabIndex -1 : non atteignable par Tabulation, mais peut recevoir le focus par ancre. */}
+      <span id="contenu-principal" tabIndex={-1} />
       </>
     );
   }
@@ -3002,22 +3193,41 @@ export default function App() {
   );
 
   // ── PAGES LÉGALES (Politique de confidentialité & CGU) ───────────────────
-  if (mode === "confidentialite" || mode === "cgu") return (
-    <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
-      <Header showSteps={false} />
-      <div style={{ padding: "16px 16px 32px" }}>
-        <div style={card}>
-          <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:19, color:"#07a0f2", fontWeight:700, marginBottom:14 }}>
-            {mode === "confidentialite" ? "🔒 Politique de confidentialité" : "📜 Conditions générales d'utilisation"}
+  if (mode === "confidentialite" || mode === "cgu" || mode === "mentions" || mode === "accessibilite") {
+    const pagesLegales = {
+      confidentialite: ["🔒 Politique de confidentialité", POLITIQUE_CONFIDENTIALITE],
+      cgu: ["📜 Conditions générales de vente et d'utilisation", CGU_TEXTE],
+      mentions: ["🏛️ Mentions légales", MENTIONS_LEGALES],
+      accessibilite: ["♿ Déclaration d'accessibilité", DECLARATION_ACCESSIBILITE],
+    };
+    const [titreLegal, texteLegal] = pagesLegales[mode];
+    return (
+      <div style={{ fontFamily: "Inter,sans-serif", background: "#f8f9fa", minHeight: "100vh" }}>
+        <Header showSteps={false} />
+        <main style={{ padding: "16px 16px 32px" }}>
+          <div style={card}>
+            <h1 style={{ fontFamily:"'Nunito',sans-serif", fontSize:19, color:"#07a0f2", fontWeight:700, marginBottom:14, marginTop:0 }}>
+              {titreLegal}
+            </h1>
+            {/* tabIndex 0 : la zone défilante doit rester atteignable au clavier */}
+            <div tabIndex={0} style={{ background:"#f0f9ff", borderRadius:10, padding:"14px 16px", fontSize:13, color:"#2C3E50", lineHeight:1.7, whiteSpace:"pre-line", border:"1px solid #b8e0f8", maxHeight:480, overflowY:"auto" }}>
+              {texteLegal}
+            </div>
+            {/* Navigation entre les pages légales */}
+            <nav aria-label="Autres pages légales" style={{ display:"flex", flexWrap:"wrap", gap:8, marginTop:14 }}>
+              {Object.entries(pagesLegales).filter(([k]) => k !== mode).map(([k, [titre]]) => (
+                <button key={k} onClick={() => setMode(k)}
+                  style={{ padding:"7px 14px", borderRadius:50, background:"#fff", color:"#07a0f2", border:"1.5px solid #b8e0f8", fontWeight:600, fontSize:12, cursor:"pointer" }}>
+                  {titre}
+                </button>
+              ))}
+            </nav>
           </div>
-          <div style={{ background:"#f0f9ff", borderRadius:10, padding:"14px 16px", fontSize:13, color:"#2C3E50", lineHeight:1.7, whiteSpace:"pre-line", border:"1px solid #b8e0f8", maxHeight:480, overflowY:"auto" }}>
-            {mode === "confidentialite" ? POLITIQUE_CONFIDENTIALITE : CGU_TEXTE}
-          </div>
-        </div>
-        <button style={btnS} onClick={() => setMode(modeOrigineAvantLegal)}>← Retour</button>
+          <button style={btnS} onClick={() => setMode(modeOrigineAvantLegal)}>← Retour</button>
+        </main>
       </div>
-    </div>
-  );
+    );
+  }
 
   // ── PAGE ACCUEIL ──────────────────────────────────────────────────────────
   if (mode === "accueil") {
@@ -3119,11 +3329,28 @@ export default function App() {
             ))}
           </div>
         )}
-        <div style={{ textAlign:"center", marginTop:18, fontSize:11, color:"#aaa" }}>
-          <span onClick={() => { setModeOrigineAvantLegal("accueil"); setMode("confidentialite"); }} style={{ cursor:"pointer", textDecoration:"underline" }}>Confidentialité</span>
-          {" · "}
-          <span onClick={() => { setModeOrigineAvantLegal("accueil"); setMode("cgu"); }} style={{ cursor:"pointer", textDecoration:"underline" }}>CGU</span>
-        </div>
+        {/* Pied de page légal — obligations d'information (LCEN, RGPD, accessibilité).
+            De vrais <button> plutôt que des <span> : navigables au clavier et
+            annoncés correctement par les lecteurs d'écran. */}
+        <footer style={{ textAlign:"center", marginTop:18, fontSize:12, color:"#6b7f8c", lineHeight:1.9 }}>
+          <nav aria-label="Informations légales" style={{ display:"flex", flexWrap:"wrap", gap:"4px 10px", justifyContent:"center" }}>
+            {[
+              ["mentions", "Mentions légales"],
+              ["confidentialite", "Confidentialité"],
+              ["cgu", "CGV / CGU"],
+              ["accessibilite", "Accessibilité"],
+            ].map(([cle, libelle]) => (
+              <button key={cle} onClick={() => { setModeOrigineAvantLegal("accueil"); setMode(cle); }}
+                style={{ background:"none", border:"none", padding:"2px 4px", color:"#0480c4", fontSize:12, fontFamily:"inherit", cursor:"pointer", textDecoration:"underline" }}>
+                {libelle}
+              </button>
+            ))}
+          </nav>
+          <div style={{ marginTop:6, fontSize:11, color:"#6b7f8c" }}>
+            {SOCIETE_NOM} — {SOCIETE_FORME} au capital de {SOCIETE_CAPITAL}<br />
+            {SOCIETE_ADRESSE} — {SOCIETE_RCS}
+          </div>
+        </footer>
       </div>
     </div>
   );
@@ -4262,7 +4489,7 @@ export default function App() {
                         {/* Modifier */}
                         <button onClick={()=>setExtraEnEdition(e.id)} style={{ width:30, height:30, borderRadius:7, border:"1.5px solid #07a0f2", background:"#e8f4f7", color:"#07a0f2", cursor:"pointer", fontSize:14, fontWeight:700 }}>✏️</button>
                         {/* Supprimer direct */}
-                        <button onClick={()=>{ if (window.confirm(`Supprimer définitivement l'extra "${e.nom}" ? Cette action est immédiate et irréversible. Pour le désactiver temporairement sans le perdre, utilise plutôt l'interrupteur à gauche.`)) { supprimerExtra(e.id); setExtras(prev=>prev.filter((_,j)=>j!==i)); } }} style={{ width:30, height:30, borderRadius:7, border:"none", background:"#fff0f0", color:"#FF6B6B", cursor:"pointer", fontSize:14 }}>🗑</button>
+                        <button onClick={()=>{ if (window.confirm(`Supprimer définitivement l'extra "${e.nom}" ? Cette action est immédiate et irréversible. Pour le désactiver temporairement sans le perdre, utilise plutôt l'interrupteur à gauche.`)) { supprimerExtra(e.id); setExtras(prev=>prev.filter((_,j)=>j!==i)); } }} style={{ width:30, height:30, borderRadius:7, border:"none", background:"#fff0f0", color:"#FF6B6B", cursor:"pointer", fontSize:14 }}aria-label={`Supprimer l'extra ${e.nom}`}>🗑</button>
                       </div>
                     </div>
                   )}
@@ -4371,7 +4598,7 @@ export default function App() {
                       setElementsEdl(prev => prev.filter(e => e !== item));
                       setInventaire(prev => { const n = { ...prev }; delete n[item]; return n; });
                       supprimerInventaireItem(item);
-                    }} style={{ marginLeft: 8, width: 28, height: 28, borderRadius: 7, border: "none", background: "#fff0f0", color: "#FF6B6B", cursor: "pointer", fontSize: 13, flexShrink: 0 }} title="Retirer cet élément">🗑</button>
+                    }} style={{ marginLeft: 8, width: 28, height: 28, borderRadius: 7, border: "none", background: "#fff0f0", color: "#FF6B6B", cursor: "pointer", fontSize: 13, flexShrink: 0 }} title="Retirer cet élément"aria-label={`Retirer ${item} de l'état des lieux`}>🗑</button>
                   </div>
                 </div>
               ))}
